@@ -1,0 +1,31 @@
+{
+  "ui": {
+    "seedColorHex": "#0062FF",
+    "showGoldenPointChip": true
+  },
+  "teams": [
+    {
+      "id": "team1",
+      "displayName": "Equipo A",
+      "colorHex": "#1E88E5",
+      "synonyms": ["azul", "equipo 1", "uno", "a"]
+    },
+    {
+      "id": "team2",
+      "displayName": "Equipo B",
+      "colorHex": "#E53935",
+      "synonyms": ["rojo", "equipo 2", "dos", "b"]
+    }
+  ],
+  "rules": {
+    "setsToWin": 2,
+    "tiebreakAtSixSix": true,
+    "tiebreakTarget": 7,
+    "goldenPoint": true,
+    "startingServerId": "team1"
+  },
+  "voice": {
+    "wakeWord": "marcador",
+    "language": "es-ES"
+  }
+}

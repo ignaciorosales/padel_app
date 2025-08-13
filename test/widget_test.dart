@@ -1,30 +1,83 @@
-// This is a basic Flutter widget test.
-//
-// To perform an interaction with a widget in your test, use the WidgetTester
-// utility in the flutter_test package. For example, you can send tap and scroll
-// gestures. You can also use WidgetTester to find child widgets in the widget
-// tree, read text, and verify that the values of widget properties are correct.
-
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
-import 'package:speech_to_text_min/main.dart';
+import 'package:speech_to_text_min/features/models/scoring_models.dart';
+import 'package:speech_to_text_min/features/scoring/bloc/scoring_bloc.dart';
+import 'package:speech_to_text_min/features/scoring/bloc/scoring_event.dart';
+import 'package:speech_to_text_min/features/scoring/bloc/scoring_state.dart';
+
+class _Harness extends StatelessWidget {
+  const _Harness({super.key});
+
+  String _labelFor(int v) {
+    if (v == 0) return '0';
+    if (v == 1) return '15';
+    if (v == 2) return '30';
+    if (v == 3) return '40';
+    return 'AD';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocProvider(
+      create: (_) {
+        final bloc = ScoringBloc();
+        // Initialize known rules; don't use const newMatch if payload isn't const.
+        bloc.add(
+          ScoringEvent.newMatch(
+            settings: const MatchSettings(
+              goldenPoint: true,
+              tieBreakAtSixSix: true,
+              tieBreakTarget: 7,
+              setsToWin: 2,
+            ),
+          ),
+        );
+        return bloc;
+      },
+      child: MaterialApp(
+        home: Scaffold(
+          body: SafeArea(
+            child: Column(
+              children: [
+                BlocBuilder<ScoringBloc, ScoringState>(
+                  builder: (context, state) {
+                    final gp = state.match.currentSet.currentGame.blue;
+                    return Text('BLUE:${_labelFor(gp)}');
+                  },
+                ),
+                const SizedBox(height: 12),
+                ElevatedButton(
+                  key: const Key('btnPointTeam1'),
+                  onPressed: () {
+                    context
+                        .read<ScoringBloc>()
+                        .add(const ScoringEvent.pointFor(Team.blue));
+                  },
+                  child: const Text('Punto Equipo 1'),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
 
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
-    await tester.pumpWidget(const MyApp());
+  testWidgets('Blue team increments to 15 with button', (tester) async {
+    await tester.pumpWidget(const _Harness());
 
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
-
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
+    // Pump once to process the newMatch event & first build.
     await tester.pump();
 
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+    expect(find.text('BLUE:0'), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('btnPointTeam1')));
+    await tester.pump(); // process bloc event
+
+    expect(find.text('BLUE:15'), findsOneWidget);
   });
 }
