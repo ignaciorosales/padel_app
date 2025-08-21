@@ -28,7 +28,7 @@ class _Harness extends StatelessWidget {
           ScoringEvent.newMatch(
             settings: const MatchSettings(
               goldenPoint: true,
-              tieBreakAtSixSix: true,
+              tieBreakAtGames: 6,
               tieBreakTarget: 7,
               setsToWin: 2,
             ),

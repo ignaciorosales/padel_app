@@ -40,16 +40,16 @@ class ControlBar extends StatelessWidget {
           label: const Text('Rehacer'),
         ),
         // Reglas (opcionales en UI)
-        OutlinedButton.icon(
-          onPressed: () => bloc.add(const ScoringEvent.toggleTieBreakAtSixSix(true)),
-          icon: const Icon(Icons.rule),
-          label: const Text('TB 6–6 ON'),
-        ),
-        OutlinedButton.icon(
-          onPressed: () => bloc.add(const ScoringEvent.toggleTieBreakAtSixSix(false)),
-          icon: const Icon(Icons.rule_folder),
-          label: const Text('TB 6–6 OFF'),
-        ),
+        // OutlinedButton.icon(
+        //   onPressed: () => bloc.add(const ScoringEvent.toggleTieBreakAtSixSix(true)),
+        //   icon: const Icon(Icons.rule),
+        //   label: const Text('TB 6–6 ON'),
+        // ),
+        // OutlinedButton.icon(
+        //   onPressed: () => bloc.add(const ScoringEvent.toggleTieBreakAtSixSix(false)),
+        //   icon: const Icon(Icons.rule_folder),
+        //   label: const Text('TB 6–6 OFF'),
+        // ),
         OutlinedButton.icon(
           onPressed: () => bloc.add(const ScoringEvent.toggleGoldenPoint(true)),
           icon: const Icon(Icons.star),

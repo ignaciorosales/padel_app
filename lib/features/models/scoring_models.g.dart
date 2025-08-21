@@ -6,42 +6,39 @@ part of 'scoring_models.dart';
 // JsonSerializableGenerator
 // **************************************************************************
 
-_$MatchSettingsImplImpl _$$MatchSettingsImplImplFromJson(
-  Map<String, dynamic> json,
-) => _$MatchSettingsImplImpl(
-  goldenPoint: json['goldenPoint'] as bool? ?? true,
-  tieBreakAtSixSix: json['tieBreakAtSixSix'] as bool? ?? true,
-  tieBreakTarget: (json['tieBreakTarget'] as num?)?.toInt() ?? 7,
-  setsToWin: (json['setsToWin'] as num?)?.toInt() ?? 2,
-);
+_$MatchSettingsImpl _$$MatchSettingsImplFromJson(Map<String, dynamic> json) =>
+    _$MatchSettingsImpl(
+      setsToWin: (json['setsToWin'] as num?)?.toInt() ?? 2,
+      tieBreakAtGames: (json['tieBreakAtGames'] as num?)?.toInt() ?? 6,
+      goldenPoint: json['goldenPoint'] as bool? ?? false,
+      tieBreakTarget: (json['tieBreakTarget'] as num?)?.toInt() ?? 7,
+    );
 
-Map<String, dynamic> _$$MatchSettingsImplImplToJson(
-  _$MatchSettingsImplImpl instance,
-) => <String, dynamic>{
-  'goldenPoint': instance.goldenPoint,
-  'tieBreakAtSixSix': instance.tieBreakAtSixSix,
-  'tieBreakTarget': instance.tieBreakTarget,
-  'setsToWin': instance.setsToWin,
-};
+Map<String, dynamic> _$$MatchSettingsImplToJson(_$MatchSettingsImpl instance) =>
+    <String, dynamic>{
+      'setsToWin': instance.setsToWin,
+      'tieBreakAtGames': instance.tieBreakAtGames,
+      'goldenPoint': instance.goldenPoint,
+      'tieBreakTarget': instance.tieBreakTarget,
+    };
 
-_$GamePointsImplImpl _$$GamePointsImplImplFromJson(Map<String, dynamic> json) =>
-    _$GamePointsImplImpl(
+_$GamePointsImpl _$$GamePointsImplFromJson(Map<String, dynamic> json) =>
+    _$GamePointsImpl(
       blue: (json['blue'] as num?)?.toInt() ?? 0,
       red: (json['red'] as num?)?.toInt() ?? 0,
       isTieBreak: json['isTieBreak'] as bool? ?? false,
     );
 
-Map<String, dynamic> _$$GamePointsImplImplToJson(
-  _$GamePointsImplImpl instance,
-) => <String, dynamic>{
-  'blue': instance.blue,
-  'red': instance.red,
-  'isTieBreak': instance.isTieBreak,
-};
+Map<String, dynamic> _$$GamePointsImplToJson(_$GamePointsImpl instance) =>
+    <String, dynamic>{
+      'blue': instance.blue,
+      'red': instance.red,
+      'isTieBreak': instance.isTieBreak,
+    };
 
-_$SetScoreImplImpl _$$SetScoreImplImplFromJson(
+_$SetScoreImpl _$$SetScoreImplFromJson(
   Map<String, dynamic> json,
-) => _$SetScoreImplImpl(
+) => _$SetScoreImpl(
   blueGames: (json['blueGames'] as num?)?.toInt() ?? 0,
   redGames: (json['redGames'] as num?)?.toInt() ?? 0,
   currentGame:
@@ -51,7 +48,7 @@ _$SetScoreImplImpl _$$SetScoreImplImplFromJson(
   tieBreakStarter: $enumDecodeNullable(_$TeamEnumMap, json['tieBreakStarter']),
 );
 
-Map<String, dynamic> _$$SetScoreImplImplToJson(_$SetScoreImplImpl instance) =>
+Map<String, dynamic> _$$SetScoreImplToJson(_$SetScoreImpl instance) =>
     <String, dynamic>{
       'blueGames': instance.blueGames,
       'redGames': instance.redGames,
@@ -61,9 +58,9 @@ Map<String, dynamic> _$$SetScoreImplImplToJson(_$SetScoreImplImpl instance) =>
 
 const _$TeamEnumMap = {Team.blue: 'blue', Team.red: 'red'};
 
-_$MatchScoreImplImpl _$$MatchScoreImplImplFromJson(
+_$MatchScoreImpl _$$MatchScoreImplFromJson(
   Map<String, dynamic> json,
-) => _$MatchScoreImplImpl(
+) => _$MatchScoreImpl(
   sets:
       (json['sets'] as List<dynamic>?)
           ?.map((e) => SetScore.fromJson(e as Map<String, dynamic>))
@@ -81,15 +78,14 @@ _$MatchScoreImplImpl _$$MatchScoreImplImplFromJson(
           : MatchSettings.fromJson(json['settings'] as Map<String, dynamic>),
 );
 
-Map<String, dynamic> _$$MatchScoreImplImplToJson(
-  _$MatchScoreImplImpl instance,
-) => <String, dynamic>{
-  'sets': instance.sets,
-  'currentSetIndex': instance.currentSetIndex,
-  'server': _$TeamEnumMap[instance.server]!,
-  'receiver': _$TeamEnumMap[instance.receiver]!,
-  'blueName': instance.blueName,
-  'redName': instance.redName,
-  'paused': instance.paused,
-  'settings': instance.settings,
-};
+Map<String, dynamic> _$$MatchScoreImplToJson(_$MatchScoreImpl instance) =>
+    <String, dynamic>{
+      'sets': instance.sets.map((e) => e.toJson()).toList(),
+      'currentSetIndex': instance.currentSetIndex,
+      'server': _$TeamEnumMap[instance.server]!,
+      'receiver': _$TeamEnumMap[instance.receiver]!,
+      'blueName': instance.blueName,
+      'redName': instance.redName,
+      'paused': instance.paused,
+      'settings': instance.settings.toJson(),
+    };

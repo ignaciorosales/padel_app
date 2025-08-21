@@ -28,11 +28,13 @@ mixin _$ScoringEvent {
     required TResult Function(Team team) forceGameFor,
     required TResult Function(Team team) forceSetFor,
     required TResult Function(int blue, int red) setExplicitGamePoints,
-    required TResult Function(bool enabled) toggleTieBreakAtSixSix,
+    required TResult Function(int games) toggleTieBreakGames,
     required TResult Function(bool enabled) toggleGoldenPoint,
     required TResult Function() announceScore,
     required TResult Function() undo,
     required TResult Function() redo,
+    required TResult Function(Team team) undoForTeam,
+    required TResult Function(String cmd) bleCommand,
   }) => throw _privateConstructorUsedError;
   @optionalTypeArgs
   TResult? whenOrNull<TResult extends Object?>({
@@ -44,11 +46,13 @@ mixin _$ScoringEvent {
     TResult? Function(Team team)? forceGameFor,
     TResult? Function(Team team)? forceSetFor,
     TResult? Function(int blue, int red)? setExplicitGamePoints,
-    TResult? Function(bool enabled)? toggleTieBreakAtSixSix,
+    TResult? Function(int games)? toggleTieBreakGames,
     TResult? Function(bool enabled)? toggleGoldenPoint,
     TResult? Function()? announceScore,
     TResult? Function()? undo,
     TResult? Function()? redo,
+    TResult? Function(Team team)? undoForTeam,
+    TResult? Function(String cmd)? bleCommand,
   }) => throw _privateConstructorUsedError;
   @optionalTypeArgs
   TResult maybeWhen<TResult extends Object?>({
@@ -60,11 +64,13 @@ mixin _$ScoringEvent {
     TResult Function(Team team)? forceGameFor,
     TResult Function(Team team)? forceSetFor,
     TResult Function(int blue, int red)? setExplicitGamePoints,
-    TResult Function(bool enabled)? toggleTieBreakAtSixSix,
+    TResult Function(int games)? toggleTieBreakGames,
     TResult Function(bool enabled)? toggleGoldenPoint,
     TResult Function()? announceScore,
     TResult Function()? undo,
     TResult Function()? redo,
+    TResult Function(Team team)? undoForTeam,
+    TResult Function(String cmd)? bleCommand,
     required TResult orElse(),
   }) => throw _privateConstructorUsedError;
   @optionalTypeArgs
@@ -78,11 +84,14 @@ mixin _$ScoringEvent {
     required TResult Function(ForceSetForEvent value) forceSetFor,
     required TResult Function(SetExplicitGamePointsEvent value)
     setExplicitGamePoints,
-    required TResult Function(ToggleTieRuleEvent value) toggleTieBreakAtSixSix,
+    required TResult Function(ToggleTieBreakGamesEvent value)
+    toggleTieBreakGames,
     required TResult Function(ToggleGoldenPointEvent value) toggleGoldenPoint,
     required TResult Function(AnnounceScoreEvent value) announceScore,
     required TResult Function(UndoEvent value) undo,
     required TResult Function(RedoEvent value) redo,
+    required TResult Function(UndoForTeamEvent value) undoForTeam,
+    required TResult Function(BleCommandEvent value) bleCommand,
   }) => throw _privateConstructorUsedError;
   @optionalTypeArgs
   TResult? mapOrNull<TResult extends Object?>({
@@ -94,11 +103,13 @@ mixin _$ScoringEvent {
     TResult? Function(ForceGameForEvent value)? forceGameFor,
     TResult? Function(ForceSetForEvent value)? forceSetFor,
     TResult? Function(SetExplicitGamePointsEvent value)? setExplicitGamePoints,
-    TResult? Function(ToggleTieRuleEvent value)? toggleTieBreakAtSixSix,
+    TResult? Function(ToggleTieBreakGamesEvent value)? toggleTieBreakGames,
     TResult? Function(ToggleGoldenPointEvent value)? toggleGoldenPoint,
     TResult? Function(AnnounceScoreEvent value)? announceScore,
     TResult? Function(UndoEvent value)? undo,
     TResult? Function(RedoEvent value)? redo,
+    TResult? Function(UndoForTeamEvent value)? undoForTeam,
+    TResult? Function(BleCommandEvent value)? bleCommand,
   }) => throw _privateConstructorUsedError;
   @optionalTypeArgs
   TResult maybeMap<TResult extends Object?>({
@@ -110,11 +121,13 @@ mixin _$ScoringEvent {
     TResult Function(ForceGameForEvent value)? forceGameFor,
     TResult Function(ForceSetForEvent value)? forceSetFor,
     TResult Function(SetExplicitGamePointsEvent value)? setExplicitGamePoints,
-    TResult Function(ToggleTieRuleEvent value)? toggleTieBreakAtSixSix,
+    TResult Function(ToggleTieBreakGamesEvent value)? toggleTieBreakGames,
     TResult Function(ToggleGoldenPointEvent value)? toggleGoldenPoint,
     TResult Function(AnnounceScoreEvent value)? announceScore,
     TResult Function(UndoEvent value)? undo,
     TResult Function(RedoEvent value)? redo,
+    TResult Function(UndoForTeamEvent value)? undoForTeam,
+    TResult Function(BleCommandEvent value)? bleCommand,
     required TResult orElse(),
   }) => throw _privateConstructorUsedError;
 }
@@ -247,11 +260,13 @@ class _$NewMatchEventImpl implements NewMatchEvent {
     required TResult Function(Team team) forceGameFor,
     required TResult Function(Team team) forceSetFor,
     required TResult Function(int blue, int red) setExplicitGamePoints,
-    required TResult Function(bool enabled) toggleTieBreakAtSixSix,
+    required TResult Function(int games) toggleTieBreakGames,
     required TResult Function(bool enabled) toggleGoldenPoint,
     required TResult Function() announceScore,
     required TResult Function() undo,
     required TResult Function() redo,
+    required TResult Function(Team team) undoForTeam,
+    required TResult Function(String cmd) bleCommand,
   }) {
     return newMatch(settings, startingServer);
   }
@@ -267,11 +282,13 @@ class _$NewMatchEventImpl implements NewMatchEvent {
     TResult? Function(Team team)? forceGameFor,
     TResult? Function(Team team)? forceSetFor,
     TResult? Function(int blue, int red)? setExplicitGamePoints,
-    TResult? Function(bool enabled)? toggleTieBreakAtSixSix,
+    TResult? Function(int games)? toggleTieBreakGames,
     TResult? Function(bool enabled)? toggleGoldenPoint,
     TResult? Function()? announceScore,
     TResult? Function()? undo,
     TResult? Function()? redo,
+    TResult? Function(Team team)? undoForTeam,
+    TResult? Function(String cmd)? bleCommand,
   }) {
     return newMatch?.call(settings, startingServer);
   }
@@ -287,11 +304,13 @@ class _$NewMatchEventImpl implements NewMatchEvent {
     TResult Function(Team team)? forceGameFor,
     TResult Function(Team team)? forceSetFor,
     TResult Function(int blue, int red)? setExplicitGamePoints,
-    TResult Function(bool enabled)? toggleTieBreakAtSixSix,
+    TResult Function(int games)? toggleTieBreakGames,
     TResult Function(bool enabled)? toggleGoldenPoint,
     TResult Function()? announceScore,
     TResult Function()? undo,
     TResult Function()? redo,
+    TResult Function(Team team)? undoForTeam,
+    TResult Function(String cmd)? bleCommand,
     required TResult orElse(),
   }) {
     if (newMatch != null) {
@@ -312,11 +331,14 @@ class _$NewMatchEventImpl implements NewMatchEvent {
     required TResult Function(ForceSetForEvent value) forceSetFor,
     required TResult Function(SetExplicitGamePointsEvent value)
     setExplicitGamePoints,
-    required TResult Function(ToggleTieRuleEvent value) toggleTieBreakAtSixSix,
+    required TResult Function(ToggleTieBreakGamesEvent value)
+    toggleTieBreakGames,
     required TResult Function(ToggleGoldenPointEvent value) toggleGoldenPoint,
     required TResult Function(AnnounceScoreEvent value) announceScore,
     required TResult Function(UndoEvent value) undo,
     required TResult Function(RedoEvent value) redo,
+    required TResult Function(UndoForTeamEvent value) undoForTeam,
+    required TResult Function(BleCommandEvent value) bleCommand,
   }) {
     return newMatch(this);
   }
@@ -332,11 +354,13 @@ class _$NewMatchEventImpl implements NewMatchEvent {
     TResult? Function(ForceGameForEvent value)? forceGameFor,
     TResult? Function(ForceSetForEvent value)? forceSetFor,
     TResult? Function(SetExplicitGamePointsEvent value)? setExplicitGamePoints,
-    TResult? Function(ToggleTieRuleEvent value)? toggleTieBreakAtSixSix,
+    TResult? Function(ToggleTieBreakGamesEvent value)? toggleTieBreakGames,
     TResult? Function(ToggleGoldenPointEvent value)? toggleGoldenPoint,
     TResult? Function(AnnounceScoreEvent value)? announceScore,
     TResult? Function(UndoEvent value)? undo,
     TResult? Function(RedoEvent value)? redo,
+    TResult? Function(UndoForTeamEvent value)? undoForTeam,
+    TResult? Function(BleCommandEvent value)? bleCommand,
   }) {
     return newMatch?.call(this);
   }
@@ -352,11 +376,13 @@ class _$NewMatchEventImpl implements NewMatchEvent {
     TResult Function(ForceGameForEvent value)? forceGameFor,
     TResult Function(ForceSetForEvent value)? forceSetFor,
     TResult Function(SetExplicitGamePointsEvent value)? setExplicitGamePoints,
-    TResult Function(ToggleTieRuleEvent value)? toggleTieBreakAtSixSix,
+    TResult Function(ToggleTieBreakGamesEvent value)? toggleTieBreakGames,
     TResult Function(ToggleGoldenPointEvent value)? toggleGoldenPoint,
     TResult Function(AnnounceScoreEvent value)? announceScore,
     TResult Function(UndoEvent value)? undo,
     TResult Function(RedoEvent value)? redo,
+    TResult Function(UndoForTeamEvent value)? undoForTeam,
+    TResult Function(BleCommandEvent value)? bleCommand,
     required TResult orElse(),
   }) {
     if (newMatch != null) {
@@ -434,11 +460,13 @@ class _$NewSetEventImpl implements NewSetEvent {
     required TResult Function(Team team) forceGameFor,
     required TResult Function(Team team) forceSetFor,
     required TResult Function(int blue, int red) setExplicitGamePoints,
-    required TResult Function(bool enabled) toggleTieBreakAtSixSix,
+    required TResult Function(int games) toggleTieBreakGames,
     required TResult Function(bool enabled) toggleGoldenPoint,
     required TResult Function() announceScore,
     required TResult Function() undo,
     required TResult Function() redo,
+    required TResult Function(Team team) undoForTeam,
+    required TResult Function(String cmd) bleCommand,
   }) {
     return newSet();
   }
@@ -454,11 +482,13 @@ class _$NewSetEventImpl implements NewSetEvent {
     TResult? Function(Team team)? forceGameFor,
     TResult? Function(Team team)? forceSetFor,
     TResult? Function(int blue, int red)? setExplicitGamePoints,
-    TResult? Function(bool enabled)? toggleTieBreakAtSixSix,
+    TResult? Function(int games)? toggleTieBreakGames,
     TResult? Function(bool enabled)? toggleGoldenPoint,
     TResult? Function()? announceScore,
     TResult? Function()? undo,
     TResult? Function()? redo,
+    TResult? Function(Team team)? undoForTeam,
+    TResult? Function(String cmd)? bleCommand,
   }) {
     return newSet?.call();
   }
@@ -474,11 +504,13 @@ class _$NewSetEventImpl implements NewSetEvent {
     TResult Function(Team team)? forceGameFor,
     TResult Function(Team team)? forceSetFor,
     TResult Function(int blue, int red)? setExplicitGamePoints,
-    TResult Function(bool enabled)? toggleTieBreakAtSixSix,
+    TResult Function(int games)? toggleTieBreakGames,
     TResult Function(bool enabled)? toggleGoldenPoint,
     TResult Function()? announceScore,
     TResult Function()? undo,
     TResult Function()? redo,
+    TResult Function(Team team)? undoForTeam,
+    TResult Function(String cmd)? bleCommand,
     required TResult orElse(),
   }) {
     if (newSet != null) {
@@ -499,11 +531,14 @@ class _$NewSetEventImpl implements NewSetEvent {
     required TResult Function(ForceSetForEvent value) forceSetFor,
     required TResult Function(SetExplicitGamePointsEvent value)
     setExplicitGamePoints,
-    required TResult Function(ToggleTieRuleEvent value) toggleTieBreakAtSixSix,
+    required TResult Function(ToggleTieBreakGamesEvent value)
+    toggleTieBreakGames,
     required TResult Function(ToggleGoldenPointEvent value) toggleGoldenPoint,
     required TResult Function(AnnounceScoreEvent value) announceScore,
     required TResult Function(UndoEvent value) undo,
     required TResult Function(RedoEvent value) redo,
+    required TResult Function(UndoForTeamEvent value) undoForTeam,
+    required TResult Function(BleCommandEvent value) bleCommand,
   }) {
     return newSet(this);
   }
@@ -519,11 +554,13 @@ class _$NewSetEventImpl implements NewSetEvent {
     TResult? Function(ForceGameForEvent value)? forceGameFor,
     TResult? Function(ForceSetForEvent value)? forceSetFor,
     TResult? Function(SetExplicitGamePointsEvent value)? setExplicitGamePoints,
-    TResult? Function(ToggleTieRuleEvent value)? toggleTieBreakAtSixSix,
+    TResult? Function(ToggleTieBreakGamesEvent value)? toggleTieBreakGames,
     TResult? Function(ToggleGoldenPointEvent value)? toggleGoldenPoint,
     TResult? Function(AnnounceScoreEvent value)? announceScore,
     TResult? Function(UndoEvent value)? undo,
     TResult? Function(RedoEvent value)? redo,
+    TResult? Function(UndoForTeamEvent value)? undoForTeam,
+    TResult? Function(BleCommandEvent value)? bleCommand,
   }) {
     return newSet?.call(this);
   }
@@ -539,11 +576,13 @@ class _$NewSetEventImpl implements NewSetEvent {
     TResult Function(ForceGameForEvent value)? forceGameFor,
     TResult Function(ForceSetForEvent value)? forceSetFor,
     TResult Function(SetExplicitGamePointsEvent value)? setExplicitGamePoints,
-    TResult Function(ToggleTieRuleEvent value)? toggleTieBreakAtSixSix,
+    TResult Function(ToggleTieBreakGamesEvent value)? toggleTieBreakGames,
     TResult Function(ToggleGoldenPointEvent value)? toggleGoldenPoint,
     TResult Function(AnnounceScoreEvent value)? announceScore,
     TResult Function(UndoEvent value)? undo,
     TResult Function(RedoEvent value)? redo,
+    TResult Function(UndoForTeamEvent value)? undoForTeam,
+    TResult Function(BleCommandEvent value)? bleCommand,
     required TResult orElse(),
   }) {
     if (newSet != null) {
@@ -609,11 +648,13 @@ class _$NewGameEventImpl implements NewGameEvent {
     required TResult Function(Team team) forceGameFor,
     required TResult Function(Team team) forceSetFor,
     required TResult Function(int blue, int red) setExplicitGamePoints,
-    required TResult Function(bool enabled) toggleTieBreakAtSixSix,
+    required TResult Function(int games) toggleTieBreakGames,
     required TResult Function(bool enabled) toggleGoldenPoint,
     required TResult Function() announceScore,
     required TResult Function() undo,
     required TResult Function() redo,
+    required TResult Function(Team team) undoForTeam,
+    required TResult Function(String cmd) bleCommand,
   }) {
     return newGame();
   }
@@ -629,11 +670,13 @@ class _$NewGameEventImpl implements NewGameEvent {
     TResult? Function(Team team)? forceGameFor,
     TResult? Function(Team team)? forceSetFor,
     TResult? Function(int blue, int red)? setExplicitGamePoints,
-    TResult? Function(bool enabled)? toggleTieBreakAtSixSix,
+    TResult? Function(int games)? toggleTieBreakGames,
     TResult? Function(bool enabled)? toggleGoldenPoint,
     TResult? Function()? announceScore,
     TResult? Function()? undo,
     TResult? Function()? redo,
+    TResult? Function(Team team)? undoForTeam,
+    TResult? Function(String cmd)? bleCommand,
   }) {
     return newGame?.call();
   }
@@ -649,11 +692,13 @@ class _$NewGameEventImpl implements NewGameEvent {
     TResult Function(Team team)? forceGameFor,
     TResult Function(Team team)? forceSetFor,
     TResult Function(int blue, int red)? setExplicitGamePoints,
-    TResult Function(bool enabled)? toggleTieBreakAtSixSix,
+    TResult Function(int games)? toggleTieBreakGames,
     TResult Function(bool enabled)? toggleGoldenPoint,
     TResult Function()? announceScore,
     TResult Function()? undo,
     TResult Function()? redo,
+    TResult Function(Team team)? undoForTeam,
+    TResult Function(String cmd)? bleCommand,
     required TResult orElse(),
   }) {
     if (newGame != null) {
@@ -674,11 +719,14 @@ class _$NewGameEventImpl implements NewGameEvent {
     required TResult Function(ForceSetForEvent value) forceSetFor,
     required TResult Function(SetExplicitGamePointsEvent value)
     setExplicitGamePoints,
-    required TResult Function(ToggleTieRuleEvent value) toggleTieBreakAtSixSix,
+    required TResult Function(ToggleTieBreakGamesEvent value)
+    toggleTieBreakGames,
     required TResult Function(ToggleGoldenPointEvent value) toggleGoldenPoint,
     required TResult Function(AnnounceScoreEvent value) announceScore,
     required TResult Function(UndoEvent value) undo,
     required TResult Function(RedoEvent value) redo,
+    required TResult Function(UndoForTeamEvent value) undoForTeam,
+    required TResult Function(BleCommandEvent value) bleCommand,
   }) {
     return newGame(this);
   }
@@ -694,11 +742,13 @@ class _$NewGameEventImpl implements NewGameEvent {
     TResult? Function(ForceGameForEvent value)? forceGameFor,
     TResult? Function(ForceSetForEvent value)? forceSetFor,
     TResult? Function(SetExplicitGamePointsEvent value)? setExplicitGamePoints,
-    TResult? Function(ToggleTieRuleEvent value)? toggleTieBreakAtSixSix,
+    TResult? Function(ToggleTieBreakGamesEvent value)? toggleTieBreakGames,
     TResult? Function(ToggleGoldenPointEvent value)? toggleGoldenPoint,
     TResult? Function(AnnounceScoreEvent value)? announceScore,
     TResult? Function(UndoEvent value)? undo,
     TResult? Function(RedoEvent value)? redo,
+    TResult? Function(UndoForTeamEvent value)? undoForTeam,
+    TResult? Function(BleCommandEvent value)? bleCommand,
   }) {
     return newGame?.call(this);
   }
@@ -714,11 +764,13 @@ class _$NewGameEventImpl implements NewGameEvent {
     TResult Function(ForceGameForEvent value)? forceGameFor,
     TResult Function(ForceSetForEvent value)? forceSetFor,
     TResult Function(SetExplicitGamePointsEvent value)? setExplicitGamePoints,
-    TResult Function(ToggleTieRuleEvent value)? toggleTieBreakAtSixSix,
+    TResult Function(ToggleTieBreakGamesEvent value)? toggleTieBreakGames,
     TResult Function(ToggleGoldenPointEvent value)? toggleGoldenPoint,
     TResult Function(AnnounceScoreEvent value)? announceScore,
     TResult Function(UndoEvent value)? undo,
     TResult Function(RedoEvent value)? redo,
+    TResult Function(UndoForTeamEvent value)? undoForTeam,
+    TResult Function(BleCommandEvent value)? bleCommand,
     required TResult orElse(),
   }) {
     if (newGame != null) {
@@ -811,11 +863,13 @@ class _$PointForEventImpl implements PointForEvent {
     required TResult Function(Team team) forceGameFor,
     required TResult Function(Team team) forceSetFor,
     required TResult Function(int blue, int red) setExplicitGamePoints,
-    required TResult Function(bool enabled) toggleTieBreakAtSixSix,
+    required TResult Function(int games) toggleTieBreakGames,
     required TResult Function(bool enabled) toggleGoldenPoint,
     required TResult Function() announceScore,
     required TResult Function() undo,
     required TResult Function() redo,
+    required TResult Function(Team team) undoForTeam,
+    required TResult Function(String cmd) bleCommand,
   }) {
     return pointFor(team);
   }
@@ -831,11 +885,13 @@ class _$PointForEventImpl implements PointForEvent {
     TResult? Function(Team team)? forceGameFor,
     TResult? Function(Team team)? forceSetFor,
     TResult? Function(int blue, int red)? setExplicitGamePoints,
-    TResult? Function(bool enabled)? toggleTieBreakAtSixSix,
+    TResult? Function(int games)? toggleTieBreakGames,
     TResult? Function(bool enabled)? toggleGoldenPoint,
     TResult? Function()? announceScore,
     TResult? Function()? undo,
     TResult? Function()? redo,
+    TResult? Function(Team team)? undoForTeam,
+    TResult? Function(String cmd)? bleCommand,
   }) {
     return pointFor?.call(team);
   }
@@ -851,11 +907,13 @@ class _$PointForEventImpl implements PointForEvent {
     TResult Function(Team team)? forceGameFor,
     TResult Function(Team team)? forceSetFor,
     TResult Function(int blue, int red)? setExplicitGamePoints,
-    TResult Function(bool enabled)? toggleTieBreakAtSixSix,
+    TResult Function(int games)? toggleTieBreakGames,
     TResult Function(bool enabled)? toggleGoldenPoint,
     TResult Function()? announceScore,
     TResult Function()? undo,
     TResult Function()? redo,
+    TResult Function(Team team)? undoForTeam,
+    TResult Function(String cmd)? bleCommand,
     required TResult orElse(),
   }) {
     if (pointFor != null) {
@@ -876,11 +934,14 @@ class _$PointForEventImpl implements PointForEvent {
     required TResult Function(ForceSetForEvent value) forceSetFor,
     required TResult Function(SetExplicitGamePointsEvent value)
     setExplicitGamePoints,
-    required TResult Function(ToggleTieRuleEvent value) toggleTieBreakAtSixSix,
+    required TResult Function(ToggleTieBreakGamesEvent value)
+    toggleTieBreakGames,
     required TResult Function(ToggleGoldenPointEvent value) toggleGoldenPoint,
     required TResult Function(AnnounceScoreEvent value) announceScore,
     required TResult Function(UndoEvent value) undo,
     required TResult Function(RedoEvent value) redo,
+    required TResult Function(UndoForTeamEvent value) undoForTeam,
+    required TResult Function(BleCommandEvent value) bleCommand,
   }) {
     return pointFor(this);
   }
@@ -896,11 +957,13 @@ class _$PointForEventImpl implements PointForEvent {
     TResult? Function(ForceGameForEvent value)? forceGameFor,
     TResult? Function(ForceSetForEvent value)? forceSetFor,
     TResult? Function(SetExplicitGamePointsEvent value)? setExplicitGamePoints,
-    TResult? Function(ToggleTieRuleEvent value)? toggleTieBreakAtSixSix,
+    TResult? Function(ToggleTieBreakGamesEvent value)? toggleTieBreakGames,
     TResult? Function(ToggleGoldenPointEvent value)? toggleGoldenPoint,
     TResult? Function(AnnounceScoreEvent value)? announceScore,
     TResult? Function(UndoEvent value)? undo,
     TResult? Function(RedoEvent value)? redo,
+    TResult? Function(UndoForTeamEvent value)? undoForTeam,
+    TResult? Function(BleCommandEvent value)? bleCommand,
   }) {
     return pointFor?.call(this);
   }
@@ -916,11 +979,13 @@ class _$PointForEventImpl implements PointForEvent {
     TResult Function(ForceGameForEvent value)? forceGameFor,
     TResult Function(ForceSetForEvent value)? forceSetFor,
     TResult Function(SetExplicitGamePointsEvent value)? setExplicitGamePoints,
-    TResult Function(ToggleTieRuleEvent value)? toggleTieBreakAtSixSix,
+    TResult Function(ToggleTieBreakGamesEvent value)? toggleTieBreakGames,
     TResult Function(ToggleGoldenPointEvent value)? toggleGoldenPoint,
     TResult Function(AnnounceScoreEvent value)? announceScore,
     TResult Function(UndoEvent value)? undo,
     TResult Function(RedoEvent value)? redo,
+    TResult Function(UndoForTeamEvent value)? undoForTeam,
+    TResult Function(BleCommandEvent value)? bleCommand,
     required TResult orElse(),
   }) {
     if (pointFor != null) {
@@ -1024,11 +1089,13 @@ class _$RemovePointEventImpl implements RemovePointEvent {
     required TResult Function(Team team) forceGameFor,
     required TResult Function(Team team) forceSetFor,
     required TResult Function(int blue, int red) setExplicitGamePoints,
-    required TResult Function(bool enabled) toggleTieBreakAtSixSix,
+    required TResult Function(int games) toggleTieBreakGames,
     required TResult Function(bool enabled) toggleGoldenPoint,
     required TResult Function() announceScore,
     required TResult Function() undo,
     required TResult Function() redo,
+    required TResult Function(Team team) undoForTeam,
+    required TResult Function(String cmd) bleCommand,
   }) {
     return removePoint(team);
   }
@@ -1044,11 +1111,13 @@ class _$RemovePointEventImpl implements RemovePointEvent {
     TResult? Function(Team team)? forceGameFor,
     TResult? Function(Team team)? forceSetFor,
     TResult? Function(int blue, int red)? setExplicitGamePoints,
-    TResult? Function(bool enabled)? toggleTieBreakAtSixSix,
+    TResult? Function(int games)? toggleTieBreakGames,
     TResult? Function(bool enabled)? toggleGoldenPoint,
     TResult? Function()? announceScore,
     TResult? Function()? undo,
     TResult? Function()? redo,
+    TResult? Function(Team team)? undoForTeam,
+    TResult? Function(String cmd)? bleCommand,
   }) {
     return removePoint?.call(team);
   }
@@ -1064,11 +1133,13 @@ class _$RemovePointEventImpl implements RemovePointEvent {
     TResult Function(Team team)? forceGameFor,
     TResult Function(Team team)? forceSetFor,
     TResult Function(int blue, int red)? setExplicitGamePoints,
-    TResult Function(bool enabled)? toggleTieBreakAtSixSix,
+    TResult Function(int games)? toggleTieBreakGames,
     TResult Function(bool enabled)? toggleGoldenPoint,
     TResult Function()? announceScore,
     TResult Function()? undo,
     TResult Function()? redo,
+    TResult Function(Team team)? undoForTeam,
+    TResult Function(String cmd)? bleCommand,
     required TResult orElse(),
   }) {
     if (removePoint != null) {
@@ -1089,11 +1160,14 @@ class _$RemovePointEventImpl implements RemovePointEvent {
     required TResult Function(ForceSetForEvent value) forceSetFor,
     required TResult Function(SetExplicitGamePointsEvent value)
     setExplicitGamePoints,
-    required TResult Function(ToggleTieRuleEvent value) toggleTieBreakAtSixSix,
+    required TResult Function(ToggleTieBreakGamesEvent value)
+    toggleTieBreakGames,
     required TResult Function(ToggleGoldenPointEvent value) toggleGoldenPoint,
     required TResult Function(AnnounceScoreEvent value) announceScore,
     required TResult Function(UndoEvent value) undo,
     required TResult Function(RedoEvent value) redo,
+    required TResult Function(UndoForTeamEvent value) undoForTeam,
+    required TResult Function(BleCommandEvent value) bleCommand,
   }) {
     return removePoint(this);
   }
@@ -1109,11 +1183,13 @@ class _$RemovePointEventImpl implements RemovePointEvent {
     TResult? Function(ForceGameForEvent value)? forceGameFor,
     TResult? Function(ForceSetForEvent value)? forceSetFor,
     TResult? Function(SetExplicitGamePointsEvent value)? setExplicitGamePoints,
-    TResult? Function(ToggleTieRuleEvent value)? toggleTieBreakAtSixSix,
+    TResult? Function(ToggleTieBreakGamesEvent value)? toggleTieBreakGames,
     TResult? Function(ToggleGoldenPointEvent value)? toggleGoldenPoint,
     TResult? Function(AnnounceScoreEvent value)? announceScore,
     TResult? Function(UndoEvent value)? undo,
     TResult? Function(RedoEvent value)? redo,
+    TResult? Function(UndoForTeamEvent value)? undoForTeam,
+    TResult? Function(BleCommandEvent value)? bleCommand,
   }) {
     return removePoint?.call(this);
   }
@@ -1129,11 +1205,13 @@ class _$RemovePointEventImpl implements RemovePointEvent {
     TResult Function(ForceGameForEvent value)? forceGameFor,
     TResult Function(ForceSetForEvent value)? forceSetFor,
     TResult Function(SetExplicitGamePointsEvent value)? setExplicitGamePoints,
-    TResult Function(ToggleTieRuleEvent value)? toggleTieBreakAtSixSix,
+    TResult Function(ToggleTieBreakGamesEvent value)? toggleTieBreakGames,
     TResult Function(ToggleGoldenPointEvent value)? toggleGoldenPoint,
     TResult Function(AnnounceScoreEvent value)? announceScore,
     TResult Function(UndoEvent value)? undo,
     TResult Function(RedoEvent value)? redo,
+    TResult Function(UndoForTeamEvent value)? undoForTeam,
+    TResult Function(BleCommandEvent value)? bleCommand,
     required TResult orElse(),
   }) {
     if (removePoint != null) {
@@ -1237,11 +1315,13 @@ class _$ForceGameForEventImpl implements ForceGameForEvent {
     required TResult Function(Team team) forceGameFor,
     required TResult Function(Team team) forceSetFor,
     required TResult Function(int blue, int red) setExplicitGamePoints,
-    required TResult Function(bool enabled) toggleTieBreakAtSixSix,
+    required TResult Function(int games) toggleTieBreakGames,
     required TResult Function(bool enabled) toggleGoldenPoint,
     required TResult Function() announceScore,
     required TResult Function() undo,
     required TResult Function() redo,
+    required TResult Function(Team team) undoForTeam,
+    required TResult Function(String cmd) bleCommand,
   }) {
     return forceGameFor(team);
   }
@@ -1257,11 +1337,13 @@ class _$ForceGameForEventImpl implements ForceGameForEvent {
     TResult? Function(Team team)? forceGameFor,
     TResult? Function(Team team)? forceSetFor,
     TResult? Function(int blue, int red)? setExplicitGamePoints,
-    TResult? Function(bool enabled)? toggleTieBreakAtSixSix,
+    TResult? Function(int games)? toggleTieBreakGames,
     TResult? Function(bool enabled)? toggleGoldenPoint,
     TResult? Function()? announceScore,
     TResult? Function()? undo,
     TResult? Function()? redo,
+    TResult? Function(Team team)? undoForTeam,
+    TResult? Function(String cmd)? bleCommand,
   }) {
     return forceGameFor?.call(team);
   }
@@ -1277,11 +1359,13 @@ class _$ForceGameForEventImpl implements ForceGameForEvent {
     TResult Function(Team team)? forceGameFor,
     TResult Function(Team team)? forceSetFor,
     TResult Function(int blue, int red)? setExplicitGamePoints,
-    TResult Function(bool enabled)? toggleTieBreakAtSixSix,
+    TResult Function(int games)? toggleTieBreakGames,
     TResult Function(bool enabled)? toggleGoldenPoint,
     TResult Function()? announceScore,
     TResult Function()? undo,
     TResult Function()? redo,
+    TResult Function(Team team)? undoForTeam,
+    TResult Function(String cmd)? bleCommand,
     required TResult orElse(),
   }) {
     if (forceGameFor != null) {
@@ -1302,11 +1386,14 @@ class _$ForceGameForEventImpl implements ForceGameForEvent {
     required TResult Function(ForceSetForEvent value) forceSetFor,
     required TResult Function(SetExplicitGamePointsEvent value)
     setExplicitGamePoints,
-    required TResult Function(ToggleTieRuleEvent value) toggleTieBreakAtSixSix,
+    required TResult Function(ToggleTieBreakGamesEvent value)
+    toggleTieBreakGames,
     required TResult Function(ToggleGoldenPointEvent value) toggleGoldenPoint,
     required TResult Function(AnnounceScoreEvent value) announceScore,
     required TResult Function(UndoEvent value) undo,
     required TResult Function(RedoEvent value) redo,
+    required TResult Function(UndoForTeamEvent value) undoForTeam,
+    required TResult Function(BleCommandEvent value) bleCommand,
   }) {
     return forceGameFor(this);
   }
@@ -1322,11 +1409,13 @@ class _$ForceGameForEventImpl implements ForceGameForEvent {
     TResult? Function(ForceGameForEvent value)? forceGameFor,
     TResult? Function(ForceSetForEvent value)? forceSetFor,
     TResult? Function(SetExplicitGamePointsEvent value)? setExplicitGamePoints,
-    TResult? Function(ToggleTieRuleEvent value)? toggleTieBreakAtSixSix,
+    TResult? Function(ToggleTieBreakGamesEvent value)? toggleTieBreakGames,
     TResult? Function(ToggleGoldenPointEvent value)? toggleGoldenPoint,
     TResult? Function(AnnounceScoreEvent value)? announceScore,
     TResult? Function(UndoEvent value)? undo,
     TResult? Function(RedoEvent value)? redo,
+    TResult? Function(UndoForTeamEvent value)? undoForTeam,
+    TResult? Function(BleCommandEvent value)? bleCommand,
   }) {
     return forceGameFor?.call(this);
   }
@@ -1342,11 +1431,13 @@ class _$ForceGameForEventImpl implements ForceGameForEvent {
     TResult Function(ForceGameForEvent value)? forceGameFor,
     TResult Function(ForceSetForEvent value)? forceSetFor,
     TResult Function(SetExplicitGamePointsEvent value)? setExplicitGamePoints,
-    TResult Function(ToggleTieRuleEvent value)? toggleTieBreakAtSixSix,
+    TResult Function(ToggleTieBreakGamesEvent value)? toggleTieBreakGames,
     TResult Function(ToggleGoldenPointEvent value)? toggleGoldenPoint,
     TResult Function(AnnounceScoreEvent value)? announceScore,
     TResult Function(UndoEvent value)? undo,
     TResult Function(RedoEvent value)? redo,
+    TResult Function(UndoForTeamEvent value)? undoForTeam,
+    TResult Function(BleCommandEvent value)? bleCommand,
     required TResult orElse(),
   }) {
     if (forceGameFor != null) {
@@ -1450,11 +1541,13 @@ class _$ForceSetForEventImpl implements ForceSetForEvent {
     required TResult Function(Team team) forceGameFor,
     required TResult Function(Team team) forceSetFor,
     required TResult Function(int blue, int red) setExplicitGamePoints,
-    required TResult Function(bool enabled) toggleTieBreakAtSixSix,
+    required TResult Function(int games) toggleTieBreakGames,
     required TResult Function(bool enabled) toggleGoldenPoint,
     required TResult Function() announceScore,
     required TResult Function() undo,
     required TResult Function() redo,
+    required TResult Function(Team team) undoForTeam,
+    required TResult Function(String cmd) bleCommand,
   }) {
     return forceSetFor(team);
   }
@@ -1470,11 +1563,13 @@ class _$ForceSetForEventImpl implements ForceSetForEvent {
     TResult? Function(Team team)? forceGameFor,
     TResult? Function(Team team)? forceSetFor,
     TResult? Function(int blue, int red)? setExplicitGamePoints,
-    TResult? Function(bool enabled)? toggleTieBreakAtSixSix,
+    TResult? Function(int games)? toggleTieBreakGames,
     TResult? Function(bool enabled)? toggleGoldenPoint,
     TResult? Function()? announceScore,
     TResult? Function()? undo,
     TResult? Function()? redo,
+    TResult? Function(Team team)? undoForTeam,
+    TResult? Function(String cmd)? bleCommand,
   }) {
     return forceSetFor?.call(team);
   }
@@ -1490,11 +1585,13 @@ class _$ForceSetForEventImpl implements ForceSetForEvent {
     TResult Function(Team team)? forceGameFor,
     TResult Function(Team team)? forceSetFor,
     TResult Function(int blue, int red)? setExplicitGamePoints,
-    TResult Function(bool enabled)? toggleTieBreakAtSixSix,
+    TResult Function(int games)? toggleTieBreakGames,
     TResult Function(bool enabled)? toggleGoldenPoint,
     TResult Function()? announceScore,
     TResult Function()? undo,
     TResult Function()? redo,
+    TResult Function(Team team)? undoForTeam,
+    TResult Function(String cmd)? bleCommand,
     required TResult orElse(),
   }) {
     if (forceSetFor != null) {
@@ -1515,11 +1612,14 @@ class _$ForceSetForEventImpl implements ForceSetForEvent {
     required TResult Function(ForceSetForEvent value) forceSetFor,
     required TResult Function(SetExplicitGamePointsEvent value)
     setExplicitGamePoints,
-    required TResult Function(ToggleTieRuleEvent value) toggleTieBreakAtSixSix,
+    required TResult Function(ToggleTieBreakGamesEvent value)
+    toggleTieBreakGames,
     required TResult Function(ToggleGoldenPointEvent value) toggleGoldenPoint,
     required TResult Function(AnnounceScoreEvent value) announceScore,
     required TResult Function(UndoEvent value) undo,
     required TResult Function(RedoEvent value) redo,
+    required TResult Function(UndoForTeamEvent value) undoForTeam,
+    required TResult Function(BleCommandEvent value) bleCommand,
   }) {
     return forceSetFor(this);
   }
@@ -1535,11 +1635,13 @@ class _$ForceSetForEventImpl implements ForceSetForEvent {
     TResult? Function(ForceGameForEvent value)? forceGameFor,
     TResult? Function(ForceSetForEvent value)? forceSetFor,
     TResult? Function(SetExplicitGamePointsEvent value)? setExplicitGamePoints,
-    TResult? Function(ToggleTieRuleEvent value)? toggleTieBreakAtSixSix,
+    TResult? Function(ToggleTieBreakGamesEvent value)? toggleTieBreakGames,
     TResult? Function(ToggleGoldenPointEvent value)? toggleGoldenPoint,
     TResult? Function(AnnounceScoreEvent value)? announceScore,
     TResult? Function(UndoEvent value)? undo,
     TResult? Function(RedoEvent value)? redo,
+    TResult? Function(UndoForTeamEvent value)? undoForTeam,
+    TResult? Function(BleCommandEvent value)? bleCommand,
   }) {
     return forceSetFor?.call(this);
   }
@@ -1555,11 +1657,13 @@ class _$ForceSetForEventImpl implements ForceSetForEvent {
     TResult Function(ForceGameForEvent value)? forceGameFor,
     TResult Function(ForceSetForEvent value)? forceSetFor,
     TResult Function(SetExplicitGamePointsEvent value)? setExplicitGamePoints,
-    TResult Function(ToggleTieRuleEvent value)? toggleTieBreakAtSixSix,
+    TResult Function(ToggleTieBreakGamesEvent value)? toggleTieBreakGames,
     TResult Function(ToggleGoldenPointEvent value)? toggleGoldenPoint,
     TResult Function(AnnounceScoreEvent value)? announceScore,
     TResult Function(UndoEvent value)? undo,
     TResult Function(RedoEvent value)? redo,
+    TResult Function(UndoForTeamEvent value)? undoForTeam,
+    TResult Function(BleCommandEvent value)? bleCommand,
     required TResult orElse(),
   }) {
     if (forceSetFor != null) {
@@ -1674,11 +1778,13 @@ class _$SetExplicitGamePointsEventImpl implements SetExplicitGamePointsEvent {
     required TResult Function(Team team) forceGameFor,
     required TResult Function(Team team) forceSetFor,
     required TResult Function(int blue, int red) setExplicitGamePoints,
-    required TResult Function(bool enabled) toggleTieBreakAtSixSix,
+    required TResult Function(int games) toggleTieBreakGames,
     required TResult Function(bool enabled) toggleGoldenPoint,
     required TResult Function() announceScore,
     required TResult Function() undo,
     required TResult Function() redo,
+    required TResult Function(Team team) undoForTeam,
+    required TResult Function(String cmd) bleCommand,
   }) {
     return setExplicitGamePoints(blue, red);
   }
@@ -1694,11 +1800,13 @@ class _$SetExplicitGamePointsEventImpl implements SetExplicitGamePointsEvent {
     TResult? Function(Team team)? forceGameFor,
     TResult? Function(Team team)? forceSetFor,
     TResult? Function(int blue, int red)? setExplicitGamePoints,
-    TResult? Function(bool enabled)? toggleTieBreakAtSixSix,
+    TResult? Function(int games)? toggleTieBreakGames,
     TResult? Function(bool enabled)? toggleGoldenPoint,
     TResult? Function()? announceScore,
     TResult? Function()? undo,
     TResult? Function()? redo,
+    TResult? Function(Team team)? undoForTeam,
+    TResult? Function(String cmd)? bleCommand,
   }) {
     return setExplicitGamePoints?.call(blue, red);
   }
@@ -1714,11 +1822,13 @@ class _$SetExplicitGamePointsEventImpl implements SetExplicitGamePointsEvent {
     TResult Function(Team team)? forceGameFor,
     TResult Function(Team team)? forceSetFor,
     TResult Function(int blue, int red)? setExplicitGamePoints,
-    TResult Function(bool enabled)? toggleTieBreakAtSixSix,
+    TResult Function(int games)? toggleTieBreakGames,
     TResult Function(bool enabled)? toggleGoldenPoint,
     TResult Function()? announceScore,
     TResult Function()? undo,
     TResult Function()? redo,
+    TResult Function(Team team)? undoForTeam,
+    TResult Function(String cmd)? bleCommand,
     required TResult orElse(),
   }) {
     if (setExplicitGamePoints != null) {
@@ -1739,11 +1849,14 @@ class _$SetExplicitGamePointsEventImpl implements SetExplicitGamePointsEvent {
     required TResult Function(ForceSetForEvent value) forceSetFor,
     required TResult Function(SetExplicitGamePointsEvent value)
     setExplicitGamePoints,
-    required TResult Function(ToggleTieRuleEvent value) toggleTieBreakAtSixSix,
+    required TResult Function(ToggleTieBreakGamesEvent value)
+    toggleTieBreakGames,
     required TResult Function(ToggleGoldenPointEvent value) toggleGoldenPoint,
     required TResult Function(AnnounceScoreEvent value) announceScore,
     required TResult Function(UndoEvent value) undo,
     required TResult Function(RedoEvent value) redo,
+    required TResult Function(UndoForTeamEvent value) undoForTeam,
+    required TResult Function(BleCommandEvent value) bleCommand,
   }) {
     return setExplicitGamePoints(this);
   }
@@ -1759,11 +1872,13 @@ class _$SetExplicitGamePointsEventImpl implements SetExplicitGamePointsEvent {
     TResult? Function(ForceGameForEvent value)? forceGameFor,
     TResult? Function(ForceSetForEvent value)? forceSetFor,
     TResult? Function(SetExplicitGamePointsEvent value)? setExplicitGamePoints,
-    TResult? Function(ToggleTieRuleEvent value)? toggleTieBreakAtSixSix,
+    TResult? Function(ToggleTieBreakGamesEvent value)? toggleTieBreakGames,
     TResult? Function(ToggleGoldenPointEvent value)? toggleGoldenPoint,
     TResult? Function(AnnounceScoreEvent value)? announceScore,
     TResult? Function(UndoEvent value)? undo,
     TResult? Function(RedoEvent value)? redo,
+    TResult? Function(UndoForTeamEvent value)? undoForTeam,
+    TResult? Function(BleCommandEvent value)? bleCommand,
   }) {
     return setExplicitGamePoints?.call(this);
   }
@@ -1779,11 +1894,13 @@ class _$SetExplicitGamePointsEventImpl implements SetExplicitGamePointsEvent {
     TResult Function(ForceGameForEvent value)? forceGameFor,
     TResult Function(ForceSetForEvent value)? forceSetFor,
     TResult Function(SetExplicitGamePointsEvent value)? setExplicitGamePoints,
-    TResult Function(ToggleTieRuleEvent value)? toggleTieBreakAtSixSix,
+    TResult Function(ToggleTieBreakGamesEvent value)? toggleTieBreakGames,
     TResult Function(ToggleGoldenPointEvent value)? toggleGoldenPoint,
     TResult Function(AnnounceScoreEvent value)? announceScore,
     TResult Function(UndoEvent value)? undo,
     TResult Function(RedoEvent value)? redo,
+    TResult Function(UndoForTeamEvent value)? undoForTeam,
+    TResult Function(BleCommandEvent value)? bleCommand,
     required TResult orElse(),
   }) {
     if (setExplicitGamePoints != null) {
@@ -1810,35 +1927,35 @@ abstract class SetExplicitGamePointsEvent implements ScoringEvent {
 }
 
 /// @nodoc
-abstract class _$$ToggleTieRuleEventImplCopyWith<$Res> {
-  factory _$$ToggleTieRuleEventImplCopyWith(
-    _$ToggleTieRuleEventImpl value,
-    $Res Function(_$ToggleTieRuleEventImpl) then,
-  ) = __$$ToggleTieRuleEventImplCopyWithImpl<$Res>;
+abstract class _$$ToggleTieBreakGamesEventImplCopyWith<$Res> {
+  factory _$$ToggleTieBreakGamesEventImplCopyWith(
+    _$ToggleTieBreakGamesEventImpl value,
+    $Res Function(_$ToggleTieBreakGamesEventImpl) then,
+  ) = __$$ToggleTieBreakGamesEventImplCopyWithImpl<$Res>;
   @useResult
-  $Res call({bool enabled});
+  $Res call({int games});
 }
 
 /// @nodoc
-class __$$ToggleTieRuleEventImplCopyWithImpl<$Res>
-    extends _$ScoringEventCopyWithImpl<$Res, _$ToggleTieRuleEventImpl>
-    implements _$$ToggleTieRuleEventImplCopyWith<$Res> {
-  __$$ToggleTieRuleEventImplCopyWithImpl(
-    _$ToggleTieRuleEventImpl _value,
-    $Res Function(_$ToggleTieRuleEventImpl) _then,
+class __$$ToggleTieBreakGamesEventImplCopyWithImpl<$Res>
+    extends _$ScoringEventCopyWithImpl<$Res, _$ToggleTieBreakGamesEventImpl>
+    implements _$$ToggleTieBreakGamesEventImplCopyWith<$Res> {
+  __$$ToggleTieBreakGamesEventImplCopyWithImpl(
+    _$ToggleTieBreakGamesEventImpl _value,
+    $Res Function(_$ToggleTieBreakGamesEventImpl) _then,
   ) : super(_value, _then);
 
   /// Create a copy of ScoringEvent
   /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
-  $Res call({Object? enabled = null}) {
+  $Res call({Object? games = null}) {
     return _then(
-      _$ToggleTieRuleEventImpl(
-        null == enabled
-            ? _value.enabled
-            : enabled // ignore: cast_nullable_to_non_nullable
-                as bool,
+      _$ToggleTieBreakGamesEventImpl(
+        null == games
+            ? _value.games
+            : games // ignore: cast_nullable_to_non_nullable
+                as int,
       ),
     );
   }
@@ -1846,38 +1963,37 @@ class __$$ToggleTieRuleEventImplCopyWithImpl<$Res>
 
 /// @nodoc
 
-class _$ToggleTieRuleEventImpl implements ToggleTieRuleEvent {
-  const _$ToggleTieRuleEventImpl(this.enabled);
+class _$ToggleTieBreakGamesEventImpl implements ToggleTieBreakGamesEvent {
+  const _$ToggleTieBreakGamesEventImpl(this.games);
 
   @override
-  final bool enabled;
+  final int games;
 
   @override
   String toString() {
-    return 'ScoringEvent.toggleTieBreakAtSixSix(enabled: $enabled)';
+    return 'ScoringEvent.toggleTieBreakGames(games: $games)';
   }
 
   @override
   bool operator ==(Object other) {
     return identical(this, other) ||
         (other.runtimeType == runtimeType &&
-            other is _$ToggleTieRuleEventImpl &&
-            (identical(other.enabled, enabled) || other.enabled == enabled));
+            other is _$ToggleTieBreakGamesEventImpl &&
+            (identical(other.games, games) || other.games == games));
   }
 
   @override
-  int get hashCode => Object.hash(runtimeType, enabled);
+  int get hashCode => Object.hash(runtimeType, games);
 
   /// Create a copy of ScoringEvent
   /// with the given fields replaced by the non-null parameter values.
   @JsonKey(includeFromJson: false, includeToJson: false)
   @override
   @pragma('vm:prefer-inline')
-  _$$ToggleTieRuleEventImplCopyWith<_$ToggleTieRuleEventImpl> get copyWith =>
-      __$$ToggleTieRuleEventImplCopyWithImpl<_$ToggleTieRuleEventImpl>(
-        this,
-        _$identity,
-      );
+  _$$ToggleTieBreakGamesEventImplCopyWith<_$ToggleTieBreakGamesEventImpl>
+  get copyWith => __$$ToggleTieBreakGamesEventImplCopyWithImpl<
+    _$ToggleTieBreakGamesEventImpl
+  >(this, _$identity);
 
   @override
   @optionalTypeArgs
@@ -1891,13 +2007,15 @@ class _$ToggleTieRuleEventImpl implements ToggleTieRuleEvent {
     required TResult Function(Team team) forceGameFor,
     required TResult Function(Team team) forceSetFor,
     required TResult Function(int blue, int red) setExplicitGamePoints,
-    required TResult Function(bool enabled) toggleTieBreakAtSixSix,
+    required TResult Function(int games) toggleTieBreakGames,
     required TResult Function(bool enabled) toggleGoldenPoint,
     required TResult Function() announceScore,
     required TResult Function() undo,
     required TResult Function() redo,
+    required TResult Function(Team team) undoForTeam,
+    required TResult Function(String cmd) bleCommand,
   }) {
-    return toggleTieBreakAtSixSix(enabled);
+    return toggleTieBreakGames(games);
   }
 
   @override
@@ -1911,13 +2029,15 @@ class _$ToggleTieRuleEventImpl implements ToggleTieRuleEvent {
     TResult? Function(Team team)? forceGameFor,
     TResult? Function(Team team)? forceSetFor,
     TResult? Function(int blue, int red)? setExplicitGamePoints,
-    TResult? Function(bool enabled)? toggleTieBreakAtSixSix,
+    TResult? Function(int games)? toggleTieBreakGames,
     TResult? Function(bool enabled)? toggleGoldenPoint,
     TResult? Function()? announceScore,
     TResult? Function()? undo,
     TResult? Function()? redo,
+    TResult? Function(Team team)? undoForTeam,
+    TResult? Function(String cmd)? bleCommand,
   }) {
-    return toggleTieBreakAtSixSix?.call(enabled);
+    return toggleTieBreakGames?.call(games);
   }
 
   @override
@@ -1931,15 +2051,17 @@ class _$ToggleTieRuleEventImpl implements ToggleTieRuleEvent {
     TResult Function(Team team)? forceGameFor,
     TResult Function(Team team)? forceSetFor,
     TResult Function(int blue, int red)? setExplicitGamePoints,
-    TResult Function(bool enabled)? toggleTieBreakAtSixSix,
+    TResult Function(int games)? toggleTieBreakGames,
     TResult Function(bool enabled)? toggleGoldenPoint,
     TResult Function()? announceScore,
     TResult Function()? undo,
     TResult Function()? redo,
+    TResult Function(Team team)? undoForTeam,
+    TResult Function(String cmd)? bleCommand,
     required TResult orElse(),
   }) {
-    if (toggleTieBreakAtSixSix != null) {
-      return toggleTieBreakAtSixSix(enabled);
+    if (toggleTieBreakGames != null) {
+      return toggleTieBreakGames(games);
     }
     return orElse();
   }
@@ -1956,13 +2078,16 @@ class _$ToggleTieRuleEventImpl implements ToggleTieRuleEvent {
     required TResult Function(ForceSetForEvent value) forceSetFor,
     required TResult Function(SetExplicitGamePointsEvent value)
     setExplicitGamePoints,
-    required TResult Function(ToggleTieRuleEvent value) toggleTieBreakAtSixSix,
+    required TResult Function(ToggleTieBreakGamesEvent value)
+    toggleTieBreakGames,
     required TResult Function(ToggleGoldenPointEvent value) toggleGoldenPoint,
     required TResult Function(AnnounceScoreEvent value) announceScore,
     required TResult Function(UndoEvent value) undo,
     required TResult Function(RedoEvent value) redo,
+    required TResult Function(UndoForTeamEvent value) undoForTeam,
+    required TResult Function(BleCommandEvent value) bleCommand,
   }) {
-    return toggleTieBreakAtSixSix(this);
+    return toggleTieBreakGames(this);
   }
 
   @override
@@ -1976,13 +2101,15 @@ class _$ToggleTieRuleEventImpl implements ToggleTieRuleEvent {
     TResult? Function(ForceGameForEvent value)? forceGameFor,
     TResult? Function(ForceSetForEvent value)? forceSetFor,
     TResult? Function(SetExplicitGamePointsEvent value)? setExplicitGamePoints,
-    TResult? Function(ToggleTieRuleEvent value)? toggleTieBreakAtSixSix,
+    TResult? Function(ToggleTieBreakGamesEvent value)? toggleTieBreakGames,
     TResult? Function(ToggleGoldenPointEvent value)? toggleGoldenPoint,
     TResult? Function(AnnounceScoreEvent value)? announceScore,
     TResult? Function(UndoEvent value)? undo,
     TResult? Function(RedoEvent value)? redo,
+    TResult? Function(UndoForTeamEvent value)? undoForTeam,
+    TResult? Function(BleCommandEvent value)? bleCommand,
   }) {
-    return toggleTieBreakAtSixSix?.call(this);
+    return toggleTieBreakGames?.call(this);
   }
 
   @override
@@ -1996,31 +2123,33 @@ class _$ToggleTieRuleEventImpl implements ToggleTieRuleEvent {
     TResult Function(ForceGameForEvent value)? forceGameFor,
     TResult Function(ForceSetForEvent value)? forceSetFor,
     TResult Function(SetExplicitGamePointsEvent value)? setExplicitGamePoints,
-    TResult Function(ToggleTieRuleEvent value)? toggleTieBreakAtSixSix,
+    TResult Function(ToggleTieBreakGamesEvent value)? toggleTieBreakGames,
     TResult Function(ToggleGoldenPointEvent value)? toggleGoldenPoint,
     TResult Function(AnnounceScoreEvent value)? announceScore,
     TResult Function(UndoEvent value)? undo,
     TResult Function(RedoEvent value)? redo,
+    TResult Function(UndoForTeamEvent value)? undoForTeam,
+    TResult Function(BleCommandEvent value)? bleCommand,
     required TResult orElse(),
   }) {
-    if (toggleTieBreakAtSixSix != null) {
-      return toggleTieBreakAtSixSix(this);
+    if (toggleTieBreakGames != null) {
+      return toggleTieBreakGames(this);
     }
     return orElse();
   }
 }
 
-abstract class ToggleTieRuleEvent implements ScoringEvent {
-  const factory ToggleTieRuleEvent(final bool enabled) =
-      _$ToggleTieRuleEventImpl;
+abstract class ToggleTieBreakGamesEvent implements ScoringEvent {
+  const factory ToggleTieBreakGamesEvent(final int games) =
+      _$ToggleTieBreakGamesEventImpl;
 
-  bool get enabled;
+  int get games;
 
   /// Create a copy of ScoringEvent
   /// with the given fields replaced by the non-null parameter values.
   @JsonKey(includeFromJson: false, includeToJson: false)
-  _$$ToggleTieRuleEventImplCopyWith<_$ToggleTieRuleEventImpl> get copyWith =>
-      throw _privateConstructorUsedError;
+  _$$ToggleTieBreakGamesEventImplCopyWith<_$ToggleTieBreakGamesEventImpl>
+  get copyWith => throw _privateConstructorUsedError;
 }
 
 /// @nodoc
@@ -2106,11 +2235,13 @@ class _$ToggleGoldenPointEventImpl implements ToggleGoldenPointEvent {
     required TResult Function(Team team) forceGameFor,
     required TResult Function(Team team) forceSetFor,
     required TResult Function(int blue, int red) setExplicitGamePoints,
-    required TResult Function(bool enabled) toggleTieBreakAtSixSix,
+    required TResult Function(int games) toggleTieBreakGames,
     required TResult Function(bool enabled) toggleGoldenPoint,
     required TResult Function() announceScore,
     required TResult Function() undo,
     required TResult Function() redo,
+    required TResult Function(Team team) undoForTeam,
+    required TResult Function(String cmd) bleCommand,
   }) {
     return toggleGoldenPoint(enabled);
   }
@@ -2126,11 +2257,13 @@ class _$ToggleGoldenPointEventImpl implements ToggleGoldenPointEvent {
     TResult? Function(Team team)? forceGameFor,
     TResult? Function(Team team)? forceSetFor,
     TResult? Function(int blue, int red)? setExplicitGamePoints,
-    TResult? Function(bool enabled)? toggleTieBreakAtSixSix,
+    TResult? Function(int games)? toggleTieBreakGames,
     TResult? Function(bool enabled)? toggleGoldenPoint,
     TResult? Function()? announceScore,
     TResult? Function()? undo,
     TResult? Function()? redo,
+    TResult? Function(Team team)? undoForTeam,
+    TResult? Function(String cmd)? bleCommand,
   }) {
     return toggleGoldenPoint?.call(enabled);
   }
@@ -2146,11 +2279,13 @@ class _$ToggleGoldenPointEventImpl implements ToggleGoldenPointEvent {
     TResult Function(Team team)? forceGameFor,
     TResult Function(Team team)? forceSetFor,
     TResult Function(int blue, int red)? setExplicitGamePoints,
-    TResult Function(bool enabled)? toggleTieBreakAtSixSix,
+    TResult Function(int games)? toggleTieBreakGames,
     TResult Function(bool enabled)? toggleGoldenPoint,
     TResult Function()? announceScore,
     TResult Function()? undo,
     TResult Function()? redo,
+    TResult Function(Team team)? undoForTeam,
+    TResult Function(String cmd)? bleCommand,
     required TResult orElse(),
   }) {
     if (toggleGoldenPoint != null) {
@@ -2171,11 +2306,14 @@ class _$ToggleGoldenPointEventImpl implements ToggleGoldenPointEvent {
     required TResult Function(ForceSetForEvent value) forceSetFor,
     required TResult Function(SetExplicitGamePointsEvent value)
     setExplicitGamePoints,
-    required TResult Function(ToggleTieRuleEvent value) toggleTieBreakAtSixSix,
+    required TResult Function(ToggleTieBreakGamesEvent value)
+    toggleTieBreakGames,
     required TResult Function(ToggleGoldenPointEvent value) toggleGoldenPoint,
     required TResult Function(AnnounceScoreEvent value) announceScore,
     required TResult Function(UndoEvent value) undo,
     required TResult Function(RedoEvent value) redo,
+    required TResult Function(UndoForTeamEvent value) undoForTeam,
+    required TResult Function(BleCommandEvent value) bleCommand,
   }) {
     return toggleGoldenPoint(this);
   }
@@ -2191,11 +2329,13 @@ class _$ToggleGoldenPointEventImpl implements ToggleGoldenPointEvent {
     TResult? Function(ForceGameForEvent value)? forceGameFor,
     TResult? Function(ForceSetForEvent value)? forceSetFor,
     TResult? Function(SetExplicitGamePointsEvent value)? setExplicitGamePoints,
-    TResult? Function(ToggleTieRuleEvent value)? toggleTieBreakAtSixSix,
+    TResult? Function(ToggleTieBreakGamesEvent value)? toggleTieBreakGames,
     TResult? Function(ToggleGoldenPointEvent value)? toggleGoldenPoint,
     TResult? Function(AnnounceScoreEvent value)? announceScore,
     TResult? Function(UndoEvent value)? undo,
     TResult? Function(RedoEvent value)? redo,
+    TResult? Function(UndoForTeamEvent value)? undoForTeam,
+    TResult? Function(BleCommandEvent value)? bleCommand,
   }) {
     return toggleGoldenPoint?.call(this);
   }
@@ -2211,11 +2351,13 @@ class _$ToggleGoldenPointEventImpl implements ToggleGoldenPointEvent {
     TResult Function(ForceGameForEvent value)? forceGameFor,
     TResult Function(ForceSetForEvent value)? forceSetFor,
     TResult Function(SetExplicitGamePointsEvent value)? setExplicitGamePoints,
-    TResult Function(ToggleTieRuleEvent value)? toggleTieBreakAtSixSix,
+    TResult Function(ToggleTieBreakGamesEvent value)? toggleTieBreakGames,
     TResult Function(ToggleGoldenPointEvent value)? toggleGoldenPoint,
     TResult Function(AnnounceScoreEvent value)? announceScore,
     TResult Function(UndoEvent value)? undo,
     TResult Function(RedoEvent value)? redo,
+    TResult Function(UndoForTeamEvent value)? undoForTeam,
+    TResult Function(BleCommandEvent value)? bleCommand,
     required TResult orElse(),
   }) {
     if (toggleGoldenPoint != null) {
@@ -2290,11 +2432,13 @@ class _$AnnounceScoreEventImpl implements AnnounceScoreEvent {
     required TResult Function(Team team) forceGameFor,
     required TResult Function(Team team) forceSetFor,
     required TResult Function(int blue, int red) setExplicitGamePoints,
-    required TResult Function(bool enabled) toggleTieBreakAtSixSix,
+    required TResult Function(int games) toggleTieBreakGames,
     required TResult Function(bool enabled) toggleGoldenPoint,
     required TResult Function() announceScore,
     required TResult Function() undo,
     required TResult Function() redo,
+    required TResult Function(Team team) undoForTeam,
+    required TResult Function(String cmd) bleCommand,
   }) {
     return announceScore();
   }
@@ -2310,11 +2454,13 @@ class _$AnnounceScoreEventImpl implements AnnounceScoreEvent {
     TResult? Function(Team team)? forceGameFor,
     TResult? Function(Team team)? forceSetFor,
     TResult? Function(int blue, int red)? setExplicitGamePoints,
-    TResult? Function(bool enabled)? toggleTieBreakAtSixSix,
+    TResult? Function(int games)? toggleTieBreakGames,
     TResult? Function(bool enabled)? toggleGoldenPoint,
     TResult? Function()? announceScore,
     TResult? Function()? undo,
     TResult? Function()? redo,
+    TResult? Function(Team team)? undoForTeam,
+    TResult? Function(String cmd)? bleCommand,
   }) {
     return announceScore?.call();
   }
@@ -2330,11 +2476,13 @@ class _$AnnounceScoreEventImpl implements AnnounceScoreEvent {
     TResult Function(Team team)? forceGameFor,
     TResult Function(Team team)? forceSetFor,
     TResult Function(int blue, int red)? setExplicitGamePoints,
-    TResult Function(bool enabled)? toggleTieBreakAtSixSix,
+    TResult Function(int games)? toggleTieBreakGames,
     TResult Function(bool enabled)? toggleGoldenPoint,
     TResult Function()? announceScore,
     TResult Function()? undo,
     TResult Function()? redo,
+    TResult Function(Team team)? undoForTeam,
+    TResult Function(String cmd)? bleCommand,
     required TResult orElse(),
   }) {
     if (announceScore != null) {
@@ -2355,11 +2503,14 @@ class _$AnnounceScoreEventImpl implements AnnounceScoreEvent {
     required TResult Function(ForceSetForEvent value) forceSetFor,
     required TResult Function(SetExplicitGamePointsEvent value)
     setExplicitGamePoints,
-    required TResult Function(ToggleTieRuleEvent value) toggleTieBreakAtSixSix,
+    required TResult Function(ToggleTieBreakGamesEvent value)
+    toggleTieBreakGames,
     required TResult Function(ToggleGoldenPointEvent value) toggleGoldenPoint,
     required TResult Function(AnnounceScoreEvent value) announceScore,
     required TResult Function(UndoEvent value) undo,
     required TResult Function(RedoEvent value) redo,
+    required TResult Function(UndoForTeamEvent value) undoForTeam,
+    required TResult Function(BleCommandEvent value) bleCommand,
   }) {
     return announceScore(this);
   }
@@ -2375,11 +2526,13 @@ class _$AnnounceScoreEventImpl implements AnnounceScoreEvent {
     TResult? Function(ForceGameForEvent value)? forceGameFor,
     TResult? Function(ForceSetForEvent value)? forceSetFor,
     TResult? Function(SetExplicitGamePointsEvent value)? setExplicitGamePoints,
-    TResult? Function(ToggleTieRuleEvent value)? toggleTieBreakAtSixSix,
+    TResult? Function(ToggleTieBreakGamesEvent value)? toggleTieBreakGames,
     TResult? Function(ToggleGoldenPointEvent value)? toggleGoldenPoint,
     TResult? Function(AnnounceScoreEvent value)? announceScore,
     TResult? Function(UndoEvent value)? undo,
     TResult? Function(RedoEvent value)? redo,
+    TResult? Function(UndoForTeamEvent value)? undoForTeam,
+    TResult? Function(BleCommandEvent value)? bleCommand,
   }) {
     return announceScore?.call(this);
   }
@@ -2395,11 +2548,13 @@ class _$AnnounceScoreEventImpl implements AnnounceScoreEvent {
     TResult Function(ForceGameForEvent value)? forceGameFor,
     TResult Function(ForceSetForEvent value)? forceSetFor,
     TResult Function(SetExplicitGamePointsEvent value)? setExplicitGamePoints,
-    TResult Function(ToggleTieRuleEvent value)? toggleTieBreakAtSixSix,
+    TResult Function(ToggleTieBreakGamesEvent value)? toggleTieBreakGames,
     TResult Function(ToggleGoldenPointEvent value)? toggleGoldenPoint,
     TResult Function(AnnounceScoreEvent value)? announceScore,
     TResult Function(UndoEvent value)? undo,
     TResult Function(RedoEvent value)? redo,
+    TResult Function(UndoForTeamEvent value)? undoForTeam,
+    TResult Function(BleCommandEvent value)? bleCommand,
     required TResult orElse(),
   }) {
     if (announceScore != null) {
@@ -2465,11 +2620,13 @@ class _$UndoEventImpl implements UndoEvent {
     required TResult Function(Team team) forceGameFor,
     required TResult Function(Team team) forceSetFor,
     required TResult Function(int blue, int red) setExplicitGamePoints,
-    required TResult Function(bool enabled) toggleTieBreakAtSixSix,
+    required TResult Function(int games) toggleTieBreakGames,
     required TResult Function(bool enabled) toggleGoldenPoint,
     required TResult Function() announceScore,
     required TResult Function() undo,
     required TResult Function() redo,
+    required TResult Function(Team team) undoForTeam,
+    required TResult Function(String cmd) bleCommand,
   }) {
     return undo();
   }
@@ -2485,11 +2642,13 @@ class _$UndoEventImpl implements UndoEvent {
     TResult? Function(Team team)? forceGameFor,
     TResult? Function(Team team)? forceSetFor,
     TResult? Function(int blue, int red)? setExplicitGamePoints,
-    TResult? Function(bool enabled)? toggleTieBreakAtSixSix,
+    TResult? Function(int games)? toggleTieBreakGames,
     TResult? Function(bool enabled)? toggleGoldenPoint,
     TResult? Function()? announceScore,
     TResult? Function()? undo,
     TResult? Function()? redo,
+    TResult? Function(Team team)? undoForTeam,
+    TResult? Function(String cmd)? bleCommand,
   }) {
     return undo?.call();
   }
@@ -2505,11 +2664,13 @@ class _$UndoEventImpl implements UndoEvent {
     TResult Function(Team team)? forceGameFor,
     TResult Function(Team team)? forceSetFor,
     TResult Function(int blue, int red)? setExplicitGamePoints,
-    TResult Function(bool enabled)? toggleTieBreakAtSixSix,
+    TResult Function(int games)? toggleTieBreakGames,
     TResult Function(bool enabled)? toggleGoldenPoint,
     TResult Function()? announceScore,
     TResult Function()? undo,
     TResult Function()? redo,
+    TResult Function(Team team)? undoForTeam,
+    TResult Function(String cmd)? bleCommand,
     required TResult orElse(),
   }) {
     if (undo != null) {
@@ -2530,11 +2691,14 @@ class _$UndoEventImpl implements UndoEvent {
     required TResult Function(ForceSetForEvent value) forceSetFor,
     required TResult Function(SetExplicitGamePointsEvent value)
     setExplicitGamePoints,
-    required TResult Function(ToggleTieRuleEvent value) toggleTieBreakAtSixSix,
+    required TResult Function(ToggleTieBreakGamesEvent value)
+    toggleTieBreakGames,
     required TResult Function(ToggleGoldenPointEvent value) toggleGoldenPoint,
     required TResult Function(AnnounceScoreEvent value) announceScore,
     required TResult Function(UndoEvent value) undo,
     required TResult Function(RedoEvent value) redo,
+    required TResult Function(UndoForTeamEvent value) undoForTeam,
+    required TResult Function(BleCommandEvent value) bleCommand,
   }) {
     return undo(this);
   }
@@ -2550,11 +2714,13 @@ class _$UndoEventImpl implements UndoEvent {
     TResult? Function(ForceGameForEvent value)? forceGameFor,
     TResult? Function(ForceSetForEvent value)? forceSetFor,
     TResult? Function(SetExplicitGamePointsEvent value)? setExplicitGamePoints,
-    TResult? Function(ToggleTieRuleEvent value)? toggleTieBreakAtSixSix,
+    TResult? Function(ToggleTieBreakGamesEvent value)? toggleTieBreakGames,
     TResult? Function(ToggleGoldenPointEvent value)? toggleGoldenPoint,
     TResult? Function(AnnounceScoreEvent value)? announceScore,
     TResult? Function(UndoEvent value)? undo,
     TResult? Function(RedoEvent value)? redo,
+    TResult? Function(UndoForTeamEvent value)? undoForTeam,
+    TResult? Function(BleCommandEvent value)? bleCommand,
   }) {
     return undo?.call(this);
   }
@@ -2570,11 +2736,13 @@ class _$UndoEventImpl implements UndoEvent {
     TResult Function(ForceGameForEvent value)? forceGameFor,
     TResult Function(ForceSetForEvent value)? forceSetFor,
     TResult Function(SetExplicitGamePointsEvent value)? setExplicitGamePoints,
-    TResult Function(ToggleTieRuleEvent value)? toggleTieBreakAtSixSix,
+    TResult Function(ToggleTieBreakGamesEvent value)? toggleTieBreakGames,
     TResult Function(ToggleGoldenPointEvent value)? toggleGoldenPoint,
     TResult Function(AnnounceScoreEvent value)? announceScore,
     TResult Function(UndoEvent value)? undo,
     TResult Function(RedoEvent value)? redo,
+    TResult Function(UndoForTeamEvent value)? undoForTeam,
+    TResult Function(BleCommandEvent value)? bleCommand,
     required TResult orElse(),
   }) {
     if (undo != null) {
@@ -2640,11 +2808,13 @@ class _$RedoEventImpl implements RedoEvent {
     required TResult Function(Team team) forceGameFor,
     required TResult Function(Team team) forceSetFor,
     required TResult Function(int blue, int red) setExplicitGamePoints,
-    required TResult Function(bool enabled) toggleTieBreakAtSixSix,
+    required TResult Function(int games) toggleTieBreakGames,
     required TResult Function(bool enabled) toggleGoldenPoint,
     required TResult Function() announceScore,
     required TResult Function() undo,
     required TResult Function() redo,
+    required TResult Function(Team team) undoForTeam,
+    required TResult Function(String cmd) bleCommand,
   }) {
     return redo();
   }
@@ -2660,11 +2830,13 @@ class _$RedoEventImpl implements RedoEvent {
     TResult? Function(Team team)? forceGameFor,
     TResult? Function(Team team)? forceSetFor,
     TResult? Function(int blue, int red)? setExplicitGamePoints,
-    TResult? Function(bool enabled)? toggleTieBreakAtSixSix,
+    TResult? Function(int games)? toggleTieBreakGames,
     TResult? Function(bool enabled)? toggleGoldenPoint,
     TResult? Function()? announceScore,
     TResult? Function()? undo,
     TResult? Function()? redo,
+    TResult? Function(Team team)? undoForTeam,
+    TResult? Function(String cmd)? bleCommand,
   }) {
     return redo?.call();
   }
@@ -2680,11 +2852,13 @@ class _$RedoEventImpl implements RedoEvent {
     TResult Function(Team team)? forceGameFor,
     TResult Function(Team team)? forceSetFor,
     TResult Function(int blue, int red)? setExplicitGamePoints,
-    TResult Function(bool enabled)? toggleTieBreakAtSixSix,
+    TResult Function(int games)? toggleTieBreakGames,
     TResult Function(bool enabled)? toggleGoldenPoint,
     TResult Function()? announceScore,
     TResult Function()? undo,
     TResult Function()? redo,
+    TResult Function(Team team)? undoForTeam,
+    TResult Function(String cmd)? bleCommand,
     required TResult orElse(),
   }) {
     if (redo != null) {
@@ -2705,11 +2879,14 @@ class _$RedoEventImpl implements RedoEvent {
     required TResult Function(ForceSetForEvent value) forceSetFor,
     required TResult Function(SetExplicitGamePointsEvent value)
     setExplicitGamePoints,
-    required TResult Function(ToggleTieRuleEvent value) toggleTieBreakAtSixSix,
+    required TResult Function(ToggleTieBreakGamesEvent value)
+    toggleTieBreakGames,
     required TResult Function(ToggleGoldenPointEvent value) toggleGoldenPoint,
     required TResult Function(AnnounceScoreEvent value) announceScore,
     required TResult Function(UndoEvent value) undo,
     required TResult Function(RedoEvent value) redo,
+    required TResult Function(UndoForTeamEvent value) undoForTeam,
+    required TResult Function(BleCommandEvent value) bleCommand,
   }) {
     return redo(this);
   }
@@ -2725,11 +2902,13 @@ class _$RedoEventImpl implements RedoEvent {
     TResult? Function(ForceGameForEvent value)? forceGameFor,
     TResult? Function(ForceSetForEvent value)? forceSetFor,
     TResult? Function(SetExplicitGamePointsEvent value)? setExplicitGamePoints,
-    TResult? Function(ToggleTieRuleEvent value)? toggleTieBreakAtSixSix,
+    TResult? Function(ToggleTieBreakGamesEvent value)? toggleTieBreakGames,
     TResult? Function(ToggleGoldenPointEvent value)? toggleGoldenPoint,
     TResult? Function(AnnounceScoreEvent value)? announceScore,
     TResult? Function(UndoEvent value)? undo,
     TResult? Function(RedoEvent value)? redo,
+    TResult? Function(UndoForTeamEvent value)? undoForTeam,
+    TResult? Function(BleCommandEvent value)? bleCommand,
   }) {
     return redo?.call(this);
   }
@@ -2745,11 +2924,13 @@ class _$RedoEventImpl implements RedoEvent {
     TResult Function(ForceGameForEvent value)? forceGameFor,
     TResult Function(ForceSetForEvent value)? forceSetFor,
     TResult Function(SetExplicitGamePointsEvent value)? setExplicitGamePoints,
-    TResult Function(ToggleTieRuleEvent value)? toggleTieBreakAtSixSix,
+    TResult Function(ToggleTieBreakGamesEvent value)? toggleTieBreakGames,
     TResult Function(ToggleGoldenPointEvent value)? toggleGoldenPoint,
     TResult Function(AnnounceScoreEvent value)? announceScore,
     TResult Function(UndoEvent value)? undo,
     TResult Function(RedoEvent value)? redo,
+    TResult Function(UndoForTeamEvent value)? undoForTeam,
+    TResult Function(BleCommandEvent value)? bleCommand,
     required TResult orElse(),
   }) {
     if (redo != null) {
@@ -2761,4 +2942,456 @@ class _$RedoEventImpl implements RedoEvent {
 
 abstract class RedoEvent implements ScoringEvent {
   const factory RedoEvent() = _$RedoEventImpl;
+}
+
+/// @nodoc
+abstract class _$$UndoForTeamEventImplCopyWith<$Res> {
+  factory _$$UndoForTeamEventImplCopyWith(
+    _$UndoForTeamEventImpl value,
+    $Res Function(_$UndoForTeamEventImpl) then,
+  ) = __$$UndoForTeamEventImplCopyWithImpl<$Res>;
+  @useResult
+  $Res call({Team team});
+}
+
+/// @nodoc
+class __$$UndoForTeamEventImplCopyWithImpl<$Res>
+    extends _$ScoringEventCopyWithImpl<$Res, _$UndoForTeamEventImpl>
+    implements _$$UndoForTeamEventImplCopyWith<$Res> {
+  __$$UndoForTeamEventImplCopyWithImpl(
+    _$UndoForTeamEventImpl _value,
+    $Res Function(_$UndoForTeamEventImpl) _then,
+  ) : super(_value, _then);
+
+  /// Create a copy of ScoringEvent
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({Object? team = null}) {
+    return _then(
+      _$UndoForTeamEventImpl(
+        null == team
+            ? _value.team
+            : team // ignore: cast_nullable_to_non_nullable
+                as Team,
+      ),
+    );
+  }
+}
+
+/// @nodoc
+
+class _$UndoForTeamEventImpl implements UndoForTeamEvent {
+  const _$UndoForTeamEventImpl(this.team);
+
+  @override
+  final Team team;
+
+  @override
+  String toString() {
+    return 'ScoringEvent.undoForTeam(team: $team)';
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType &&
+            other is _$UndoForTeamEventImpl &&
+            (identical(other.team, team) || other.team == team));
+  }
+
+  @override
+  int get hashCode => Object.hash(runtimeType, team);
+
+  /// Create a copy of ScoringEvent
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  @pragma('vm:prefer-inline')
+  _$$UndoForTeamEventImplCopyWith<_$UndoForTeamEventImpl> get copyWith =>
+      __$$UndoForTeamEventImplCopyWithImpl<_$UndoForTeamEventImpl>(
+        this,
+        _$identity,
+      );
+
+  @override
+  @optionalTypeArgs
+  TResult when<TResult extends Object?>({
+    required TResult Function(MatchSettings? settings, Team? startingServer)
+    newMatch,
+    required TResult Function() newSet,
+    required TResult Function() newGame,
+    required TResult Function(Team team) pointFor,
+    required TResult Function(Team team) removePoint,
+    required TResult Function(Team team) forceGameFor,
+    required TResult Function(Team team) forceSetFor,
+    required TResult Function(int blue, int red) setExplicitGamePoints,
+    required TResult Function(int games) toggleTieBreakGames,
+    required TResult Function(bool enabled) toggleGoldenPoint,
+    required TResult Function() announceScore,
+    required TResult Function() undo,
+    required TResult Function() redo,
+    required TResult Function(Team team) undoForTeam,
+    required TResult Function(String cmd) bleCommand,
+  }) {
+    return undoForTeam(team);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult? whenOrNull<TResult extends Object?>({
+    TResult? Function(MatchSettings? settings, Team? startingServer)? newMatch,
+    TResult? Function()? newSet,
+    TResult? Function()? newGame,
+    TResult? Function(Team team)? pointFor,
+    TResult? Function(Team team)? removePoint,
+    TResult? Function(Team team)? forceGameFor,
+    TResult? Function(Team team)? forceSetFor,
+    TResult? Function(int blue, int red)? setExplicitGamePoints,
+    TResult? Function(int games)? toggleTieBreakGames,
+    TResult? Function(bool enabled)? toggleGoldenPoint,
+    TResult? Function()? announceScore,
+    TResult? Function()? undo,
+    TResult? Function()? redo,
+    TResult? Function(Team team)? undoForTeam,
+    TResult? Function(String cmd)? bleCommand,
+  }) {
+    return undoForTeam?.call(team);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult maybeWhen<TResult extends Object?>({
+    TResult Function(MatchSettings? settings, Team? startingServer)? newMatch,
+    TResult Function()? newSet,
+    TResult Function()? newGame,
+    TResult Function(Team team)? pointFor,
+    TResult Function(Team team)? removePoint,
+    TResult Function(Team team)? forceGameFor,
+    TResult Function(Team team)? forceSetFor,
+    TResult Function(int blue, int red)? setExplicitGamePoints,
+    TResult Function(int games)? toggleTieBreakGames,
+    TResult Function(bool enabled)? toggleGoldenPoint,
+    TResult Function()? announceScore,
+    TResult Function()? undo,
+    TResult Function()? redo,
+    TResult Function(Team team)? undoForTeam,
+    TResult Function(String cmd)? bleCommand,
+    required TResult orElse(),
+  }) {
+    if (undoForTeam != null) {
+      return undoForTeam(team);
+    }
+    return orElse();
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult map<TResult extends Object?>({
+    required TResult Function(NewMatchEvent value) newMatch,
+    required TResult Function(NewSetEvent value) newSet,
+    required TResult Function(NewGameEvent value) newGame,
+    required TResult Function(PointForEvent value) pointFor,
+    required TResult Function(RemovePointEvent value) removePoint,
+    required TResult Function(ForceGameForEvent value) forceGameFor,
+    required TResult Function(ForceSetForEvent value) forceSetFor,
+    required TResult Function(SetExplicitGamePointsEvent value)
+    setExplicitGamePoints,
+    required TResult Function(ToggleTieBreakGamesEvent value)
+    toggleTieBreakGames,
+    required TResult Function(ToggleGoldenPointEvent value) toggleGoldenPoint,
+    required TResult Function(AnnounceScoreEvent value) announceScore,
+    required TResult Function(UndoEvent value) undo,
+    required TResult Function(RedoEvent value) redo,
+    required TResult Function(UndoForTeamEvent value) undoForTeam,
+    required TResult Function(BleCommandEvent value) bleCommand,
+  }) {
+    return undoForTeam(this);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult? mapOrNull<TResult extends Object?>({
+    TResult? Function(NewMatchEvent value)? newMatch,
+    TResult? Function(NewSetEvent value)? newSet,
+    TResult? Function(NewGameEvent value)? newGame,
+    TResult? Function(PointForEvent value)? pointFor,
+    TResult? Function(RemovePointEvent value)? removePoint,
+    TResult? Function(ForceGameForEvent value)? forceGameFor,
+    TResult? Function(ForceSetForEvent value)? forceSetFor,
+    TResult? Function(SetExplicitGamePointsEvent value)? setExplicitGamePoints,
+    TResult? Function(ToggleTieBreakGamesEvent value)? toggleTieBreakGames,
+    TResult? Function(ToggleGoldenPointEvent value)? toggleGoldenPoint,
+    TResult? Function(AnnounceScoreEvent value)? announceScore,
+    TResult? Function(UndoEvent value)? undo,
+    TResult? Function(RedoEvent value)? redo,
+    TResult? Function(UndoForTeamEvent value)? undoForTeam,
+    TResult? Function(BleCommandEvent value)? bleCommand,
+  }) {
+    return undoForTeam?.call(this);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult maybeMap<TResult extends Object?>({
+    TResult Function(NewMatchEvent value)? newMatch,
+    TResult Function(NewSetEvent value)? newSet,
+    TResult Function(NewGameEvent value)? newGame,
+    TResult Function(PointForEvent value)? pointFor,
+    TResult Function(RemovePointEvent value)? removePoint,
+    TResult Function(ForceGameForEvent value)? forceGameFor,
+    TResult Function(ForceSetForEvent value)? forceSetFor,
+    TResult Function(SetExplicitGamePointsEvent value)? setExplicitGamePoints,
+    TResult Function(ToggleTieBreakGamesEvent value)? toggleTieBreakGames,
+    TResult Function(ToggleGoldenPointEvent value)? toggleGoldenPoint,
+    TResult Function(AnnounceScoreEvent value)? announceScore,
+    TResult Function(UndoEvent value)? undo,
+    TResult Function(RedoEvent value)? redo,
+    TResult Function(UndoForTeamEvent value)? undoForTeam,
+    TResult Function(BleCommandEvent value)? bleCommand,
+    required TResult orElse(),
+  }) {
+    if (undoForTeam != null) {
+      return undoForTeam(this);
+    }
+    return orElse();
+  }
+}
+
+abstract class UndoForTeamEvent implements ScoringEvent {
+  const factory UndoForTeamEvent(final Team team) = _$UndoForTeamEventImpl;
+
+  Team get team;
+
+  /// Create a copy of ScoringEvent
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  _$$UndoForTeamEventImplCopyWith<_$UndoForTeamEventImpl> get copyWith =>
+      throw _privateConstructorUsedError;
+}
+
+/// @nodoc
+abstract class _$$BleCommandEventImplCopyWith<$Res> {
+  factory _$$BleCommandEventImplCopyWith(
+    _$BleCommandEventImpl value,
+    $Res Function(_$BleCommandEventImpl) then,
+  ) = __$$BleCommandEventImplCopyWithImpl<$Res>;
+  @useResult
+  $Res call({String cmd});
+}
+
+/// @nodoc
+class __$$BleCommandEventImplCopyWithImpl<$Res>
+    extends _$ScoringEventCopyWithImpl<$Res, _$BleCommandEventImpl>
+    implements _$$BleCommandEventImplCopyWith<$Res> {
+  __$$BleCommandEventImplCopyWithImpl(
+    _$BleCommandEventImpl _value,
+    $Res Function(_$BleCommandEventImpl) _then,
+  ) : super(_value, _then);
+
+  /// Create a copy of ScoringEvent
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({Object? cmd = null}) {
+    return _then(
+      _$BleCommandEventImpl(
+        null == cmd
+            ? _value.cmd
+            : cmd // ignore: cast_nullable_to_non_nullable
+                as String,
+      ),
+    );
+  }
+}
+
+/// @nodoc
+
+class _$BleCommandEventImpl implements BleCommandEvent {
+  const _$BleCommandEventImpl(this.cmd);
+
+  @override
+  final String cmd;
+
+  @override
+  String toString() {
+    return 'ScoringEvent.bleCommand(cmd: $cmd)';
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType &&
+            other is _$BleCommandEventImpl &&
+            (identical(other.cmd, cmd) || other.cmd == cmd));
+  }
+
+  @override
+  int get hashCode => Object.hash(runtimeType, cmd);
+
+  /// Create a copy of ScoringEvent
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  @pragma('vm:prefer-inline')
+  _$$BleCommandEventImplCopyWith<_$BleCommandEventImpl> get copyWith =>
+      __$$BleCommandEventImplCopyWithImpl<_$BleCommandEventImpl>(
+        this,
+        _$identity,
+      );
+
+  @override
+  @optionalTypeArgs
+  TResult when<TResult extends Object?>({
+    required TResult Function(MatchSettings? settings, Team? startingServer)
+    newMatch,
+    required TResult Function() newSet,
+    required TResult Function() newGame,
+    required TResult Function(Team team) pointFor,
+    required TResult Function(Team team) removePoint,
+    required TResult Function(Team team) forceGameFor,
+    required TResult Function(Team team) forceSetFor,
+    required TResult Function(int blue, int red) setExplicitGamePoints,
+    required TResult Function(int games) toggleTieBreakGames,
+    required TResult Function(bool enabled) toggleGoldenPoint,
+    required TResult Function() announceScore,
+    required TResult Function() undo,
+    required TResult Function() redo,
+    required TResult Function(Team team) undoForTeam,
+    required TResult Function(String cmd) bleCommand,
+  }) {
+    return bleCommand(cmd);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult? whenOrNull<TResult extends Object?>({
+    TResult? Function(MatchSettings? settings, Team? startingServer)? newMatch,
+    TResult? Function()? newSet,
+    TResult? Function()? newGame,
+    TResult? Function(Team team)? pointFor,
+    TResult? Function(Team team)? removePoint,
+    TResult? Function(Team team)? forceGameFor,
+    TResult? Function(Team team)? forceSetFor,
+    TResult? Function(int blue, int red)? setExplicitGamePoints,
+    TResult? Function(int games)? toggleTieBreakGames,
+    TResult? Function(bool enabled)? toggleGoldenPoint,
+    TResult? Function()? announceScore,
+    TResult? Function()? undo,
+    TResult? Function()? redo,
+    TResult? Function(Team team)? undoForTeam,
+    TResult? Function(String cmd)? bleCommand,
+  }) {
+    return bleCommand?.call(cmd);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult maybeWhen<TResult extends Object?>({
+    TResult Function(MatchSettings? settings, Team? startingServer)? newMatch,
+    TResult Function()? newSet,
+    TResult Function()? newGame,
+    TResult Function(Team team)? pointFor,
+    TResult Function(Team team)? removePoint,
+    TResult Function(Team team)? forceGameFor,
+    TResult Function(Team team)? forceSetFor,
+    TResult Function(int blue, int red)? setExplicitGamePoints,
+    TResult Function(int games)? toggleTieBreakGames,
+    TResult Function(bool enabled)? toggleGoldenPoint,
+    TResult Function()? announceScore,
+    TResult Function()? undo,
+    TResult Function()? redo,
+    TResult Function(Team team)? undoForTeam,
+    TResult Function(String cmd)? bleCommand,
+    required TResult orElse(),
+  }) {
+    if (bleCommand != null) {
+      return bleCommand(cmd);
+    }
+    return orElse();
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult map<TResult extends Object?>({
+    required TResult Function(NewMatchEvent value) newMatch,
+    required TResult Function(NewSetEvent value) newSet,
+    required TResult Function(NewGameEvent value) newGame,
+    required TResult Function(PointForEvent value) pointFor,
+    required TResult Function(RemovePointEvent value) removePoint,
+    required TResult Function(ForceGameForEvent value) forceGameFor,
+    required TResult Function(ForceSetForEvent value) forceSetFor,
+    required TResult Function(SetExplicitGamePointsEvent value)
+    setExplicitGamePoints,
+    required TResult Function(ToggleTieBreakGamesEvent value)
+    toggleTieBreakGames,
+    required TResult Function(ToggleGoldenPointEvent value) toggleGoldenPoint,
+    required TResult Function(AnnounceScoreEvent value) announceScore,
+    required TResult Function(UndoEvent value) undo,
+    required TResult Function(RedoEvent value) redo,
+    required TResult Function(UndoForTeamEvent value) undoForTeam,
+    required TResult Function(BleCommandEvent value) bleCommand,
+  }) {
+    return bleCommand(this);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult? mapOrNull<TResult extends Object?>({
+    TResult? Function(NewMatchEvent value)? newMatch,
+    TResult? Function(NewSetEvent value)? newSet,
+    TResult? Function(NewGameEvent value)? newGame,
+    TResult? Function(PointForEvent value)? pointFor,
+    TResult? Function(RemovePointEvent value)? removePoint,
+    TResult? Function(ForceGameForEvent value)? forceGameFor,
+    TResult? Function(ForceSetForEvent value)? forceSetFor,
+    TResult? Function(SetExplicitGamePointsEvent value)? setExplicitGamePoints,
+    TResult? Function(ToggleTieBreakGamesEvent value)? toggleTieBreakGames,
+    TResult? Function(ToggleGoldenPointEvent value)? toggleGoldenPoint,
+    TResult? Function(AnnounceScoreEvent value)? announceScore,
+    TResult? Function(UndoEvent value)? undo,
+    TResult? Function(RedoEvent value)? redo,
+    TResult? Function(UndoForTeamEvent value)? undoForTeam,
+    TResult? Function(BleCommandEvent value)? bleCommand,
+  }) {
+    return bleCommand?.call(this);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult maybeMap<TResult extends Object?>({
+    TResult Function(NewMatchEvent value)? newMatch,
+    TResult Function(NewSetEvent value)? newSet,
+    TResult Function(NewGameEvent value)? newGame,
+    TResult Function(PointForEvent value)? pointFor,
+    TResult Function(RemovePointEvent value)? removePoint,
+    TResult Function(ForceGameForEvent value)? forceGameFor,
+    TResult Function(ForceSetForEvent value)? forceSetFor,
+    TResult Function(SetExplicitGamePointsEvent value)? setExplicitGamePoints,
+    TResult Function(ToggleTieBreakGamesEvent value)? toggleTieBreakGames,
+    TResult Function(ToggleGoldenPointEvent value)? toggleGoldenPoint,
+    TResult Function(AnnounceScoreEvent value)? announceScore,
+    TResult Function(UndoEvent value)? undo,
+    TResult Function(RedoEvent value)? redo,
+    TResult Function(UndoForTeamEvent value)? undoForTeam,
+    TResult Function(BleCommandEvent value)? bleCommand,
+    required TResult orElse(),
+  }) {
+    if (bleCommand != null) {
+      return bleCommand(this);
+    }
+    return orElse();
+  }
+}
+
+abstract class BleCommandEvent implements ScoringEvent {
+  const factory BleCommandEvent(final String cmd) = _$BleCommandEventImpl;
+
+  String get cmd;
+
+  /// Create a copy of ScoringEvent
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  _$$BleCommandEventImplCopyWith<_$BleCommandEventImpl> get copyWith =>
+      throw _privateConstructorUsedError;
 }

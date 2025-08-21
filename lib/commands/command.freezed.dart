@@ -27,7 +27,6 @@ mixin _$Command {
     required TResult Function(Team team) forceGameFor,
     required TResult Function(Team team) forceSetFor,
     required TResult Function(int blue, int red) setExplicitGamePoints,
-    required TResult Function(bool enabled) toggleTieBreakAtSixSix,
     required TResult Function(bool enabled) toggleGoldenPoint,
     required TResult Function() announceScore,
     required TResult Function() undo,
@@ -43,7 +42,6 @@ mixin _$Command {
     TResult? Function(Team team)? forceGameFor,
     TResult? Function(Team team)? forceSetFor,
     TResult? Function(int blue, int red)? setExplicitGamePoints,
-    TResult? Function(bool enabled)? toggleTieBreakAtSixSix,
     TResult? Function(bool enabled)? toggleGoldenPoint,
     TResult? Function()? announceScore,
     TResult? Function()? undo,
@@ -59,7 +57,6 @@ mixin _$Command {
     TResult Function(Team team)? forceGameFor,
     TResult Function(Team team)? forceSetFor,
     TResult Function(int blue, int red)? setExplicitGamePoints,
-    TResult Function(bool enabled)? toggleTieBreakAtSixSix,
     TResult Function(bool enabled)? toggleGoldenPoint,
     TResult Function()? announceScore,
     TResult Function()? undo,
@@ -76,7 +73,6 @@ mixin _$Command {
     required TResult Function(_CmdForceGameFor value) forceGameFor,
     required TResult Function(_CmdForceSetFor value) forceSetFor,
     required TResult Function(_CmdSetPoints value) setExplicitGamePoints,
-    required TResult Function(_CmdToggleTieRule value) toggleTieBreakAtSixSix,
     required TResult Function(_CmdToggleGoldenPoint value) toggleGoldenPoint,
     required TResult Function(_CmdAnnounceScore value) announceScore,
     required TResult Function(_CmdUndo value) undo,
@@ -92,7 +88,6 @@ mixin _$Command {
     TResult? Function(_CmdForceGameFor value)? forceGameFor,
     TResult? Function(_CmdForceSetFor value)? forceSetFor,
     TResult? Function(_CmdSetPoints value)? setExplicitGamePoints,
-    TResult? Function(_CmdToggleTieRule value)? toggleTieBreakAtSixSix,
     TResult? Function(_CmdToggleGoldenPoint value)? toggleGoldenPoint,
     TResult? Function(_CmdAnnounceScore value)? announceScore,
     TResult? Function(_CmdUndo value)? undo,
@@ -108,7 +103,6 @@ mixin _$Command {
     TResult Function(_CmdForceGameFor value)? forceGameFor,
     TResult Function(_CmdForceSetFor value)? forceSetFor,
     TResult Function(_CmdSetPoints value)? setExplicitGamePoints,
-    TResult Function(_CmdToggleTieRule value)? toggleTieBreakAtSixSix,
     TResult Function(_CmdToggleGoldenPoint value)? toggleGoldenPoint,
     TResult Function(_CmdAnnounceScore value)? announceScore,
     TResult Function(_CmdUndo value)? undo,
@@ -188,7 +182,6 @@ class _$CmdNewMatchImpl implements _CmdNewMatch {
     required TResult Function(Team team) forceGameFor,
     required TResult Function(Team team) forceSetFor,
     required TResult Function(int blue, int red) setExplicitGamePoints,
-    required TResult Function(bool enabled) toggleTieBreakAtSixSix,
     required TResult Function(bool enabled) toggleGoldenPoint,
     required TResult Function() announceScore,
     required TResult Function() undo,
@@ -208,7 +201,6 @@ class _$CmdNewMatchImpl implements _CmdNewMatch {
     TResult? Function(Team team)? forceGameFor,
     TResult? Function(Team team)? forceSetFor,
     TResult? Function(int blue, int red)? setExplicitGamePoints,
-    TResult? Function(bool enabled)? toggleTieBreakAtSixSix,
     TResult? Function(bool enabled)? toggleGoldenPoint,
     TResult? Function()? announceScore,
     TResult? Function()? undo,
@@ -228,7 +220,6 @@ class _$CmdNewMatchImpl implements _CmdNewMatch {
     TResult Function(Team team)? forceGameFor,
     TResult Function(Team team)? forceSetFor,
     TResult Function(int blue, int red)? setExplicitGamePoints,
-    TResult Function(bool enabled)? toggleTieBreakAtSixSix,
     TResult Function(bool enabled)? toggleGoldenPoint,
     TResult Function()? announceScore,
     TResult Function()? undo,
@@ -252,7 +243,6 @@ class _$CmdNewMatchImpl implements _CmdNewMatch {
     required TResult Function(_CmdForceGameFor value) forceGameFor,
     required TResult Function(_CmdForceSetFor value) forceSetFor,
     required TResult Function(_CmdSetPoints value) setExplicitGamePoints,
-    required TResult Function(_CmdToggleTieRule value) toggleTieBreakAtSixSix,
     required TResult Function(_CmdToggleGoldenPoint value) toggleGoldenPoint,
     required TResult Function(_CmdAnnounceScore value) announceScore,
     required TResult Function(_CmdUndo value) undo,
@@ -272,7 +262,6 @@ class _$CmdNewMatchImpl implements _CmdNewMatch {
     TResult? Function(_CmdForceGameFor value)? forceGameFor,
     TResult? Function(_CmdForceSetFor value)? forceSetFor,
     TResult? Function(_CmdSetPoints value)? setExplicitGamePoints,
-    TResult? Function(_CmdToggleTieRule value)? toggleTieBreakAtSixSix,
     TResult? Function(_CmdToggleGoldenPoint value)? toggleGoldenPoint,
     TResult? Function(_CmdAnnounceScore value)? announceScore,
     TResult? Function(_CmdUndo value)? undo,
@@ -292,7 +281,6 @@ class _$CmdNewMatchImpl implements _CmdNewMatch {
     TResult Function(_CmdForceGameFor value)? forceGameFor,
     TResult Function(_CmdForceSetFor value)? forceSetFor,
     TResult Function(_CmdSetPoints value)? setExplicitGamePoints,
-    TResult Function(_CmdToggleTieRule value)? toggleTieBreakAtSixSix,
     TResult Function(_CmdToggleGoldenPoint value)? toggleGoldenPoint,
     TResult Function(_CmdAnnounceScore value)? announceScore,
     TResult Function(_CmdUndo value)? undo,
@@ -361,7 +349,6 @@ class _$CmdNewSetImpl implements _CmdNewSet {
     required TResult Function(Team team) forceGameFor,
     required TResult Function(Team team) forceSetFor,
     required TResult Function(int blue, int red) setExplicitGamePoints,
-    required TResult Function(bool enabled) toggleTieBreakAtSixSix,
     required TResult Function(bool enabled) toggleGoldenPoint,
     required TResult Function() announceScore,
     required TResult Function() undo,
@@ -381,7 +368,6 @@ class _$CmdNewSetImpl implements _CmdNewSet {
     TResult? Function(Team team)? forceGameFor,
     TResult? Function(Team team)? forceSetFor,
     TResult? Function(int blue, int red)? setExplicitGamePoints,
-    TResult? Function(bool enabled)? toggleTieBreakAtSixSix,
     TResult? Function(bool enabled)? toggleGoldenPoint,
     TResult? Function()? announceScore,
     TResult? Function()? undo,
@@ -401,7 +387,6 @@ class _$CmdNewSetImpl implements _CmdNewSet {
     TResult Function(Team team)? forceGameFor,
     TResult Function(Team team)? forceSetFor,
     TResult Function(int blue, int red)? setExplicitGamePoints,
-    TResult Function(bool enabled)? toggleTieBreakAtSixSix,
     TResult Function(bool enabled)? toggleGoldenPoint,
     TResult Function()? announceScore,
     TResult Function()? undo,
@@ -425,7 +410,6 @@ class _$CmdNewSetImpl implements _CmdNewSet {
     required TResult Function(_CmdForceGameFor value) forceGameFor,
     required TResult Function(_CmdForceSetFor value) forceSetFor,
     required TResult Function(_CmdSetPoints value) setExplicitGamePoints,
-    required TResult Function(_CmdToggleTieRule value) toggleTieBreakAtSixSix,
     required TResult Function(_CmdToggleGoldenPoint value) toggleGoldenPoint,
     required TResult Function(_CmdAnnounceScore value) announceScore,
     required TResult Function(_CmdUndo value) undo,
@@ -445,7 +429,6 @@ class _$CmdNewSetImpl implements _CmdNewSet {
     TResult? Function(_CmdForceGameFor value)? forceGameFor,
     TResult? Function(_CmdForceSetFor value)? forceSetFor,
     TResult? Function(_CmdSetPoints value)? setExplicitGamePoints,
-    TResult? Function(_CmdToggleTieRule value)? toggleTieBreakAtSixSix,
     TResult? Function(_CmdToggleGoldenPoint value)? toggleGoldenPoint,
     TResult? Function(_CmdAnnounceScore value)? announceScore,
     TResult? Function(_CmdUndo value)? undo,
@@ -465,7 +448,6 @@ class _$CmdNewSetImpl implements _CmdNewSet {
     TResult Function(_CmdForceGameFor value)? forceGameFor,
     TResult Function(_CmdForceSetFor value)? forceSetFor,
     TResult Function(_CmdSetPoints value)? setExplicitGamePoints,
-    TResult Function(_CmdToggleTieRule value)? toggleTieBreakAtSixSix,
     TResult Function(_CmdToggleGoldenPoint value)? toggleGoldenPoint,
     TResult Function(_CmdAnnounceScore value)? announceScore,
     TResult Function(_CmdUndo value)? undo,
@@ -534,7 +516,6 @@ class _$CmdNewGameImpl implements _CmdNewGame {
     required TResult Function(Team team) forceGameFor,
     required TResult Function(Team team) forceSetFor,
     required TResult Function(int blue, int red) setExplicitGamePoints,
-    required TResult Function(bool enabled) toggleTieBreakAtSixSix,
     required TResult Function(bool enabled) toggleGoldenPoint,
     required TResult Function() announceScore,
     required TResult Function() undo,
@@ -554,7 +535,6 @@ class _$CmdNewGameImpl implements _CmdNewGame {
     TResult? Function(Team team)? forceGameFor,
     TResult? Function(Team team)? forceSetFor,
     TResult? Function(int blue, int red)? setExplicitGamePoints,
-    TResult? Function(bool enabled)? toggleTieBreakAtSixSix,
     TResult? Function(bool enabled)? toggleGoldenPoint,
     TResult? Function()? announceScore,
     TResult? Function()? undo,
@@ -574,7 +554,6 @@ class _$CmdNewGameImpl implements _CmdNewGame {
     TResult Function(Team team)? forceGameFor,
     TResult Function(Team team)? forceSetFor,
     TResult Function(int blue, int red)? setExplicitGamePoints,
-    TResult Function(bool enabled)? toggleTieBreakAtSixSix,
     TResult Function(bool enabled)? toggleGoldenPoint,
     TResult Function()? announceScore,
     TResult Function()? undo,
@@ -598,7 +577,6 @@ class _$CmdNewGameImpl implements _CmdNewGame {
     required TResult Function(_CmdForceGameFor value) forceGameFor,
     required TResult Function(_CmdForceSetFor value) forceSetFor,
     required TResult Function(_CmdSetPoints value) setExplicitGamePoints,
-    required TResult Function(_CmdToggleTieRule value) toggleTieBreakAtSixSix,
     required TResult Function(_CmdToggleGoldenPoint value) toggleGoldenPoint,
     required TResult Function(_CmdAnnounceScore value) announceScore,
     required TResult Function(_CmdUndo value) undo,
@@ -618,7 +596,6 @@ class _$CmdNewGameImpl implements _CmdNewGame {
     TResult? Function(_CmdForceGameFor value)? forceGameFor,
     TResult? Function(_CmdForceSetFor value)? forceSetFor,
     TResult? Function(_CmdSetPoints value)? setExplicitGamePoints,
-    TResult? Function(_CmdToggleTieRule value)? toggleTieBreakAtSixSix,
     TResult? Function(_CmdToggleGoldenPoint value)? toggleGoldenPoint,
     TResult? Function(_CmdAnnounceScore value)? announceScore,
     TResult? Function(_CmdUndo value)? undo,
@@ -638,7 +615,6 @@ class _$CmdNewGameImpl implements _CmdNewGame {
     TResult Function(_CmdForceGameFor value)? forceGameFor,
     TResult Function(_CmdForceSetFor value)? forceSetFor,
     TResult Function(_CmdSetPoints value)? setExplicitGamePoints,
-    TResult Function(_CmdToggleTieRule value)? toggleTieBreakAtSixSix,
     TResult Function(_CmdToggleGoldenPoint value)? toggleGoldenPoint,
     TResult Function(_CmdAnnounceScore value)? announceScore,
     TResult Function(_CmdUndo value)? undo,
@@ -734,7 +710,6 @@ class _$CmdPointForImpl implements _CmdPointFor {
     required TResult Function(Team team) forceGameFor,
     required TResult Function(Team team) forceSetFor,
     required TResult Function(int blue, int red) setExplicitGamePoints,
-    required TResult Function(bool enabled) toggleTieBreakAtSixSix,
     required TResult Function(bool enabled) toggleGoldenPoint,
     required TResult Function() announceScore,
     required TResult Function() undo,
@@ -754,7 +729,6 @@ class _$CmdPointForImpl implements _CmdPointFor {
     TResult? Function(Team team)? forceGameFor,
     TResult? Function(Team team)? forceSetFor,
     TResult? Function(int blue, int red)? setExplicitGamePoints,
-    TResult? Function(bool enabled)? toggleTieBreakAtSixSix,
     TResult? Function(bool enabled)? toggleGoldenPoint,
     TResult? Function()? announceScore,
     TResult? Function()? undo,
@@ -774,7 +748,6 @@ class _$CmdPointForImpl implements _CmdPointFor {
     TResult Function(Team team)? forceGameFor,
     TResult Function(Team team)? forceSetFor,
     TResult Function(int blue, int red)? setExplicitGamePoints,
-    TResult Function(bool enabled)? toggleTieBreakAtSixSix,
     TResult Function(bool enabled)? toggleGoldenPoint,
     TResult Function()? announceScore,
     TResult Function()? undo,
@@ -798,7 +771,6 @@ class _$CmdPointForImpl implements _CmdPointFor {
     required TResult Function(_CmdForceGameFor value) forceGameFor,
     required TResult Function(_CmdForceSetFor value) forceSetFor,
     required TResult Function(_CmdSetPoints value) setExplicitGamePoints,
-    required TResult Function(_CmdToggleTieRule value) toggleTieBreakAtSixSix,
     required TResult Function(_CmdToggleGoldenPoint value) toggleGoldenPoint,
     required TResult Function(_CmdAnnounceScore value) announceScore,
     required TResult Function(_CmdUndo value) undo,
@@ -818,7 +790,6 @@ class _$CmdPointForImpl implements _CmdPointFor {
     TResult? Function(_CmdForceGameFor value)? forceGameFor,
     TResult? Function(_CmdForceSetFor value)? forceSetFor,
     TResult? Function(_CmdSetPoints value)? setExplicitGamePoints,
-    TResult? Function(_CmdToggleTieRule value)? toggleTieBreakAtSixSix,
     TResult? Function(_CmdToggleGoldenPoint value)? toggleGoldenPoint,
     TResult? Function(_CmdAnnounceScore value)? announceScore,
     TResult? Function(_CmdUndo value)? undo,
@@ -838,7 +809,6 @@ class _$CmdPointForImpl implements _CmdPointFor {
     TResult Function(_CmdForceGameFor value)? forceGameFor,
     TResult Function(_CmdForceSetFor value)? forceSetFor,
     TResult Function(_CmdSetPoints value)? setExplicitGamePoints,
-    TResult Function(_CmdToggleTieRule value)? toggleTieBreakAtSixSix,
     TResult Function(_CmdToggleGoldenPoint value)? toggleGoldenPoint,
     TResult Function(_CmdAnnounceScore value)? announceScore,
     TResult Function(_CmdUndo value)? undo,
@@ -945,7 +915,6 @@ class _$CmdRemovePointImpl implements _CmdRemovePoint {
     required TResult Function(Team team) forceGameFor,
     required TResult Function(Team team) forceSetFor,
     required TResult Function(int blue, int red) setExplicitGamePoints,
-    required TResult Function(bool enabled) toggleTieBreakAtSixSix,
     required TResult Function(bool enabled) toggleGoldenPoint,
     required TResult Function() announceScore,
     required TResult Function() undo,
@@ -965,7 +934,6 @@ class _$CmdRemovePointImpl implements _CmdRemovePoint {
     TResult? Function(Team team)? forceGameFor,
     TResult? Function(Team team)? forceSetFor,
     TResult? Function(int blue, int red)? setExplicitGamePoints,
-    TResult? Function(bool enabled)? toggleTieBreakAtSixSix,
     TResult? Function(bool enabled)? toggleGoldenPoint,
     TResult? Function()? announceScore,
     TResult? Function()? undo,
@@ -985,7 +953,6 @@ class _$CmdRemovePointImpl implements _CmdRemovePoint {
     TResult Function(Team team)? forceGameFor,
     TResult Function(Team team)? forceSetFor,
     TResult Function(int blue, int red)? setExplicitGamePoints,
-    TResult Function(bool enabled)? toggleTieBreakAtSixSix,
     TResult Function(bool enabled)? toggleGoldenPoint,
     TResult Function()? announceScore,
     TResult Function()? undo,
@@ -1009,7 +976,6 @@ class _$CmdRemovePointImpl implements _CmdRemovePoint {
     required TResult Function(_CmdForceGameFor value) forceGameFor,
     required TResult Function(_CmdForceSetFor value) forceSetFor,
     required TResult Function(_CmdSetPoints value) setExplicitGamePoints,
-    required TResult Function(_CmdToggleTieRule value) toggleTieBreakAtSixSix,
     required TResult Function(_CmdToggleGoldenPoint value) toggleGoldenPoint,
     required TResult Function(_CmdAnnounceScore value) announceScore,
     required TResult Function(_CmdUndo value) undo,
@@ -1029,7 +995,6 @@ class _$CmdRemovePointImpl implements _CmdRemovePoint {
     TResult? Function(_CmdForceGameFor value)? forceGameFor,
     TResult? Function(_CmdForceSetFor value)? forceSetFor,
     TResult? Function(_CmdSetPoints value)? setExplicitGamePoints,
-    TResult? Function(_CmdToggleTieRule value)? toggleTieBreakAtSixSix,
     TResult? Function(_CmdToggleGoldenPoint value)? toggleGoldenPoint,
     TResult? Function(_CmdAnnounceScore value)? announceScore,
     TResult? Function(_CmdUndo value)? undo,
@@ -1049,7 +1014,6 @@ class _$CmdRemovePointImpl implements _CmdRemovePoint {
     TResult Function(_CmdForceGameFor value)? forceGameFor,
     TResult Function(_CmdForceSetFor value)? forceSetFor,
     TResult Function(_CmdSetPoints value)? setExplicitGamePoints,
-    TResult Function(_CmdToggleTieRule value)? toggleTieBreakAtSixSix,
     TResult Function(_CmdToggleGoldenPoint value)? toggleGoldenPoint,
     TResult Function(_CmdAnnounceScore value)? announceScore,
     TResult Function(_CmdUndo value)? undo,
@@ -1156,7 +1120,6 @@ class _$CmdForceGameForImpl implements _CmdForceGameFor {
     required TResult Function(Team team) forceGameFor,
     required TResult Function(Team team) forceSetFor,
     required TResult Function(int blue, int red) setExplicitGamePoints,
-    required TResult Function(bool enabled) toggleTieBreakAtSixSix,
     required TResult Function(bool enabled) toggleGoldenPoint,
     required TResult Function() announceScore,
     required TResult Function() undo,
@@ -1176,7 +1139,6 @@ class _$CmdForceGameForImpl implements _CmdForceGameFor {
     TResult? Function(Team team)? forceGameFor,
     TResult? Function(Team team)? forceSetFor,
     TResult? Function(int blue, int red)? setExplicitGamePoints,
-    TResult? Function(bool enabled)? toggleTieBreakAtSixSix,
     TResult? Function(bool enabled)? toggleGoldenPoint,
     TResult? Function()? announceScore,
     TResult? Function()? undo,
@@ -1196,7 +1158,6 @@ class _$CmdForceGameForImpl implements _CmdForceGameFor {
     TResult Function(Team team)? forceGameFor,
     TResult Function(Team team)? forceSetFor,
     TResult Function(int blue, int red)? setExplicitGamePoints,
-    TResult Function(bool enabled)? toggleTieBreakAtSixSix,
     TResult Function(bool enabled)? toggleGoldenPoint,
     TResult Function()? announceScore,
     TResult Function()? undo,
@@ -1220,7 +1181,6 @@ class _$CmdForceGameForImpl implements _CmdForceGameFor {
     required TResult Function(_CmdForceGameFor value) forceGameFor,
     required TResult Function(_CmdForceSetFor value) forceSetFor,
     required TResult Function(_CmdSetPoints value) setExplicitGamePoints,
-    required TResult Function(_CmdToggleTieRule value) toggleTieBreakAtSixSix,
     required TResult Function(_CmdToggleGoldenPoint value) toggleGoldenPoint,
     required TResult Function(_CmdAnnounceScore value) announceScore,
     required TResult Function(_CmdUndo value) undo,
@@ -1240,7 +1200,6 @@ class _$CmdForceGameForImpl implements _CmdForceGameFor {
     TResult? Function(_CmdForceGameFor value)? forceGameFor,
     TResult? Function(_CmdForceSetFor value)? forceSetFor,
     TResult? Function(_CmdSetPoints value)? setExplicitGamePoints,
-    TResult? Function(_CmdToggleTieRule value)? toggleTieBreakAtSixSix,
     TResult? Function(_CmdToggleGoldenPoint value)? toggleGoldenPoint,
     TResult? Function(_CmdAnnounceScore value)? announceScore,
     TResult? Function(_CmdUndo value)? undo,
@@ -1260,7 +1219,6 @@ class _$CmdForceGameForImpl implements _CmdForceGameFor {
     TResult Function(_CmdForceGameFor value)? forceGameFor,
     TResult Function(_CmdForceSetFor value)? forceSetFor,
     TResult Function(_CmdSetPoints value)? setExplicitGamePoints,
-    TResult Function(_CmdToggleTieRule value)? toggleTieBreakAtSixSix,
     TResult Function(_CmdToggleGoldenPoint value)? toggleGoldenPoint,
     TResult Function(_CmdAnnounceScore value)? announceScore,
     TResult Function(_CmdUndo value)? undo,
@@ -1367,7 +1325,6 @@ class _$CmdForceSetForImpl implements _CmdForceSetFor {
     required TResult Function(Team team) forceGameFor,
     required TResult Function(Team team) forceSetFor,
     required TResult Function(int blue, int red) setExplicitGamePoints,
-    required TResult Function(bool enabled) toggleTieBreakAtSixSix,
     required TResult Function(bool enabled) toggleGoldenPoint,
     required TResult Function() announceScore,
     required TResult Function() undo,
@@ -1387,7 +1344,6 @@ class _$CmdForceSetForImpl implements _CmdForceSetFor {
     TResult? Function(Team team)? forceGameFor,
     TResult? Function(Team team)? forceSetFor,
     TResult? Function(int blue, int red)? setExplicitGamePoints,
-    TResult? Function(bool enabled)? toggleTieBreakAtSixSix,
     TResult? Function(bool enabled)? toggleGoldenPoint,
     TResult? Function()? announceScore,
     TResult? Function()? undo,
@@ -1407,7 +1363,6 @@ class _$CmdForceSetForImpl implements _CmdForceSetFor {
     TResult Function(Team team)? forceGameFor,
     TResult Function(Team team)? forceSetFor,
     TResult Function(int blue, int red)? setExplicitGamePoints,
-    TResult Function(bool enabled)? toggleTieBreakAtSixSix,
     TResult Function(bool enabled)? toggleGoldenPoint,
     TResult Function()? announceScore,
     TResult Function()? undo,
@@ -1431,7 +1386,6 @@ class _$CmdForceSetForImpl implements _CmdForceSetFor {
     required TResult Function(_CmdForceGameFor value) forceGameFor,
     required TResult Function(_CmdForceSetFor value) forceSetFor,
     required TResult Function(_CmdSetPoints value) setExplicitGamePoints,
-    required TResult Function(_CmdToggleTieRule value) toggleTieBreakAtSixSix,
     required TResult Function(_CmdToggleGoldenPoint value) toggleGoldenPoint,
     required TResult Function(_CmdAnnounceScore value) announceScore,
     required TResult Function(_CmdUndo value) undo,
@@ -1451,7 +1405,6 @@ class _$CmdForceSetForImpl implements _CmdForceSetFor {
     TResult? Function(_CmdForceGameFor value)? forceGameFor,
     TResult? Function(_CmdForceSetFor value)? forceSetFor,
     TResult? Function(_CmdSetPoints value)? setExplicitGamePoints,
-    TResult? Function(_CmdToggleTieRule value)? toggleTieBreakAtSixSix,
     TResult? Function(_CmdToggleGoldenPoint value)? toggleGoldenPoint,
     TResult? Function(_CmdAnnounceScore value)? announceScore,
     TResult? Function(_CmdUndo value)? undo,
@@ -1471,7 +1424,6 @@ class _$CmdForceSetForImpl implements _CmdForceSetFor {
     TResult Function(_CmdForceGameFor value)? forceGameFor,
     TResult Function(_CmdForceSetFor value)? forceSetFor,
     TResult Function(_CmdSetPoints value)? setExplicitGamePoints,
-    TResult Function(_CmdToggleTieRule value)? toggleTieBreakAtSixSix,
     TResult Function(_CmdToggleGoldenPoint value)? toggleGoldenPoint,
     TResult Function(_CmdAnnounceScore value)? announceScore,
     TResult Function(_CmdUndo value)? undo,
@@ -1582,7 +1534,6 @@ class _$CmdSetPointsImpl implements _CmdSetPoints {
     required TResult Function(Team team) forceGameFor,
     required TResult Function(Team team) forceSetFor,
     required TResult Function(int blue, int red) setExplicitGamePoints,
-    required TResult Function(bool enabled) toggleTieBreakAtSixSix,
     required TResult Function(bool enabled) toggleGoldenPoint,
     required TResult Function() announceScore,
     required TResult Function() undo,
@@ -1602,7 +1553,6 @@ class _$CmdSetPointsImpl implements _CmdSetPoints {
     TResult? Function(Team team)? forceGameFor,
     TResult? Function(Team team)? forceSetFor,
     TResult? Function(int blue, int red)? setExplicitGamePoints,
-    TResult? Function(bool enabled)? toggleTieBreakAtSixSix,
     TResult? Function(bool enabled)? toggleGoldenPoint,
     TResult? Function()? announceScore,
     TResult? Function()? undo,
@@ -1622,7 +1572,6 @@ class _$CmdSetPointsImpl implements _CmdSetPoints {
     TResult Function(Team team)? forceGameFor,
     TResult Function(Team team)? forceSetFor,
     TResult Function(int blue, int red)? setExplicitGamePoints,
-    TResult Function(bool enabled)? toggleTieBreakAtSixSix,
     TResult Function(bool enabled)? toggleGoldenPoint,
     TResult Function()? announceScore,
     TResult Function()? undo,
@@ -1646,7 +1595,6 @@ class _$CmdSetPointsImpl implements _CmdSetPoints {
     required TResult Function(_CmdForceGameFor value) forceGameFor,
     required TResult Function(_CmdForceSetFor value) forceSetFor,
     required TResult Function(_CmdSetPoints value) setExplicitGamePoints,
-    required TResult Function(_CmdToggleTieRule value) toggleTieBreakAtSixSix,
     required TResult Function(_CmdToggleGoldenPoint value) toggleGoldenPoint,
     required TResult Function(_CmdAnnounceScore value) announceScore,
     required TResult Function(_CmdUndo value) undo,
@@ -1666,7 +1614,6 @@ class _$CmdSetPointsImpl implements _CmdSetPoints {
     TResult? Function(_CmdForceGameFor value)? forceGameFor,
     TResult? Function(_CmdForceSetFor value)? forceSetFor,
     TResult? Function(_CmdSetPoints value)? setExplicitGamePoints,
-    TResult? Function(_CmdToggleTieRule value)? toggleTieBreakAtSixSix,
     TResult? Function(_CmdToggleGoldenPoint value)? toggleGoldenPoint,
     TResult? Function(_CmdAnnounceScore value)? announceScore,
     TResult? Function(_CmdUndo value)? undo,
@@ -1686,7 +1633,6 @@ class _$CmdSetPointsImpl implements _CmdSetPoints {
     TResult Function(_CmdForceGameFor value)? forceGameFor,
     TResult Function(_CmdForceSetFor value)? forceSetFor,
     TResult Function(_CmdSetPoints value)? setExplicitGamePoints,
-    TResult Function(_CmdToggleTieRule value)? toggleTieBreakAtSixSix,
     TResult Function(_CmdToggleGoldenPoint value)? toggleGoldenPoint,
     TResult Function(_CmdAnnounceScore value)? announceScore,
     TResult Function(_CmdUndo value)? undo,
@@ -1711,217 +1657,6 @@ abstract class _CmdSetPoints implements Command {
   /// with the given fields replaced by the non-null parameter values.
   @JsonKey(includeFromJson: false, includeToJson: false)
   _$$CmdSetPointsImplCopyWith<_$CmdSetPointsImpl> get copyWith =>
-      throw _privateConstructorUsedError;
-}
-
-/// @nodoc
-abstract class _$$CmdToggleTieRuleImplCopyWith<$Res> {
-  factory _$$CmdToggleTieRuleImplCopyWith(
-    _$CmdToggleTieRuleImpl value,
-    $Res Function(_$CmdToggleTieRuleImpl) then,
-  ) = __$$CmdToggleTieRuleImplCopyWithImpl<$Res>;
-  @useResult
-  $Res call({bool enabled});
-}
-
-/// @nodoc
-class __$$CmdToggleTieRuleImplCopyWithImpl<$Res>
-    extends _$CommandCopyWithImpl<$Res, _$CmdToggleTieRuleImpl>
-    implements _$$CmdToggleTieRuleImplCopyWith<$Res> {
-  __$$CmdToggleTieRuleImplCopyWithImpl(
-    _$CmdToggleTieRuleImpl _value,
-    $Res Function(_$CmdToggleTieRuleImpl) _then,
-  ) : super(_value, _then);
-
-  /// Create a copy of Command
-  /// with the given fields replaced by the non-null parameter values.
-  @pragma('vm:prefer-inline')
-  @override
-  $Res call({Object? enabled = null}) {
-    return _then(
-      _$CmdToggleTieRuleImpl(
-        null == enabled
-            ? _value.enabled
-            : enabled // ignore: cast_nullable_to_non_nullable
-                as bool,
-      ),
-    );
-  }
-}
-
-/// @nodoc
-
-class _$CmdToggleTieRuleImpl implements _CmdToggleTieRule {
-  const _$CmdToggleTieRuleImpl(this.enabled);
-
-  @override
-  final bool enabled;
-
-  @override
-  String toString() {
-    return 'Command.toggleTieBreakAtSixSix(enabled: $enabled)';
-  }
-
-  @override
-  bool operator ==(Object other) {
-    return identical(this, other) ||
-        (other.runtimeType == runtimeType &&
-            other is _$CmdToggleTieRuleImpl &&
-            (identical(other.enabled, enabled) || other.enabled == enabled));
-  }
-
-  @override
-  int get hashCode => Object.hash(runtimeType, enabled);
-
-  /// Create a copy of Command
-  /// with the given fields replaced by the non-null parameter values.
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  @override
-  @pragma('vm:prefer-inline')
-  _$$CmdToggleTieRuleImplCopyWith<_$CmdToggleTieRuleImpl> get copyWith =>
-      __$$CmdToggleTieRuleImplCopyWithImpl<_$CmdToggleTieRuleImpl>(
-        this,
-        _$identity,
-      );
-
-  @override
-  @optionalTypeArgs
-  TResult when<TResult extends Object?>({
-    required TResult Function() newMatch,
-    required TResult Function() newSet,
-    required TResult Function() newGame,
-    required TResult Function(Team team) pointFor,
-    required TResult Function(Team team) removePoint,
-    required TResult Function(Team team) forceGameFor,
-    required TResult Function(Team team) forceSetFor,
-    required TResult Function(int blue, int red) setExplicitGamePoints,
-    required TResult Function(bool enabled) toggleTieBreakAtSixSix,
-    required TResult Function(bool enabled) toggleGoldenPoint,
-    required TResult Function() announceScore,
-    required TResult Function() undo,
-    required TResult Function() redo,
-  }) {
-    return toggleTieBreakAtSixSix(enabled);
-  }
-
-  @override
-  @optionalTypeArgs
-  TResult? whenOrNull<TResult extends Object?>({
-    TResult? Function()? newMatch,
-    TResult? Function()? newSet,
-    TResult? Function()? newGame,
-    TResult? Function(Team team)? pointFor,
-    TResult? Function(Team team)? removePoint,
-    TResult? Function(Team team)? forceGameFor,
-    TResult? Function(Team team)? forceSetFor,
-    TResult? Function(int blue, int red)? setExplicitGamePoints,
-    TResult? Function(bool enabled)? toggleTieBreakAtSixSix,
-    TResult? Function(bool enabled)? toggleGoldenPoint,
-    TResult? Function()? announceScore,
-    TResult? Function()? undo,
-    TResult? Function()? redo,
-  }) {
-    return toggleTieBreakAtSixSix?.call(enabled);
-  }
-
-  @override
-  @optionalTypeArgs
-  TResult maybeWhen<TResult extends Object?>({
-    TResult Function()? newMatch,
-    TResult Function()? newSet,
-    TResult Function()? newGame,
-    TResult Function(Team team)? pointFor,
-    TResult Function(Team team)? removePoint,
-    TResult Function(Team team)? forceGameFor,
-    TResult Function(Team team)? forceSetFor,
-    TResult Function(int blue, int red)? setExplicitGamePoints,
-    TResult Function(bool enabled)? toggleTieBreakAtSixSix,
-    TResult Function(bool enabled)? toggleGoldenPoint,
-    TResult Function()? announceScore,
-    TResult Function()? undo,
-    TResult Function()? redo,
-    required TResult orElse(),
-  }) {
-    if (toggleTieBreakAtSixSix != null) {
-      return toggleTieBreakAtSixSix(enabled);
-    }
-    return orElse();
-  }
-
-  @override
-  @optionalTypeArgs
-  TResult map<TResult extends Object?>({
-    required TResult Function(_CmdNewMatch value) newMatch,
-    required TResult Function(_CmdNewSet value) newSet,
-    required TResult Function(_CmdNewGame value) newGame,
-    required TResult Function(_CmdPointFor value) pointFor,
-    required TResult Function(_CmdRemovePoint value) removePoint,
-    required TResult Function(_CmdForceGameFor value) forceGameFor,
-    required TResult Function(_CmdForceSetFor value) forceSetFor,
-    required TResult Function(_CmdSetPoints value) setExplicitGamePoints,
-    required TResult Function(_CmdToggleTieRule value) toggleTieBreakAtSixSix,
-    required TResult Function(_CmdToggleGoldenPoint value) toggleGoldenPoint,
-    required TResult Function(_CmdAnnounceScore value) announceScore,
-    required TResult Function(_CmdUndo value) undo,
-    required TResult Function(_CmdRedo value) redo,
-  }) {
-    return toggleTieBreakAtSixSix(this);
-  }
-
-  @override
-  @optionalTypeArgs
-  TResult? mapOrNull<TResult extends Object?>({
-    TResult? Function(_CmdNewMatch value)? newMatch,
-    TResult? Function(_CmdNewSet value)? newSet,
-    TResult? Function(_CmdNewGame value)? newGame,
-    TResult? Function(_CmdPointFor value)? pointFor,
-    TResult? Function(_CmdRemovePoint value)? removePoint,
-    TResult? Function(_CmdForceGameFor value)? forceGameFor,
-    TResult? Function(_CmdForceSetFor value)? forceSetFor,
-    TResult? Function(_CmdSetPoints value)? setExplicitGamePoints,
-    TResult? Function(_CmdToggleTieRule value)? toggleTieBreakAtSixSix,
-    TResult? Function(_CmdToggleGoldenPoint value)? toggleGoldenPoint,
-    TResult? Function(_CmdAnnounceScore value)? announceScore,
-    TResult? Function(_CmdUndo value)? undo,
-    TResult? Function(_CmdRedo value)? redo,
-  }) {
-    return toggleTieBreakAtSixSix?.call(this);
-  }
-
-  @override
-  @optionalTypeArgs
-  TResult maybeMap<TResult extends Object?>({
-    TResult Function(_CmdNewMatch value)? newMatch,
-    TResult Function(_CmdNewSet value)? newSet,
-    TResult Function(_CmdNewGame value)? newGame,
-    TResult Function(_CmdPointFor value)? pointFor,
-    TResult Function(_CmdRemovePoint value)? removePoint,
-    TResult Function(_CmdForceGameFor value)? forceGameFor,
-    TResult Function(_CmdForceSetFor value)? forceSetFor,
-    TResult Function(_CmdSetPoints value)? setExplicitGamePoints,
-    TResult Function(_CmdToggleTieRule value)? toggleTieBreakAtSixSix,
-    TResult Function(_CmdToggleGoldenPoint value)? toggleGoldenPoint,
-    TResult Function(_CmdAnnounceScore value)? announceScore,
-    TResult Function(_CmdUndo value)? undo,
-    TResult Function(_CmdRedo value)? redo,
-    required TResult orElse(),
-  }) {
-    if (toggleTieBreakAtSixSix != null) {
-      return toggleTieBreakAtSixSix(this);
-    }
-    return orElse();
-  }
-}
-
-abstract class _CmdToggleTieRule implements Command {
-  const factory _CmdToggleTieRule(final bool enabled) = _$CmdToggleTieRuleImpl;
-
-  bool get enabled;
-
-  /// Create a copy of Command
-  /// with the given fields replaced by the non-null parameter values.
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  _$$CmdToggleTieRuleImplCopyWith<_$CmdToggleTieRuleImpl> get copyWith =>
       throw _privateConstructorUsedError;
 }
 
@@ -2007,7 +1742,6 @@ class _$CmdToggleGoldenPointImpl implements _CmdToggleGoldenPoint {
     required TResult Function(Team team) forceGameFor,
     required TResult Function(Team team) forceSetFor,
     required TResult Function(int blue, int red) setExplicitGamePoints,
-    required TResult Function(bool enabled) toggleTieBreakAtSixSix,
     required TResult Function(bool enabled) toggleGoldenPoint,
     required TResult Function() announceScore,
     required TResult Function() undo,
@@ -2027,7 +1761,6 @@ class _$CmdToggleGoldenPointImpl implements _CmdToggleGoldenPoint {
     TResult? Function(Team team)? forceGameFor,
     TResult? Function(Team team)? forceSetFor,
     TResult? Function(int blue, int red)? setExplicitGamePoints,
-    TResult? Function(bool enabled)? toggleTieBreakAtSixSix,
     TResult? Function(bool enabled)? toggleGoldenPoint,
     TResult? Function()? announceScore,
     TResult? Function()? undo,
@@ -2047,7 +1780,6 @@ class _$CmdToggleGoldenPointImpl implements _CmdToggleGoldenPoint {
     TResult Function(Team team)? forceGameFor,
     TResult Function(Team team)? forceSetFor,
     TResult Function(int blue, int red)? setExplicitGamePoints,
-    TResult Function(bool enabled)? toggleTieBreakAtSixSix,
     TResult Function(bool enabled)? toggleGoldenPoint,
     TResult Function()? announceScore,
     TResult Function()? undo,
@@ -2071,7 +1803,6 @@ class _$CmdToggleGoldenPointImpl implements _CmdToggleGoldenPoint {
     required TResult Function(_CmdForceGameFor value) forceGameFor,
     required TResult Function(_CmdForceSetFor value) forceSetFor,
     required TResult Function(_CmdSetPoints value) setExplicitGamePoints,
-    required TResult Function(_CmdToggleTieRule value) toggleTieBreakAtSixSix,
     required TResult Function(_CmdToggleGoldenPoint value) toggleGoldenPoint,
     required TResult Function(_CmdAnnounceScore value) announceScore,
     required TResult Function(_CmdUndo value) undo,
@@ -2091,7 +1822,6 @@ class _$CmdToggleGoldenPointImpl implements _CmdToggleGoldenPoint {
     TResult? Function(_CmdForceGameFor value)? forceGameFor,
     TResult? Function(_CmdForceSetFor value)? forceSetFor,
     TResult? Function(_CmdSetPoints value)? setExplicitGamePoints,
-    TResult? Function(_CmdToggleTieRule value)? toggleTieBreakAtSixSix,
     TResult? Function(_CmdToggleGoldenPoint value)? toggleGoldenPoint,
     TResult? Function(_CmdAnnounceScore value)? announceScore,
     TResult? Function(_CmdUndo value)? undo,
@@ -2111,7 +1841,6 @@ class _$CmdToggleGoldenPointImpl implements _CmdToggleGoldenPoint {
     TResult Function(_CmdForceGameFor value)? forceGameFor,
     TResult Function(_CmdForceSetFor value)? forceSetFor,
     TResult Function(_CmdSetPoints value)? setExplicitGamePoints,
-    TResult Function(_CmdToggleTieRule value)? toggleTieBreakAtSixSix,
     TResult Function(_CmdToggleGoldenPoint value)? toggleGoldenPoint,
     TResult Function(_CmdAnnounceScore value)? announceScore,
     TResult Function(_CmdUndo value)? undo,
@@ -2189,7 +1918,6 @@ class _$CmdAnnounceScoreImpl implements _CmdAnnounceScore {
     required TResult Function(Team team) forceGameFor,
     required TResult Function(Team team) forceSetFor,
     required TResult Function(int blue, int red) setExplicitGamePoints,
-    required TResult Function(bool enabled) toggleTieBreakAtSixSix,
     required TResult Function(bool enabled) toggleGoldenPoint,
     required TResult Function() announceScore,
     required TResult Function() undo,
@@ -2209,7 +1937,6 @@ class _$CmdAnnounceScoreImpl implements _CmdAnnounceScore {
     TResult? Function(Team team)? forceGameFor,
     TResult? Function(Team team)? forceSetFor,
     TResult? Function(int blue, int red)? setExplicitGamePoints,
-    TResult? Function(bool enabled)? toggleTieBreakAtSixSix,
     TResult? Function(bool enabled)? toggleGoldenPoint,
     TResult? Function()? announceScore,
     TResult? Function()? undo,
@@ -2229,7 +1956,6 @@ class _$CmdAnnounceScoreImpl implements _CmdAnnounceScore {
     TResult Function(Team team)? forceGameFor,
     TResult Function(Team team)? forceSetFor,
     TResult Function(int blue, int red)? setExplicitGamePoints,
-    TResult Function(bool enabled)? toggleTieBreakAtSixSix,
     TResult Function(bool enabled)? toggleGoldenPoint,
     TResult Function()? announceScore,
     TResult Function()? undo,
@@ -2253,7 +1979,6 @@ class _$CmdAnnounceScoreImpl implements _CmdAnnounceScore {
     required TResult Function(_CmdForceGameFor value) forceGameFor,
     required TResult Function(_CmdForceSetFor value) forceSetFor,
     required TResult Function(_CmdSetPoints value) setExplicitGamePoints,
-    required TResult Function(_CmdToggleTieRule value) toggleTieBreakAtSixSix,
     required TResult Function(_CmdToggleGoldenPoint value) toggleGoldenPoint,
     required TResult Function(_CmdAnnounceScore value) announceScore,
     required TResult Function(_CmdUndo value) undo,
@@ -2273,7 +1998,6 @@ class _$CmdAnnounceScoreImpl implements _CmdAnnounceScore {
     TResult? Function(_CmdForceGameFor value)? forceGameFor,
     TResult? Function(_CmdForceSetFor value)? forceSetFor,
     TResult? Function(_CmdSetPoints value)? setExplicitGamePoints,
-    TResult? Function(_CmdToggleTieRule value)? toggleTieBreakAtSixSix,
     TResult? Function(_CmdToggleGoldenPoint value)? toggleGoldenPoint,
     TResult? Function(_CmdAnnounceScore value)? announceScore,
     TResult? Function(_CmdUndo value)? undo,
@@ -2293,7 +2017,6 @@ class _$CmdAnnounceScoreImpl implements _CmdAnnounceScore {
     TResult Function(_CmdForceGameFor value)? forceGameFor,
     TResult Function(_CmdForceSetFor value)? forceSetFor,
     TResult Function(_CmdSetPoints value)? setExplicitGamePoints,
-    TResult Function(_CmdToggleTieRule value)? toggleTieBreakAtSixSix,
     TResult Function(_CmdToggleGoldenPoint value)? toggleGoldenPoint,
     TResult Function(_CmdAnnounceScore value)? announceScore,
     TResult Function(_CmdUndo value)? undo,
@@ -2362,7 +2085,6 @@ class _$CmdUndoImpl implements _CmdUndo {
     required TResult Function(Team team) forceGameFor,
     required TResult Function(Team team) forceSetFor,
     required TResult Function(int blue, int red) setExplicitGamePoints,
-    required TResult Function(bool enabled) toggleTieBreakAtSixSix,
     required TResult Function(bool enabled) toggleGoldenPoint,
     required TResult Function() announceScore,
     required TResult Function() undo,
@@ -2382,7 +2104,6 @@ class _$CmdUndoImpl implements _CmdUndo {
     TResult? Function(Team team)? forceGameFor,
     TResult? Function(Team team)? forceSetFor,
     TResult? Function(int blue, int red)? setExplicitGamePoints,
-    TResult? Function(bool enabled)? toggleTieBreakAtSixSix,
     TResult? Function(bool enabled)? toggleGoldenPoint,
     TResult? Function()? announceScore,
     TResult? Function()? undo,
@@ -2402,7 +2123,6 @@ class _$CmdUndoImpl implements _CmdUndo {
     TResult Function(Team team)? forceGameFor,
     TResult Function(Team team)? forceSetFor,
     TResult Function(int blue, int red)? setExplicitGamePoints,
-    TResult Function(bool enabled)? toggleTieBreakAtSixSix,
     TResult Function(bool enabled)? toggleGoldenPoint,
     TResult Function()? announceScore,
     TResult Function()? undo,
@@ -2426,7 +2146,6 @@ class _$CmdUndoImpl implements _CmdUndo {
     required TResult Function(_CmdForceGameFor value) forceGameFor,
     required TResult Function(_CmdForceSetFor value) forceSetFor,
     required TResult Function(_CmdSetPoints value) setExplicitGamePoints,
-    required TResult Function(_CmdToggleTieRule value) toggleTieBreakAtSixSix,
     required TResult Function(_CmdToggleGoldenPoint value) toggleGoldenPoint,
     required TResult Function(_CmdAnnounceScore value) announceScore,
     required TResult Function(_CmdUndo value) undo,
@@ -2446,7 +2165,6 @@ class _$CmdUndoImpl implements _CmdUndo {
     TResult? Function(_CmdForceGameFor value)? forceGameFor,
     TResult? Function(_CmdForceSetFor value)? forceSetFor,
     TResult? Function(_CmdSetPoints value)? setExplicitGamePoints,
-    TResult? Function(_CmdToggleTieRule value)? toggleTieBreakAtSixSix,
     TResult? Function(_CmdToggleGoldenPoint value)? toggleGoldenPoint,
     TResult? Function(_CmdAnnounceScore value)? announceScore,
     TResult? Function(_CmdUndo value)? undo,
@@ -2466,7 +2184,6 @@ class _$CmdUndoImpl implements _CmdUndo {
     TResult Function(_CmdForceGameFor value)? forceGameFor,
     TResult Function(_CmdForceSetFor value)? forceSetFor,
     TResult Function(_CmdSetPoints value)? setExplicitGamePoints,
-    TResult Function(_CmdToggleTieRule value)? toggleTieBreakAtSixSix,
     TResult Function(_CmdToggleGoldenPoint value)? toggleGoldenPoint,
     TResult Function(_CmdAnnounceScore value)? announceScore,
     TResult Function(_CmdUndo value)? undo,
@@ -2535,7 +2252,6 @@ class _$CmdRedoImpl implements _CmdRedo {
     required TResult Function(Team team) forceGameFor,
     required TResult Function(Team team) forceSetFor,
     required TResult Function(int blue, int red) setExplicitGamePoints,
-    required TResult Function(bool enabled) toggleTieBreakAtSixSix,
     required TResult Function(bool enabled) toggleGoldenPoint,
     required TResult Function() announceScore,
     required TResult Function() undo,
@@ -2555,7 +2271,6 @@ class _$CmdRedoImpl implements _CmdRedo {
     TResult? Function(Team team)? forceGameFor,
     TResult? Function(Team team)? forceSetFor,
     TResult? Function(int blue, int red)? setExplicitGamePoints,
-    TResult? Function(bool enabled)? toggleTieBreakAtSixSix,
     TResult? Function(bool enabled)? toggleGoldenPoint,
     TResult? Function()? announceScore,
     TResult? Function()? undo,
@@ -2575,7 +2290,6 @@ class _$CmdRedoImpl implements _CmdRedo {
     TResult Function(Team team)? forceGameFor,
     TResult Function(Team team)? forceSetFor,
     TResult Function(int blue, int red)? setExplicitGamePoints,
-    TResult Function(bool enabled)? toggleTieBreakAtSixSix,
     TResult Function(bool enabled)? toggleGoldenPoint,
     TResult Function()? announceScore,
     TResult Function()? undo,
@@ -2599,7 +2313,6 @@ class _$CmdRedoImpl implements _CmdRedo {
     required TResult Function(_CmdForceGameFor value) forceGameFor,
     required TResult Function(_CmdForceSetFor value) forceSetFor,
     required TResult Function(_CmdSetPoints value) setExplicitGamePoints,
-    required TResult Function(_CmdToggleTieRule value) toggleTieBreakAtSixSix,
     required TResult Function(_CmdToggleGoldenPoint value) toggleGoldenPoint,
     required TResult Function(_CmdAnnounceScore value) announceScore,
     required TResult Function(_CmdUndo value) undo,
@@ -2619,7 +2332,6 @@ class _$CmdRedoImpl implements _CmdRedo {
     TResult? Function(_CmdForceGameFor value)? forceGameFor,
     TResult? Function(_CmdForceSetFor value)? forceSetFor,
     TResult? Function(_CmdSetPoints value)? setExplicitGamePoints,
-    TResult? Function(_CmdToggleTieRule value)? toggleTieBreakAtSixSix,
     TResult? Function(_CmdToggleGoldenPoint value)? toggleGoldenPoint,
     TResult? Function(_CmdAnnounceScore value)? announceScore,
     TResult? Function(_CmdUndo value)? undo,
@@ -2639,7 +2351,6 @@ class _$CmdRedoImpl implements _CmdRedo {
     TResult Function(_CmdForceGameFor value)? forceGameFor,
     TResult Function(_CmdForceSetFor value)? forceSetFor,
     TResult Function(_CmdSetPoints value)? setExplicitGamePoints,
-    TResult Function(_CmdToggleTieRule value)? toggleTieBreakAtSixSix,
     TResult Function(_CmdToggleGoldenPoint value)? toggleGoldenPoint,
     TResult Function(_CmdAnnounceScore value)? announceScore,
     TResult Function(_CmdUndo value)? undo,

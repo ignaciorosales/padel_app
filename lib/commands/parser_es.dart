@@ -89,12 +89,12 @@ class DynamicEsParser {
     // // if (s != null) { ... }
 
     // ---- reglas
-    if (RegExp(r'\bactivar\s+tiebreak\b').hasMatch(t)) {
-      cmds.add(const Command.toggleTieBreakAtSixSix(true));
-    }
-    if (RegExp(r'\bdesactivar\s+tiebreak\b').hasMatch(t)) {
-      cmds.add(const Command.toggleTieBreakAtSixSix(false));
-    }
+    // if (RegExp(r'\bactivar\s+tiebreak\b').hasMatch(t)) {
+    //   cmds.add(const Command.toggleTieBreakAtSixSix(true));
+    // }
+    // if (RegExp(r'\bdesactivar\s+tiebreak\b').hasMatch(t)) {
+    //   cmds.add(const Command.toggleTieBreakAtSixSix(false));
+    // }
     if (RegExp(r'\bactivar\s+punto\s+de\s+oro\b').hasMatch(t)) {
       cmds.add(const Command.toggleGoldenPoint(true));
     }

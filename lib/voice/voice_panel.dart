@@ -63,8 +63,8 @@ class _VoicePanelState extends State<VoicePanel> {
         setExplicitGamePoints: (v) => bloc.add(
           ScoringEvent.setExplicitGamePoints(blue: v.blue, red: v.red),
         ),
-        toggleTieBreakAtSixSix: (v) =>
-            bloc.add(ScoringEvent.toggleTieBreakAtSixSix(v.enabled)),
+        // toggleTieBreakAtSixSix: (v) =>
+        //     bloc.add(ScoringEvent.toggleTieBreakAtSixSix(v.enabled)),
         toggleGoldenPoint: (v) =>
             bloc.add(ScoringEvent.toggleGoldenPoint(v.enabled)),
         announceScore: (_) => bloc.add(const ScoringEvent.announceScore()),

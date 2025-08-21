@@ -20,7 +20,7 @@ sealed class Command with _$Command {
   const factory Command.setExplicitGamePoints(int blue, int red) = _CmdSetPoints;
 
   // Reglas (configurables desde UI/voz)
-  const factory Command.toggleTieBreakAtSixSix(bool enabled) = _CmdToggleTieRule;
+  // const factory Command.toggleTieBreakAtSixSix(bool enabled) = _CmdToggleTieRule;
   const factory Command.toggleGoldenPoint(bool enabled) = _CmdToggleGoldenPoint;
 
   // Utilidades

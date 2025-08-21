@@ -16,18 +16,21 @@ final _privateConstructorUsedError = UnsupportedError(
 );
 
 MatchSettings _$MatchSettingsFromJson(Map<String, dynamic> json) {
-  return MatchSettingsImpl.fromJson(json);
+  return _MatchSettings.fromJson(json);
 }
 
 /// @nodoc
 mixin _$MatchSettings {
-  bool get goldenPoint =>
-      throw _privateConstructorUsedError; // punto de oro a 40–40
-  bool get tieBreakAtSixSix =>
-      throw _privateConstructorUsedError; // tiebreak a 6–6
-  int get tieBreakTarget =>
-      throw _privateConstructorUsedError; // 7 con diferencia de 2
   int get setsToWin => throw _privateConstructorUsedError;
+
+  /// 6 (clásico) o 12 (super set)
+  int get tieBreakAtGames => throw _privateConstructorUsedError;
+
+  /// En deuce el siguiente punto decide
+  bool get goldenPoint => throw _privateConstructorUsedError;
+
+  /// Objetivo del TB (p.ej. 7 o 10, siempre con diferencia de 2)
+  int get tieBreakTarget => throw _privateConstructorUsedError;
 
   /// Serializes this MatchSettings to a JSON map.
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
@@ -47,10 +50,10 @@ abstract class $MatchSettingsCopyWith<$Res> {
   ) = _$MatchSettingsCopyWithImpl<$Res, MatchSettings>;
   @useResult
   $Res call({
-    bool goldenPoint,
-    bool tieBreakAtSixSix,
-    int tieBreakTarget,
     int setsToWin,
+    int tieBreakAtGames,
+    bool goldenPoint,
+    int tieBreakTarget,
   });
 }
 
@@ -69,32 +72,32 @@ class _$MatchSettingsCopyWithImpl<$Res, $Val extends MatchSettings>
   @pragma('vm:prefer-inline')
   @override
   $Res call({
-    Object? goldenPoint = null,
-    Object? tieBreakAtSixSix = null,
-    Object? tieBreakTarget = null,
     Object? setsToWin = null,
+    Object? tieBreakAtGames = null,
+    Object? goldenPoint = null,
+    Object? tieBreakTarget = null,
   }) {
     return _then(
       _value.copyWith(
+            setsToWin:
+                null == setsToWin
+                    ? _value.setsToWin
+                    : setsToWin // ignore: cast_nullable_to_non_nullable
+                        as int,
+            tieBreakAtGames:
+                null == tieBreakAtGames
+                    ? _value.tieBreakAtGames
+                    : tieBreakAtGames // ignore: cast_nullable_to_non_nullable
+                        as int,
             goldenPoint:
                 null == goldenPoint
                     ? _value.goldenPoint
                     : goldenPoint // ignore: cast_nullable_to_non_nullable
                         as bool,
-            tieBreakAtSixSix:
-                null == tieBreakAtSixSix
-                    ? _value.tieBreakAtSixSix
-                    : tieBreakAtSixSix // ignore: cast_nullable_to_non_nullable
-                        as bool,
             tieBreakTarget:
                 null == tieBreakTarget
                     ? _value.tieBreakTarget
                     : tieBreakTarget // ignore: cast_nullable_to_non_nullable
-                        as int,
-            setsToWin:
-                null == setsToWin
-                    ? _value.setsToWin
-                    : setsToWin // ignore: cast_nullable_to_non_nullable
                         as int,
           )
           as $Val,
@@ -103,29 +106,29 @@ class _$MatchSettingsCopyWithImpl<$Res, $Val extends MatchSettings>
 }
 
 /// @nodoc
-abstract class _$$MatchSettingsImplImplCopyWith<$Res>
+abstract class _$$MatchSettingsImplCopyWith<$Res>
     implements $MatchSettingsCopyWith<$Res> {
-  factory _$$MatchSettingsImplImplCopyWith(
-    _$MatchSettingsImplImpl value,
-    $Res Function(_$MatchSettingsImplImpl) then,
-  ) = __$$MatchSettingsImplImplCopyWithImpl<$Res>;
+  factory _$$MatchSettingsImplCopyWith(
+    _$MatchSettingsImpl value,
+    $Res Function(_$MatchSettingsImpl) then,
+  ) = __$$MatchSettingsImplCopyWithImpl<$Res>;
   @override
   @useResult
   $Res call({
-    bool goldenPoint,
-    bool tieBreakAtSixSix,
-    int tieBreakTarget,
     int setsToWin,
+    int tieBreakAtGames,
+    bool goldenPoint,
+    int tieBreakTarget,
   });
 }
 
 /// @nodoc
-class __$$MatchSettingsImplImplCopyWithImpl<$Res>
-    extends _$MatchSettingsCopyWithImpl<$Res, _$MatchSettingsImplImpl>
-    implements _$$MatchSettingsImplImplCopyWith<$Res> {
-  __$$MatchSettingsImplImplCopyWithImpl(
-    _$MatchSettingsImplImpl _value,
-    $Res Function(_$MatchSettingsImplImpl) _then,
+class __$$MatchSettingsImplCopyWithImpl<$Res>
+    extends _$MatchSettingsCopyWithImpl<$Res, _$MatchSettingsImpl>
+    implements _$$MatchSettingsImplCopyWith<$Res> {
+  __$$MatchSettingsImplCopyWithImpl(
+    _$MatchSettingsImpl _value,
+    $Res Function(_$MatchSettingsImpl) _then,
   ) : super(_value, _then);
 
   /// Create a copy of MatchSettings
@@ -133,32 +136,32 @@ class __$$MatchSettingsImplImplCopyWithImpl<$Res>
   @pragma('vm:prefer-inline')
   @override
   $Res call({
-    Object? goldenPoint = null,
-    Object? tieBreakAtSixSix = null,
-    Object? tieBreakTarget = null,
     Object? setsToWin = null,
+    Object? tieBreakAtGames = null,
+    Object? goldenPoint = null,
+    Object? tieBreakTarget = null,
   }) {
     return _then(
-      _$MatchSettingsImplImpl(
+      _$MatchSettingsImpl(
+        setsToWin:
+            null == setsToWin
+                ? _value.setsToWin
+                : setsToWin // ignore: cast_nullable_to_non_nullable
+                    as int,
+        tieBreakAtGames:
+            null == tieBreakAtGames
+                ? _value.tieBreakAtGames
+                : tieBreakAtGames // ignore: cast_nullable_to_non_nullable
+                    as int,
         goldenPoint:
             null == goldenPoint
                 ? _value.goldenPoint
                 : goldenPoint // ignore: cast_nullable_to_non_nullable
                     as bool,
-        tieBreakAtSixSix:
-            null == tieBreakAtSixSix
-                ? _value.tieBreakAtSixSix
-                : tieBreakAtSixSix // ignore: cast_nullable_to_non_nullable
-                    as bool,
         tieBreakTarget:
             null == tieBreakTarget
                 ? _value.tieBreakTarget
                 : tieBreakTarget // ignore: cast_nullable_to_non_nullable
-                    as int,
-        setsToWin:
-            null == setsToWin
-                ? _value.setsToWin
-                : setsToWin // ignore: cast_nullable_to_non_nullable
                     as int,
       ),
     );
@@ -167,61 +170,64 @@ class __$$MatchSettingsImplImplCopyWithImpl<$Res>
 
 /// @nodoc
 @JsonSerializable()
-class _$MatchSettingsImplImpl implements MatchSettingsImpl {
-  const _$MatchSettingsImplImpl({
-    this.goldenPoint = true,
-    this.tieBreakAtSixSix = true,
-    this.tieBreakTarget = 7,
+class _$MatchSettingsImpl implements _MatchSettings {
+  const _$MatchSettingsImpl({
     this.setsToWin = 2,
+    this.tieBreakAtGames = 6,
+    this.goldenPoint = false,
+    this.tieBreakTarget = 7,
   });
 
-  factory _$MatchSettingsImplImpl.fromJson(Map<String, dynamic> json) =>
-      _$$MatchSettingsImplImplFromJson(json);
+  factory _$MatchSettingsImpl.fromJson(Map<String, dynamic> json) =>
+      _$$MatchSettingsImplFromJson(json);
 
-  @override
-  @JsonKey()
-  final bool goldenPoint;
-  // punto de oro a 40–40
-  @override
-  @JsonKey()
-  final bool tieBreakAtSixSix;
-  // tiebreak a 6–6
-  @override
-  @JsonKey()
-  final int tieBreakTarget;
-  // 7 con diferencia de 2
   @override
   @JsonKey()
   final int setsToWin;
 
+  /// 6 (clásico) o 12 (super set)
+  @override
+  @JsonKey()
+  final int tieBreakAtGames;
+
+  /// En deuce el siguiente punto decide
+  @override
+  @JsonKey()
+  final bool goldenPoint;
+
+  /// Objetivo del TB (p.ej. 7 o 10, siempre con diferencia de 2)
+  @override
+  @JsonKey()
+  final int tieBreakTarget;
+
   @override
   String toString() {
-    return 'MatchSettings(goldenPoint: $goldenPoint, tieBreakAtSixSix: $tieBreakAtSixSix, tieBreakTarget: $tieBreakTarget, setsToWin: $setsToWin)';
+    return 'MatchSettings(setsToWin: $setsToWin, tieBreakAtGames: $tieBreakAtGames, goldenPoint: $goldenPoint, tieBreakTarget: $tieBreakTarget)';
   }
 
   @override
   bool operator ==(Object other) {
     return identical(this, other) ||
         (other.runtimeType == runtimeType &&
-            other is _$MatchSettingsImplImpl &&
+            other is _$MatchSettingsImpl &&
+            (identical(other.setsToWin, setsToWin) ||
+                other.setsToWin == setsToWin) &&
+            (identical(other.tieBreakAtGames, tieBreakAtGames) ||
+                other.tieBreakAtGames == tieBreakAtGames) &&
             (identical(other.goldenPoint, goldenPoint) ||
                 other.goldenPoint == goldenPoint) &&
-            (identical(other.tieBreakAtSixSix, tieBreakAtSixSix) ||
-                other.tieBreakAtSixSix == tieBreakAtSixSix) &&
             (identical(other.tieBreakTarget, tieBreakTarget) ||
-                other.tieBreakTarget == tieBreakTarget) &&
-            (identical(other.setsToWin, setsToWin) ||
-                other.setsToWin == setsToWin));
+                other.tieBreakTarget == tieBreakTarget));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
   @override
   int get hashCode => Object.hash(
     runtimeType,
-    goldenPoint,
-    tieBreakAtSixSix,
-    tieBreakTarget,
     setsToWin,
+    tieBreakAtGames,
+    goldenPoint,
+    tieBreakTarget,
   );
 
   /// Create a copy of MatchSettings
@@ -229,48 +235,51 @@ class _$MatchSettingsImplImpl implements MatchSettingsImpl {
   @JsonKey(includeFromJson: false, includeToJson: false)
   @override
   @pragma('vm:prefer-inline')
-  _$$MatchSettingsImplImplCopyWith<_$MatchSettingsImplImpl> get copyWith =>
-      __$$MatchSettingsImplImplCopyWithImpl<_$MatchSettingsImplImpl>(
-        this,
-        _$identity,
-      );
+  _$$MatchSettingsImplCopyWith<_$MatchSettingsImpl> get copyWith =>
+      __$$MatchSettingsImplCopyWithImpl<_$MatchSettingsImpl>(this, _$identity);
 
   @override
   Map<String, dynamic> toJson() {
-    return _$$MatchSettingsImplImplToJson(this);
+    return _$$MatchSettingsImplToJson(this);
   }
 }
 
-abstract class MatchSettingsImpl implements MatchSettings {
-  const factory MatchSettingsImpl({
-    final bool goldenPoint,
-    final bool tieBreakAtSixSix,
-    final int tieBreakTarget,
+abstract class _MatchSettings implements MatchSettings {
+  const factory _MatchSettings({
     final int setsToWin,
-  }) = _$MatchSettingsImplImpl;
+    final int tieBreakAtGames,
+    final bool goldenPoint,
+    final int tieBreakTarget,
+  }) = _$MatchSettingsImpl;
 
-  factory MatchSettingsImpl.fromJson(Map<String, dynamic> json) =
-      _$MatchSettingsImplImpl.fromJson;
+  factory _MatchSettings.fromJson(Map<String, dynamic> json) =
+      _$MatchSettingsImpl.fromJson;
 
-  @override
-  bool get goldenPoint; // punto de oro a 40–40
-  @override
-  bool get tieBreakAtSixSix; // tiebreak a 6–6
-  @override
-  int get tieBreakTarget; // 7 con diferencia de 2
   @override
   int get setsToWin;
+
+  /// 6 (clásico) o 12 (super set)
+  @override
+  int get tieBreakAtGames;
+
+  /// En deuce el siguiente punto decide
+  @override
+  bool get goldenPoint;
+
+  /// Objetivo del TB (p.ej. 7 o 10, siempre con diferencia de 2)
+  @override
+  int get tieBreakTarget;
 
   /// Create a copy of MatchSettings
   /// with the given fields replaced by the non-null parameter values.
   @override
   @JsonKey(includeFromJson: false, includeToJson: false)
-  _$$MatchSettingsImplImplCopyWith<_$MatchSettingsImplImpl> get copyWith =>
+  _$$MatchSettingsImplCopyWith<_$MatchSettingsImpl> get copyWith =>
       throw _privateConstructorUsedError;
 }
 
 GamePoints _$GamePointsFromJson(Map<String, dynamic> json) {
-  return GamePointsImpl.fromJson(json);
+  return _GamePoints.fromJson(json);
 }
 
 /// @nodoc
@@ -342,24 +351,24 @@ class _$GamePointsCopyWithImpl<$Res, $Val extends GamePoints>
 }
 
 /// @nodoc
-abstract class _$$GamePointsImplImplCopyWith<$Res>
+abstract class _$$GamePointsImplCopyWith<$Res>
     implements $GamePointsCopyWith<$Res> {
-  factory _$$GamePointsImplImplCopyWith(
-    _$GamePointsImplImpl value,
-    $Res Function(_$GamePointsImplImpl) then,
-  ) = __$$GamePointsImplImplCopyWithImpl<$Res>;
+  factory _$$GamePointsImplCopyWith(
+    _$GamePointsImpl value,
+    $Res Function(_$GamePointsImpl) then,
+  ) = __$$GamePointsImplCopyWithImpl<$Res>;
   @override
   @useResult
   $Res call({int blue, int red, bool isTieBreak});
 }
 
 /// @nodoc
-class __$$GamePointsImplImplCopyWithImpl<$Res>
-    extends _$GamePointsCopyWithImpl<$Res, _$GamePointsImplImpl>
-    implements _$$GamePointsImplImplCopyWith<$Res> {
-  __$$GamePointsImplImplCopyWithImpl(
-    _$GamePointsImplImpl _value,
-    $Res Function(_$GamePointsImplImpl) _then,
+class __$$GamePointsImplCopyWithImpl<$Res>
+    extends _$GamePointsCopyWithImpl<$Res, _$GamePointsImpl>
+    implements _$$GamePointsImplCopyWith<$Res> {
+  __$$GamePointsImplCopyWithImpl(
+    _$GamePointsImpl _value,
+    $Res Function(_$GamePointsImpl) _then,
   ) : super(_value, _then);
 
   /// Create a copy of GamePoints
@@ -372,7 +381,7 @@ class __$$GamePointsImplImplCopyWithImpl<$Res>
     Object? isTieBreak = null,
   }) {
     return _then(
-      _$GamePointsImplImpl(
+      _$GamePointsImpl(
         blue:
             null == blue
                 ? _value.blue
@@ -395,15 +404,15 @@ class __$$GamePointsImplImplCopyWithImpl<$Res>
 
 /// @nodoc
 @JsonSerializable()
-class _$GamePointsImplImpl implements GamePointsImpl {
-  const _$GamePointsImplImpl({
+class _$GamePointsImpl implements _GamePoints {
+  const _$GamePointsImpl({
     this.blue = 0,
     this.red = 0,
     this.isTieBreak = false,
   });
 
-  factory _$GamePointsImplImpl.fromJson(Map<String, dynamic> json) =>
-      _$$GamePointsImplImplFromJson(json);
+  factory _$GamePointsImpl.fromJson(Map<String, dynamic> json) =>
+      _$$GamePointsImplFromJson(json);
 
   @override
   @JsonKey()
@@ -424,7 +433,7 @@ class _$GamePointsImplImpl implements GamePointsImpl {
   bool operator ==(Object other) {
     return identical(this, other) ||
         (other.runtimeType == runtimeType &&
-            other is _$GamePointsImplImpl &&
+            other is _$GamePointsImpl &&
             (identical(other.blue, blue) || other.blue == blue) &&
             (identical(other.red, red) || other.red == red) &&
             (identical(other.isTieBreak, isTieBreak) ||
@@ -440,27 +449,24 @@ class _$GamePointsImplImpl implements GamePointsImpl {
   @JsonKey(includeFromJson: false, includeToJson: false)
   @override
   @pragma('vm:prefer-inline')
-  _$$GamePointsImplImplCopyWith<_$GamePointsImplImpl> get copyWith =>
-      __$$GamePointsImplImplCopyWithImpl<_$GamePointsImplImpl>(
-        this,
-        _$identity,
-      );
+  _$$GamePointsImplCopyWith<_$GamePointsImpl> get copyWith =>
+      __$$GamePointsImplCopyWithImpl<_$GamePointsImpl>(this, _$identity);
 
   @override
   Map<String, dynamic> toJson() {
-    return _$$GamePointsImplImplToJson(this);
+    return _$$GamePointsImplToJson(this);
   }
 }
 
-abstract class GamePointsImpl implements GamePoints {
-  const factory GamePointsImpl({
+abstract class _GamePoints implements GamePoints {
+  const factory _GamePoints({
     final int blue,
     final int red,
     final bool isTieBreak,
-  }) = _$GamePointsImplImpl;
+  }) = _$GamePointsImpl;
 
-  factory GamePointsImpl.fromJson(Map<String, dynamic> json) =
-      _$GamePointsImplImpl.fromJson;
+  factory _GamePoints.fromJson(Map<String, dynamic> json) =
+      _$GamePointsImpl.fromJson;
 
   @override
   int get blue;
@@ -473,12 +479,12 @@ abstract class GamePointsImpl implements GamePoints {
   /// with the given fields replaced by the non-null parameter values.
   @override
   @JsonKey(includeFromJson: false, includeToJson: false)
-  _$$GamePointsImplImplCopyWith<_$GamePointsImplImpl> get copyWith =>
+  _$$GamePointsImplCopyWith<_$GamePointsImpl> get copyWith =>
       throw _privateConstructorUsedError;
 }
 
 SetScore _$SetScoreFromJson(Map<String, dynamic> json) {
-  return SetScoreImpl.fromJson(json);
+  return _SetScore.fromJson(json);
 }
 
 /// @nodoc
@@ -486,6 +492,8 @@ mixin _$SetScore {
   int get blueGames => throw _privateConstructorUsedError;
   int get redGames => throw _privateConstructorUsedError;
   GamePoints get currentGame => throw _privateConstructorUsedError;
+
+  /// Servidor que comenzó el tie-break (rotación 1–2–2–2)
   Team? get tieBreakStarter => throw _privateConstructorUsedError;
 
   /// Serializes this SetScore to a JSON map.
@@ -572,12 +580,12 @@ class _$SetScoreCopyWithImpl<$Res, $Val extends SetScore>
 }
 
 /// @nodoc
-abstract class _$$SetScoreImplImplCopyWith<$Res>
+abstract class _$$SetScoreImplCopyWith<$Res>
     implements $SetScoreCopyWith<$Res> {
-  factory _$$SetScoreImplImplCopyWith(
-    _$SetScoreImplImpl value,
-    $Res Function(_$SetScoreImplImpl) then,
-  ) = __$$SetScoreImplImplCopyWithImpl<$Res>;
+  factory _$$SetScoreImplCopyWith(
+    _$SetScoreImpl value,
+    $Res Function(_$SetScoreImpl) then,
+  ) = __$$SetScoreImplCopyWithImpl<$Res>;
   @override
   @useResult
   $Res call({
@@ -592,12 +600,12 @@ abstract class _$$SetScoreImplImplCopyWith<$Res>
 }
 
 /// @nodoc
-class __$$SetScoreImplImplCopyWithImpl<$Res>
-    extends _$SetScoreCopyWithImpl<$Res, _$SetScoreImplImpl>
-    implements _$$SetScoreImplImplCopyWith<$Res> {
-  __$$SetScoreImplImplCopyWithImpl(
-    _$SetScoreImplImpl _value,
-    $Res Function(_$SetScoreImplImpl) _then,
+class __$$SetScoreImplCopyWithImpl<$Res>
+    extends _$SetScoreCopyWithImpl<$Res, _$SetScoreImpl>
+    implements _$$SetScoreImplCopyWith<$Res> {
+  __$$SetScoreImplCopyWithImpl(
+    _$SetScoreImpl _value,
+    $Res Function(_$SetScoreImpl) _then,
   ) : super(_value, _then);
 
   /// Create a copy of SetScore
@@ -611,7 +619,7 @@ class __$$SetScoreImplImplCopyWithImpl<$Res>
     Object? tieBreakStarter = freezed,
   }) {
     return _then(
-      _$SetScoreImplImpl(
+      _$SetScoreImpl(
         blueGames:
             null == blueGames
                 ? _value.blueGames
@@ -639,16 +647,16 @@ class __$$SetScoreImplImplCopyWithImpl<$Res>
 
 /// @nodoc
 @JsonSerializable()
-class _$SetScoreImplImpl implements SetScoreImpl {
-  const _$SetScoreImplImpl({
+class _$SetScoreImpl implements _SetScore {
+  const _$SetScoreImpl({
     this.blueGames = 0,
     this.redGames = 0,
     this.currentGame = const GamePoints(),
     this.tieBreakStarter,
   });
 
-  factory _$SetScoreImplImpl.fromJson(Map<String, dynamic> json) =>
-      _$$SetScoreImplImplFromJson(json);
+  factory _$SetScoreImpl.fromJson(Map<String, dynamic> json) =>
+      _$$SetScoreImplFromJson(json);
 
   @override
   @JsonKey()
@@ -659,6 +667,8 @@ class _$SetScoreImplImpl implements SetScoreImpl {
   @override
   @JsonKey()
   final GamePoints currentGame;
+
+  /// Servidor que comenzó el tie-break (rotación 1–2–2–2)
   @override
   final Team? tieBreakStarter;
 
@@ -671,7 +681,7 @@ class _$SetScoreImplImpl implements SetScoreImpl {
   bool operator ==(Object other) {
     return identical(this, other) ||
         (other.runtimeType == runtimeType &&
-            other is _$SetScoreImplImpl &&
+            other is _$SetScoreImpl &&
             (identical(other.blueGames, blueGames) ||
                 other.blueGames == blueGames) &&
             (identical(other.redGames, redGames) ||
@@ -697,25 +707,25 @@ class _$SetScoreImplImpl implements SetScoreImpl {
   @JsonKey(includeFromJson: false, includeToJson: false)
   @override
   @pragma('vm:prefer-inline')
-  _$$SetScoreImplImplCopyWith<_$SetScoreImplImpl> get copyWith =>
-      __$$SetScoreImplImplCopyWithImpl<_$SetScoreImplImpl>(this, _$identity);
+  _$$SetScoreImplCopyWith<_$SetScoreImpl> get copyWith =>
+      __$$SetScoreImplCopyWithImpl<_$SetScoreImpl>(this, _$identity);
 
   @override
   Map<String, dynamic> toJson() {
-    return _$$SetScoreImplImplToJson(this);
+    return _$$SetScoreImplToJson(this);
   }
 }
 
-abstract class SetScoreImpl implements SetScore {
-  const factory SetScoreImpl({
+abstract class _SetScore implements SetScore {
+  const factory _SetScore({
     final int blueGames,
     final int redGames,
     final GamePoints currentGame,
     final Team? tieBreakStarter,
-  }) = _$SetScoreImplImpl;
+  }) = _$SetScoreImpl;
 
-  factory SetScoreImpl.fromJson(Map<String, dynamic> json) =
-      _$SetScoreImplImpl.fromJson;
+  factory _SetScore.fromJson(Map<String, dynamic> json) =
+      _$SetScoreImpl.fromJson;
 
   @override
   int get blueGames;
@@ -723,6 +733,8 @@ abstract class SetScoreImpl implements SetScore {
   int get redGames;
   @override
   GamePoints get currentGame;
+
+  /// Servidor que comenzó el tie-break (rotación 1–2–2–2)
   @override
   Team? get tieBreakStarter;
 
@@ -730,12 +742,12 @@ abstract class SetScoreImpl implements SetScore {
   /// with the given fields replaced by the non-null parameter values.
   @override
   @JsonKey(includeFromJson: false, includeToJson: false)
-  _$$SetScoreImplImplCopyWith<_$SetScoreImplImpl> get copyWith =>
+  _$$SetScoreImplCopyWith<_$SetScoreImpl> get copyWith =>
       throw _privateConstructorUsedError;
 }
 
 MatchScore _$MatchScoreFromJson(Map<String, dynamic> json) {
-  return MatchScoreImpl.fromJson(json);
+  return _MatchScore.fromJson(json);
 }
 
 /// @nodoc
@@ -744,8 +756,7 @@ mixin _$MatchScore {
   int get currentSetIndex => throw _privateConstructorUsedError;
   Team get server => throw _privateConstructorUsedError;
   Team get receiver => throw _privateConstructorUsedError;
-  String get blueName =>
-      throw _privateConstructorUsedError; // se sobreescribe desde config en runtime
+  String get blueName => throw _privateConstructorUsedError;
   String get redName => throw _privateConstructorUsedError;
   bool get paused => throw _privateConstructorUsedError;
   MatchSettings get settings => throw _privateConstructorUsedError;
@@ -864,12 +875,12 @@ class _$MatchScoreCopyWithImpl<$Res, $Val extends MatchScore>
 }
 
 /// @nodoc
-abstract class _$$MatchScoreImplImplCopyWith<$Res>
+abstract class _$$MatchScoreImplCopyWith<$Res>
     implements $MatchScoreCopyWith<$Res> {
-  factory _$$MatchScoreImplImplCopyWith(
-    _$MatchScoreImplImpl value,
-    $Res Function(_$MatchScoreImplImpl) then,
-  ) = __$$MatchScoreImplImplCopyWithImpl<$Res>;
+  factory _$$MatchScoreImplCopyWith(
+    _$MatchScoreImpl value,
+    $Res Function(_$MatchScoreImpl) then,
+  ) = __$$MatchScoreImplCopyWithImpl<$Res>;
   @override
   @useResult
   $Res call({
@@ -888,12 +899,12 @@ abstract class _$$MatchScoreImplImplCopyWith<$Res>
 }
 
 /// @nodoc
-class __$$MatchScoreImplImplCopyWithImpl<$Res>
-    extends _$MatchScoreCopyWithImpl<$Res, _$MatchScoreImplImpl>
-    implements _$$MatchScoreImplImplCopyWith<$Res> {
-  __$$MatchScoreImplImplCopyWithImpl(
-    _$MatchScoreImplImpl _value,
-    $Res Function(_$MatchScoreImplImpl) _then,
+class __$$MatchScoreImplCopyWithImpl<$Res>
+    extends _$MatchScoreCopyWithImpl<$Res, _$MatchScoreImpl>
+    implements _$$MatchScoreImplCopyWith<$Res> {
+  __$$MatchScoreImplCopyWithImpl(
+    _$MatchScoreImpl _value,
+    $Res Function(_$MatchScoreImpl) _then,
   ) : super(_value, _then);
 
   /// Create a copy of MatchScore
@@ -911,7 +922,7 @@ class __$$MatchScoreImplImplCopyWithImpl<$Res>
     Object? settings = null,
   }) {
     return _then(
-      _$MatchScoreImplImpl(
+      _$MatchScoreImpl(
         sets:
             null == sets
                 ? _value._sets
@@ -958,9 +969,10 @@ class __$$MatchScoreImplImplCopyWithImpl<$Res>
 }
 
 /// @nodoc
-@JsonSerializable()
-class _$MatchScoreImplImpl extends MatchScoreImpl {
-  const _$MatchScoreImplImpl({
+
+@JsonSerializable(explicitToJson: true)
+class _$MatchScoreImpl extends _MatchScore {
+  const _$MatchScoreImpl({
     final List<SetScore> sets = const <SetScore>[],
     this.currentSetIndex = 0,
     this.server = Team.blue,
@@ -972,8 +984,8 @@ class _$MatchScoreImplImpl extends MatchScoreImpl {
   }) : _sets = sets,
        super._();
 
-  factory _$MatchScoreImplImpl.fromJson(Map<String, dynamic> json) =>
-      _$$MatchScoreImplImplFromJson(json);
+  factory _$MatchScoreImpl.fromJson(Map<String, dynamic> json) =>
+      _$$MatchScoreImplFromJson(json);
 
   final List<SetScore> _sets;
   @override
@@ -996,7 +1008,6 @@ class _$MatchScoreImplImpl extends MatchScoreImpl {
   @override
   @JsonKey()
   final String blueName;
-  // se sobreescribe desde config en runtime
   @override
   @JsonKey()
   final String redName;
@@ -1016,7 +1027,7 @@ class _$MatchScoreImplImpl extends MatchScoreImpl {
   bool operator ==(Object other) {
     return identical(this, other) ||
         (other.runtimeType == runtimeType &&
-            other is _$MatchScoreImplImpl &&
+            other is _$MatchScoreImpl &&
             const DeepCollectionEquality().equals(other._sets, _sets) &&
             (identical(other.currentSetIndex, currentSetIndex) ||
                 other.currentSetIndex == currentSetIndex) &&
@@ -1050,20 +1061,17 @@ class _$MatchScoreImplImpl extends MatchScoreImpl {
   @JsonKey(includeFromJson: false, includeToJson: false)
   @override
   @pragma('vm:prefer-inline')
-  _$$MatchScoreImplImplCopyWith<_$MatchScoreImplImpl> get copyWith =>
-      __$$MatchScoreImplImplCopyWithImpl<_$MatchScoreImplImpl>(
-        this,
-        _$identity,
-      );
+  _$$MatchScoreImplCopyWith<_$MatchScoreImpl> get copyWith =>
+      __$$MatchScoreImplCopyWithImpl<_$MatchScoreImpl>(this, _$identity);
 
   @override
   Map<String, dynamic> toJson() {
-    return _$$MatchScoreImplImplToJson(this);
+    return _$$MatchScoreImplToJson(this);
   }
 }
 
-abstract class MatchScoreImpl extends MatchScore {
-  const factory MatchScoreImpl({
+abstract class _MatchScore extends MatchScore {
+  const factory _MatchScore({
     final List<SetScore> sets,
     final int currentSetIndex,
     final Team server,
@@ -1072,11 +1080,11 @@ abstract class MatchScoreImpl extends MatchScore {
     final String redName,
     final bool paused,
     final MatchSettings settings,
-  }) = _$MatchScoreImplImpl;
-  const MatchScoreImpl._() : super._();
+  }) = _$MatchScoreImpl;
+  const _MatchScore._() : super._();
 
-  factory MatchScoreImpl.fromJson(Map<String, dynamic> json) =
-      _$MatchScoreImplImpl.fromJson;
+  factory _MatchScore.fromJson(Map<String, dynamic> json) =
+      _$MatchScoreImpl.fromJson;
 
   @override
   List<SetScore> get sets;
@@ -1087,7 +1095,7 @@ abstract class MatchScoreImpl extends MatchScore {
   @override
   Team get receiver;
   @override
-  String get blueName; // se sobreescribe desde config en runtime
+  String get blueName;
   @override
   String get redName;
   @override
@@ -1099,6 +1107,6 @@ abstract class MatchScoreImpl extends MatchScore {
   /// with the given fields replaced by the non-null parameter values.
   @override
   @JsonKey(includeFromJson: false, includeToJson: false)
-  _$$MatchScoreImplImplCopyWith<_$MatchScoreImplImpl> get copyWith =>
+  _$$MatchScoreImplCopyWith<_$MatchScoreImpl> get copyWith =>
       throw _privateConstructorUsedError;
 }
