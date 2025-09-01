@@ -19,9 +19,6 @@ void processFinalVoiceText(BuildContext context, String text) {
   final cmds = parser.parse(text);
 
   if (cmds.isEmpty) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('No entendí: "$text"')),
-    );
     return;
   }
 

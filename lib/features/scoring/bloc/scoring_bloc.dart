@@ -406,6 +406,19 @@ class ScoringBloc extends Bloc<ScoringEvent, ScoringState> {
   // ========== BLE bridge ==========
   void _onBleCommand(BleCommandEvent e, Emitter<ScoringState> emit) {
     final cmd = e.cmd.trim().toLowerCase();
+
+    if (cmd == 'cmd:toggle-server') {
+      final m = _clone(state.match);
+      final nextServer = _other(m.server);
+      final next = m.copyWith(
+        server: nextServer,
+        receiver: _other(nextServer),
+      );
+      _pushHistory(emit, next, 'Cambiar servicio');
+      return;
+    }
+
+    // existing behavior
     if (cmd.startsWith('cmd:')) {
       final ch = cmd.substring(4);
       if (ch.isEmpty) return;
@@ -415,22 +428,18 @@ class ScoringBloc extends Bloc<ScoringEvent, ScoringState> {
     }
   }
 
+
   void _dispatchCmd(String ch) {
     switch (ch) {
-      case 'a':
-        add(PointForEvent(_teamA));
-        break;
-      case 'b':
-        add(PointForEvent(_teamB));
-        break;
-      case 'u':
-        add(const UndoEvent());
-        break;
-      // Optional team-wise undo over BLE: send 'ua' or 'ub'
-      case 'x': // placeholder, never hit; fallthrough shows 'ua'/'ub' idea
-        break;
+      case 'a': add(PointForEvent(Team.blue)); break;
+      case 'b': add(PointForEvent(Team.red));  break;
+      case 'u': add(const UndoEvent());        break;
+      case 'g': add(const NewGameEvent());     break;
+      default:  break;
     }
   }
+
+
 
   // Optional helper if you prefer calling a method (e.g., from a listener)
   void applyBleCommand(String cmd) => add(BleCommandEvent(cmd));

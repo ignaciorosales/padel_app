@@ -30,9 +30,6 @@ class _VoicePanelState extends State<VoicePanel> {
     setState(() => _last = text);
     _controller.clear();
     FocusScope.of(context).unfocus();
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Comando: "$text"')),
-    );
   }
 
   void _dispatchAll(BuildContext context, String text) {
