@@ -1,6 +1,18 @@
 // PadelScoreboard_Serial.ino — BLE advertising (connectionless) version
-// Broadcasts Manufacturer Data = [0xFF,0xFF] + "CMD:" + <cmd> + <seq>
-// <seq> increments for real commands (a,b,u,g,m) and stays the same for periodic re-broadcasts.
+//
+// Manufacturer Data (12 bytes):
+// [0]  Company ID LSB (0xFF)
+// [1]  Company ID MSB (0xFF)
+// [2]  'P' (0x50)
+// [3]  'S' (0x53)
+// [4]  protoVer (0x01)
+// [5]  devIdLo
+// [6]  devIdHi
+// [7]  'C' (0x43) frame type = Command
+// [8]  cmd  ('p','u','g')
+// [9]  seq  (1..255, never 0)
+// [10] crcLo  (CRC16-CCITT over bytes 2..9)
+// [11] crcHi
 
 #include "Config.h"
 #include "PadelRules.h"
@@ -10,14 +22,12 @@
 #include <BLEAdvertising.h>
 #include <WiFi.h>
 
-// ======= Ajustes BLE =======
 #define BLE_DEVICE_NAME   "PadelScore-C3"
-
-// Manufacturer Company ID (0xFFFF = testing). Keep in sync with your Flutter sniffer.
 #define MFG_ID_LSB  0xFF
 #define MFG_ID_MSB  0xFF
+static const uint8_t PROTO_VER = 0x01;
 
-// ======= Estado del marcador =======
+// ======= Estado del marcador (solo para mostrar algo en Serial) =======
 Score score;
 Score history[UNDO_DEPTH];
 int   histSize = 0;
@@ -31,50 +41,82 @@ static void pushHistory() {
 }
 static void popHistory() { if (histSize > 0) score = history[--histSize]; }
 
-// ======= Advertising globals/protos =======
+// ======= Advertising =======
 static BLEAdvertising* adv = nullptr;
-static char lastCmd = 's';                   // último comando emitido (por defecto 's')
-static unsigned long lastReTx = 0;           // re-broadcast periódico
-static const unsigned long RE_TX_MS = 2000;  // reemite cada 2s para oyentes que lleguen tarde
-static uint8_t gSeq = 1;                     // 1..255, nunca 0 para evitar '\0'
+static char lastCmd = 'p';                   // último comando emitido
+static unsigned long lastReTx = 0;
+static const unsigned long RE_TX_MS = 2000;  // reemite cada 2 s
+static uint8_t gSeq = 1;                     // 1..255
 
-// Construye y aplica el payload de advertising con Manufacturer Data = "FFFF:CMD:<c><seq>"
+// Stable device id from efuse MAC (low 16 bits)
+static uint16_t gDeviceId = 0;
+static inline uint16_t calcDevIdFromEfuse() {
+  uint64_t mac = ESP.getEfuseMac();
+  return (uint16_t)(mac & 0xFFFF);
+}
+
+// CRC16-CCITT (poly 0x1021, init 0xFFFF)
+static uint16_t crc16_ccitt(const uint8_t* data, size_t len) {
+  uint16_t crc = 0xFFFF;
+  for (size_t i = 0; i < len; ++i) {
+    crc ^= (uint16_t)data[i] << 8;
+    for (int b = 0; b < 8; ++b) {
+      if (crc & 0x8000) crc = (uint16_t)((crc << 1) ^ 0x1021);
+      else              crc = (uint16_t)(crc << 1);
+    }
+  }
+  return crc;
+}
+
+// Construye y aplica el payload de advertising
 static void applyAdvPayload(char cmd) {
   lastCmd = cmd;
 
-  BLEAdvertisementData ad;
-  ad.setName(BLE_DEVICE_NAME);
+  uint8_t p[12];
+  p[0]  = MFG_ID_LSB;
+  p[1]  = MFG_ID_MSB;
+  p[2]  = 'P';
+  p[3]  = 'S';
+  p[4]  = PROTO_VER;
+  p[5]  = (uint8_t)(gDeviceId & 0xFF);
+  p[6]  = (uint8_t)((gDeviceId >> 8) & 0xFF);
+  p[7]  = 'C';
+  p[8]  = (uint8_t)cmd;  // 'p','u','g'
+  p[9]  = gSeq;          // 1..255
+  const uint16_t crc = crc16_ccitt(&p[2], 8); // bytes 2..9
+  p[10] = (uint8_t)(crc & 0xFF);
+  p[11] = (uint8_t)(crc >> 8);
 
-  // Manufacturer data: [LSB, MSB] + "CMD:" + <cmd> + <seq>
-  // Use Arduino String (not std::string) because BLE API expects String.
+  // Build Arduino String from raw bytes (safe with 0x00)
   String mfg;
-  mfg.reserve(2 + 4 + 1 + 1);
-  mfg += (char)MFG_ID_LSB;   // 0xFF
-  mfg += (char)MFG_ID_MSB;   // 0xFF
-  mfg += "CMD:";
-  mfg += cmd;                // 'a','b','u','g','m','s'
-  mfg += (char)gSeq;         // sequence byte (1..255, never 0)
+  mfg.reserve(sizeof(p));
+  for (size_t i = 0; i < sizeof(p); ++i) mfg += (char)p[i];
 
-  ad.setManufacturerData(mfg);
+  BLEAdvertisementData advData, scanResp;
+  advData.setManufacturerData(mfg);   // MD en ADV primario
+  scanResp.setName(BLE_DEVICE_NAME);  // nombre en Scan Response
 
-  // Ensure change takes effect
   adv->stop();
-  adv->setAdvertisementData(ad);
+  adv->setAdvertisementData(advData);
+  adv->setScanResponseData(scanResp);
   adv->start();
 }
 
-// Inicializa BLE en modo "beacon" (sin servidor GATT)
+// Inicializa BLE “beacon”
 static void setupBroadcast() {
   BLEDevice::init(BLE_DEVICE_NAME);
   adv = BLEDevice::getAdvertising();
-  adv->setScanResponse(false); // todo en el paquete primario
-  applyAdvPayload('s');        // arranca con estado neutro
+  adv->setScanResponse(true);
+  applyAdvPayload('p'); // estado neutro
 }
 
 // ======= Serial helpers =======
 static void printHelp() {
-  Serial.println(F("Comandos: a b u g m s  (h=ayuda)"));
-  Serial.println(F("a: A+, b: B+, u: undo, g: reset juego, m: reset partido, s: ver estado"));
+  Serial.println(F("Comandos por Serial: p u g s (h=ayuda)"));
+  Serial.println(F("p: POINT (solo transmite)"));
+  Serial.println(F("u: UNDO  (solo transmite)"));
+  Serial.println(F("g: START/RESTART GAME (resetea juego local y transmite)"));
+  Serial.println(F("s: ver estado local"));
 }
 
 static void printScoreboard(const Score &s) {
@@ -97,20 +139,20 @@ static void printScoreboard(const Score &s) {
 
 // ======= Arduino setup/loop =======
 void setup() {
-  WiFi.mode(WIFI_OFF);
-  WiFi.forceSleepBegin();
-  delay(1);
+  WiFi.mode(WIFI_OFF);          // suficiente en ESP32
   Serial.begin(115200);
   unsigned long t0 = millis();
   while (!Serial && (millis() - t0 < 2000)) { delay(10); }
 
-  setCpuFrequencyMhz(80); 
-  resetMatch(score);
+  setCpuFrequencyMhz(80);
+  gDeviceId = calcDevIdFromEfuse();
+
+  resetMatch(score); // estado visible en Serial
   setupBroadcast();
 
   Serial.println();
-  Serial.println(F("BLE Broadcast listo. No se requiere conexión."));
-  Serial.println(F("Escanea 'PadelScore-C3' y lee ManufacturerData: [FFFF] + 'CMD:<letra><seq>'"));
+  Serial.printf("devId: 0x%04X (derivado de efuse MAC)\n", gDeviceId);
+  Serial.println(F("MD: [FF FF] 'P' 'S' ver devLo devHi 'C' cmd seq crcLo crcHi"));
   printHelp();
   printScoreboard(score);
 }
@@ -122,36 +164,32 @@ void loop() {
     if (ch != -1) {
       char c = (char)ch;
       if (c == '\r' || c == '\n') {
-        // ignora CR/LF
+        // ignora
       } else {
         if (c >= 'A' && c <= 'Z') c = char(c - 'A' + 'a');
-
         bool bumpSeq = false;
 
         switch (c) {
-          case 'a': pushHistory(); pointToA(score); bumpSeq = true; break;
-          case 'b': pushHistory(); pointToB(score); bumpSeq = true; break;
-          case 'u': popHistory();                        bumpSeq = true; break;
-          case 'g': pushHistory(); resetGame(score);     bumpSeq = true; break;
-          case 'm': pushHistory(); resetMatch(score);    bumpSeq = true; break;
-          case 's': default: break; // 's' = no-op (estado)
+          case 'p': bumpSeq = true; break;                 // sólo transmite
+          case 'u': bumpSeq = true; break;                 // sólo transmite
+          case 'g': pushHistory(); resetGame(score); bumpSeq = true; break; // visible en Serial
+          case 's': printScoreboard(score); break;
+          case 'h': default: printHelp(); break;
         }
 
         if (bumpSeq) {
-          gSeq = (gSeq == 255) ? 1 : (uint8_t)(gSeq + 1); // 1..255, evita 0
+          gSeq = (gSeq == 255) ? 1 : (uint8_t)(gSeq + 1);
+          applyAdvPayload(c);
+          Serial.printf("TX '%c' seq=%u\n", c, gSeq);
         }
-
-        applyAdvPayload(c);
-        printScoreboard(score);
       }
     }
   }
 
-  // Reemite periódicamente el último comando para oyentes que llegan tarde
+  // Reemite periódicamente el último comando (misma seq)
   const unsigned long now = millis();
   if (now - lastReTx > RE_TX_MS) {
     lastReTx = now;
-    // NO cambia gSeq aquí; se re-emite el último estado tal cual
     applyAdvPayload(lastCmd);
   }
 }
