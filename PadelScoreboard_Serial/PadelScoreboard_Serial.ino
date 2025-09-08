@@ -27,7 +27,7 @@
 #define MFG_ID_MSB  0xFF
 static const uint8_t PROTO_VER = 0x01;
 
-// ======= Estado del marcador (solo para mostrar algo en Serial) =======
+// ======= Estado del marcador =======
 Score score;
 Score history[UNDO_DEPTH];
 int   histSize = 0;
@@ -40,6 +40,26 @@ static void pushHistory() {
   history[histSize++] = score;
 }
 static void popHistory() { if (histSize > 0) score = history[--histSize]; }
+
+// ======= Botones físicos =======
+#define BTN_P 5   // POINT
+#define BTN_U 6   // UNDO
+#define BTN_G 7   // START/RESTART
+
+static int lastP = HIGH, lastU = HIGH, lastG = HIGH;
+static unsigned long tP = 0, tU = 0, tG = 0;
+static const unsigned long DEBOUNCE_MS = 40;
+
+static inline bool edgePressed(int pin, int &last, unsigned long &tMark) {
+  const int st = digitalRead(pin);
+  const unsigned long now = millis();
+  if (st != last && (now - tMark) > DEBOUNCE_MS) {
+    tMark = now;
+    last = st;
+    return (st == LOW); // LOW = pulsado (INPUT_PULLUP)
+  }
+  return false;
+}
 
 // ======= Advertising =======
 static BLEAdvertising* adv = nullptr;
@@ -87,14 +107,13 @@ static void applyAdvPayload(char cmd) {
   p[10] = (uint8_t)(crc & 0xFF);
   p[11] = (uint8_t)(crc >> 8);
 
-  // Build Arduino String from raw bytes (safe with 0x00)
   String mfg;
   mfg.reserve(sizeof(p));
   for (size_t i = 0; i < sizeof(p); ++i) mfg += (char)p[i];
 
   BLEAdvertisementData advData, scanResp;
-  advData.setManufacturerData(mfg);   // MD en ADV primario
-  scanResp.setName(BLE_DEVICE_NAME);  // nombre en Scan Response
+  advData.setManufacturerData(mfg);
+  scanResp.setName(BLE_DEVICE_NAME);
 
   adv->stop();
   adv->setAdvertisementData(advData);
@@ -139,7 +158,7 @@ static void printScoreboard(const Score &s) {
 
 // ======= Arduino setup/loop =======
 void setup() {
-  WiFi.mode(WIFI_OFF);          // suficiente en ESP32
+  WiFi.mode(WIFI_OFF);          
   Serial.begin(115200);
   unsigned long t0 = millis();
   while (!Serial && (millis() - t0 < 2000)) { delay(10); }
@@ -147,7 +166,11 @@ void setup() {
   setCpuFrequencyMhz(80);
   gDeviceId = calcDevIdFromEfuse();
 
-  resetMatch(score); // estado visible en Serial
+  pinMode(BTN_P, INPUT_PULLUP);
+  pinMode(BTN_U, INPUT_PULLUP);
+  pinMode(BTN_G, INPUT_PULLUP);
+
+  resetMatch(score);
   setupBroadcast();
 
   Serial.println();
@@ -158,25 +181,41 @@ void setup() {
 }
 
 void loop() {
-  // Lee comandos desde el Monitor Serie
+  // --- Botones físicos ---
+  if (edgePressed(BTN_P, lastP, tP)) {
+    gSeq = (gSeq == 255) ? 1 : (uint8_t)(gSeq + 1);
+    applyAdvPayload('p');
+    Serial.printf("BTN P → TX 'p' seq=%u\n", gSeq);
+  }
+  if (edgePressed(BTN_U, lastU, tU)) {
+    gSeq = (gSeq == 255) ? 1 : (uint8_t)(gSeq + 1);
+    applyAdvPayload('u');
+    Serial.printf("BTN U → TX 'u' seq=%u\n", gSeq);
+  }
+  if (edgePressed(BTN_G, lastG, tG)) {
+    pushHistory(); 
+    resetGame(score);
+    gSeq = (gSeq == 255) ? 1 : (uint8_t)(gSeq + 1);
+    applyAdvPayload('g');
+    Serial.printf("BTN G → TX 'g' seq=%u\n", gSeq);
+    printScoreboard(score);
+  }
+
+  // --- Comandos por Serial (igual que antes) ---
   if (Serial.available()) {
     int ch = Serial.read();
     if (ch != -1) {
       char c = (char)ch;
-      if (c == '\r' || c == '\n') {
-        // ignora
-      } else {
+      if (c != '\r' && c != '\n') {
         if (c >= 'A' && c <= 'Z') c = char(c - 'A' + 'a');
         bool bumpSeq = false;
-
         switch (c) {
-          case 'p': bumpSeq = true; break;                 // sólo transmite
-          case 'u': bumpSeq = true; break;                 // sólo transmite
-          case 'g': pushHistory(); resetGame(score); bumpSeq = true; break; // visible en Serial
+          case 'p': bumpSeq = true; break;
+          case 'u': bumpSeq = true; break;
+          case 'g': pushHistory(); resetGame(score); bumpSeq = true; break;
           case 's': printScoreboard(score); break;
           case 'h': default: printHelp(); break;
         }
-
         if (bumpSeq) {
           gSeq = (gSeq == 255) ? 1 : (uint8_t)(gSeq + 1);
           applyAdvPayload(c);
@@ -186,7 +225,7 @@ void loop() {
     }
   }
 
-  // Reemite periódicamente el último comando (misma seq)
+  // --- Reemisión periódica ---
   const unsigned long now = millis();
   if (now - lastReTx > RE_TX_MS) {
     lastReTx = now;
