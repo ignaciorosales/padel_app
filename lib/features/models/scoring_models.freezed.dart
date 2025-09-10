@@ -21,15 +21,22 @@ MatchSettings _$MatchSettingsFromJson(Map<String, dynamic> json) {
 
 /// @nodoc
 mixin _$MatchSettings {
+  /// Número de sets para ganar el partido (normalmente 2)
   int get setsToWin => throw _privateConstructorUsedError;
 
-  /// 6 (clásico) o 12 (super set)
+  /// Juegos para llegar al tie-break:
+  /// - 6: Tie-break normal a 7 puntos cuando se llega a 6-6 en games
+  /// - 1: Super Tie-Break a 10 puntos en el tercer set (en lugar de jugar un set completo)
   int get tieBreakAtGames => throw _privateConstructorUsedError;
 
-  /// En deuce el siguiente punto decide
+  /// Punto de oro en 40-40 (deuce)
+  /// - true: En 40-40, el siguiente punto decide el juego (punto de oro)
+  /// - false: En 40-40, hay que ganar por diferencia de 2 puntos (ventaja/desventaja)
   bool get goldenPoint => throw _privateConstructorUsedError;
 
-  /// Objetivo del TB (p.ej. 7 o 10, siempre con diferencia de 2)
+  /// Puntos objetivo para ganar un tie-break (siempre con diferencia de 2):
+  /// - 7: Para tie-breaks normales en 6-6
+  /// - 10: Para Super Tie-Break en el tercer set
   int get tieBreakTarget => throw _privateConstructorUsedError;
 
   /// Serializes this MatchSettings to a JSON map.
@@ -181,21 +188,28 @@ class _$MatchSettingsImpl implements _MatchSettings {
   factory _$MatchSettingsImpl.fromJson(Map<String, dynamic> json) =>
       _$$MatchSettingsImplFromJson(json);
 
+  /// Número de sets para ganar el partido (normalmente 2)
   @override
   @JsonKey()
   final int setsToWin;
 
-  /// 6 (clásico) o 12 (super set)
+  /// Juegos para llegar al tie-break:
+  /// - 6: Tie-break normal a 7 puntos cuando se llega a 6-6 en games
+  /// - 1: Super Tie-Break a 10 puntos en el tercer set (en lugar de jugar un set completo)
   @override
   @JsonKey()
   final int tieBreakAtGames;
 
-  /// En deuce el siguiente punto decide
+  /// Punto de oro en 40-40 (deuce)
+  /// - true: En 40-40, el siguiente punto decide el juego (punto de oro)
+  /// - false: En 40-40, hay que ganar por diferencia de 2 puntos (ventaja/desventaja)
   @override
   @JsonKey()
   final bool goldenPoint;
 
-  /// Objetivo del TB (p.ej. 7 o 10, siempre con diferencia de 2)
+  /// Puntos objetivo para ganar un tie-break (siempre con diferencia de 2):
+  /// - 7: Para tie-breaks normales en 6-6
+  /// - 10: Para Super Tie-Break en el tercer set
   @override
   @JsonKey()
   final int tieBreakTarget;
@@ -255,18 +269,25 @@ abstract class _MatchSettings implements MatchSettings {
   factory _MatchSettings.fromJson(Map<String, dynamic> json) =
       _$MatchSettingsImpl.fromJson;
 
+  /// Número de sets para ganar el partido (normalmente 2)
   @override
   int get setsToWin;
 
-  /// 6 (clásico) o 12 (super set)
+  /// Juegos para llegar al tie-break:
+  /// - 6: Tie-break normal a 7 puntos cuando se llega a 6-6 en games
+  /// - 1: Super Tie-Break a 10 puntos en el tercer set (en lugar de jugar un set completo)
   @override
   int get tieBreakAtGames;
 
-  /// En deuce el siguiente punto decide
+  /// Punto de oro en 40-40 (deuce)
+  /// - true: En 40-40, el siguiente punto decide el juego (punto de oro)
+  /// - false: En 40-40, hay que ganar por diferencia de 2 puntos (ventaja/desventaja)
   @override
   bool get goldenPoint;
 
-  /// Objetivo del TB (p.ej. 7 o 10, siempre con diferencia de 2)
+  /// Puntos objetivo para ganar un tie-break (siempre con diferencia de 2):
+  /// - 7: Para tie-breaks normales en 6-6
+  /// - 10: Para Super Tie-Break en el tercer set
   @override
   int get tieBreakTarget;
 
@@ -284,8 +305,15 @@ GamePoints _$GamePointsFromJson(Map<String, dynamic> json) {
 
 /// @nodoc
 mixin _$GamePoints {
+  /// Puntos del equipo azul en el juego actual
   int get blue => throw _privateConstructorUsedError;
+
+  /// Puntos del equipo rojo en el juego actual
   int get red => throw _privateConstructorUsedError;
+
+  /// Indica si el juego actual es un tie-break
+  /// - true: Conteo 1,2,3,... hasta llegar al objetivo (7 o 10)
+  /// - false: Conteo 0,15,30,40,AD en juegos normales
   bool get isTieBreak => throw _privateConstructorUsedError;
 
   /// Serializes this GamePoints to a JSON map.
@@ -414,12 +442,19 @@ class _$GamePointsImpl implements _GamePoints {
   factory _$GamePointsImpl.fromJson(Map<String, dynamic> json) =>
       _$$GamePointsImplFromJson(json);
 
+  /// Puntos del equipo azul en el juego actual
   @override
   @JsonKey()
   final int blue;
+
+  /// Puntos del equipo rojo en el juego actual
   @override
   @JsonKey()
   final int red;
+
+  /// Indica si el juego actual es un tie-break
+  /// - true: Conteo 1,2,3,... hasta llegar al objetivo (7 o 10)
+  /// - false: Conteo 0,15,30,40,AD en juegos normales
   @override
   @JsonKey()
   final bool isTieBreak;
@@ -468,10 +503,17 @@ abstract class _GamePoints implements GamePoints {
   factory _GamePoints.fromJson(Map<String, dynamic> json) =
       _$GamePointsImpl.fromJson;
 
+  /// Puntos del equipo azul en el juego actual
   @override
   int get blue;
+
+  /// Puntos del equipo rojo en el juego actual
   @override
   int get red;
+
+  /// Indica si el juego actual es un tie-break
+  /// - true: Conteo 1,2,3,... hasta llegar al objetivo (7 o 10)
+  /// - false: Conteo 0,15,30,40,AD en juegos normales
   @override
   bool get isTieBreak;
 
@@ -489,11 +531,17 @@ SetScore _$SetScoreFromJson(Map<String, dynamic> json) {
 
 /// @nodoc
 mixin _$SetScore {
+  /// Juegos ganados por el equipo azul en este set
   int get blueGames => throw _privateConstructorUsedError;
+
+  /// Juegos ganados por el equipo rojo en este set
   int get redGames => throw _privateConstructorUsedError;
+
+  /// Puntos del juego actual dentro del set
   GamePoints get currentGame => throw _privateConstructorUsedError;
 
-  /// Servidor que comenzó el tie-break (rotación 1–2–2–2)
+  /// Servidor que comenzó el tie-break (para la rotación 1–2–2–2)
+  /// En tie-breaks, el servicio rota después de cada punto impar
   Team? get tieBreakStarter => throw _privateConstructorUsedError;
 
   /// Serializes this SetScore to a JSON map.
@@ -658,17 +706,23 @@ class _$SetScoreImpl implements _SetScore {
   factory _$SetScoreImpl.fromJson(Map<String, dynamic> json) =>
       _$$SetScoreImplFromJson(json);
 
+  /// Juegos ganados por el equipo azul en este set
   @override
   @JsonKey()
   final int blueGames;
+
+  /// Juegos ganados por el equipo rojo en este set
   @override
   @JsonKey()
   final int redGames;
+
+  /// Puntos del juego actual dentro del set
   @override
   @JsonKey()
   final GamePoints currentGame;
 
-  /// Servidor que comenzó el tie-break (rotación 1–2–2–2)
+  /// Servidor que comenzó el tie-break (para la rotación 1–2–2–2)
+  /// En tie-breaks, el servicio rota después de cada punto impar
   @override
   final Team? tieBreakStarter;
 
@@ -727,14 +781,20 @@ abstract class _SetScore implements SetScore {
   factory _SetScore.fromJson(Map<String, dynamic> json) =
       _$SetScoreImpl.fromJson;
 
+  /// Juegos ganados por el equipo azul en este set
   @override
   int get blueGames;
+
+  /// Juegos ganados por el equipo rojo en este set
   @override
   int get redGames;
+
+  /// Puntos del juego actual dentro del set
   @override
   GamePoints get currentGame;
 
-  /// Servidor que comenzó el tie-break (rotación 1–2–2–2)
+  /// Servidor que comenzó el tie-break (para la rotación 1–2–2–2)
+  /// En tie-breaks, el servicio rota después de cada punto impar
   @override
   Team? get tieBreakStarter;
 
@@ -752,13 +812,28 @@ MatchScore _$MatchScoreFromJson(Map<String, dynamic> json) {
 
 /// @nodoc
 mixin _$MatchScore {
+  /// Lista de todos los sets del partido
   List<SetScore> get sets => throw _privateConstructorUsedError;
+
+  /// Índice del set actual (0 = primer set, 1 = segundo set, 2 = tercer set)
   int get currentSetIndex => throw _privateConstructorUsedError;
+
+  /// Equipo que tiene el servicio actualmente
   Team get server => throw _privateConstructorUsedError;
+
+  /// Equipo que recibe actualmente
   Team get receiver => throw _privateConstructorUsedError;
+
+  /// Nombre del equipo azul
   String get blueName => throw _privateConstructorUsedError;
+
+  /// Nombre del equipo rojo
   String get redName => throw _privateConstructorUsedError;
+
+  /// Indica si el partido está en pausa
   bool get paused => throw _privateConstructorUsedError;
+
+  /// Configuración del partido
   MatchSettings get settings => throw _privateConstructorUsedError;
 
   /// Serializes this MatchScore to a JSON map.
@@ -987,7 +1062,10 @@ class _$MatchScoreImpl extends _MatchScore {
   factory _$MatchScoreImpl.fromJson(Map<String, dynamic> json) =>
       _$$MatchScoreImplFromJson(json);
 
+  /// Lista de todos los sets del partido
   final List<SetScore> _sets;
+
+  /// Lista de todos los sets del partido
   @override
   @JsonKey()
   List<SetScore> get sets {
@@ -996,24 +1074,37 @@ class _$MatchScoreImpl extends _MatchScore {
     return EqualUnmodifiableListView(_sets);
   }
 
+  /// Índice del set actual (0 = primer set, 1 = segundo set, 2 = tercer set)
   @override
   @JsonKey()
   final int currentSetIndex;
+
+  /// Equipo que tiene el servicio actualmente
   @override
   @JsonKey()
   final Team server;
+
+  /// Equipo que recibe actualmente
   @override
   @JsonKey()
   final Team receiver;
+
+  /// Nombre del equipo azul
   @override
   @JsonKey()
   final String blueName;
+
+  /// Nombre del equipo rojo
   @override
   @JsonKey()
   final String redName;
+
+  /// Indica si el partido está en pausa
   @override
   @JsonKey()
   final bool paused;
+
+  /// Configuración del partido
   @override
   @JsonKey()
   final MatchSettings settings;
@@ -1086,20 +1177,35 @@ abstract class _MatchScore extends MatchScore {
   factory _MatchScore.fromJson(Map<String, dynamic> json) =
       _$MatchScoreImpl.fromJson;
 
+  /// Lista de todos los sets del partido
   @override
   List<SetScore> get sets;
+
+  /// Índice del set actual (0 = primer set, 1 = segundo set, 2 = tercer set)
   @override
   int get currentSetIndex;
+
+  /// Equipo que tiene el servicio actualmente
   @override
   Team get server;
+
+  /// Equipo que recibe actualmente
   @override
   Team get receiver;
+
+  /// Nombre del equipo azul
   @override
   String get blueName;
+
+  /// Nombre del equipo rojo
   @override
   String get redName;
+
+  /// Indica si el partido está en pausa
   @override
   bool get paused;
+
+  /// Configuración del partido
   @override
   MatchSettings get settings;
 

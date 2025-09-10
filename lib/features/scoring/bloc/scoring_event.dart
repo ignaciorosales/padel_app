@@ -23,14 +23,17 @@ class ScoringEvent with _$ScoringEvent {
     required int red,
   }) = SetExplicitGamePointsEvent;
 
-  const factory ScoringEvent.toggleTieBreakGames(int games) = ToggleTieBreakGamesEvent;
+  /// Tie-break configuration
+  const factory ScoringEvent.toggleTieBreakGames(int games) = ToggleTieBreakGamesEvent; // 6 or 12
+  const factory ScoringEvent.toggleTieBreakTarget(int target) = ToggleTieBreakTargetEvent; // 7 or 10
   const factory ScoringEvent.toggleGoldenPoint(bool enabled) = ToggleGoldenPointEvent;
 
+  /// Optional announcer text (kept for compatibility)
   const factory ScoringEvent.announceScore() = AnnounceScoreEvent;
 
+  /// Undo/redo
   const factory ScoringEvent.undo() = UndoEvent;
   const factory ScoringEvent.redo() = RedoEvent;
-
   const factory ScoringEvent.undoForTeam(Team team) = UndoForTeamEvent;
 
   /// Raw BLE command from ESP32: 'a','b','u' etc.

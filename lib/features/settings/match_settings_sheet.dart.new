@@ -166,11 +166,15 @@ class _RulesTab extends StatelessWidget {
     final a = set.blueGames, b = set.redGames;
     final tbGames = settings.tieBreakAtGames;
     
+    // Si estamos en modo Super Tie-Break (tbGames = 1), esto solo aplica al tercer set.
+    // Para los sets normales, el valor de tbGames debe ser 6.
+    final effectiveTbGames = tbGames == 1 ? 6 : tbGames;
+    
     // Set ganado por diferencia de 2 juegos cuando al menos uno alcanza el umbral de tie-break
-    if ((a >= tbGames || b >= tbGames) && (a - b).abs() >= 2) return true;
+    if ((a >= effectiveTbGames || b >= effectiveTbGames) && (a - b).abs() >= 2) return true;
     
     // Set ganado tras tie-break
-    if (a >= tbGames + 1 || b >= tbGames + 1) return true;
+    if (a >= effectiveTbGames + 1 || b >= effectiveTbGames + 1) return true;
     
     // Set no completado
     return false;
