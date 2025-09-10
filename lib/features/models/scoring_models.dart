@@ -74,6 +74,11 @@ class SetScore with _$SetScore {
     /// Servidor que comenzó el tie-break (para la rotación 1–2–2–2)
     /// En tie-breaks, el servicio rota después de cada punto impar
     Team? tieBreakStarter,
+    
+    /// Indica si este set es un Super Tie-Break (a 10 puntos)
+    /// - true: Es un Super Tie-Break (tercer set en formato 1)
+    /// - false: Es un set normal (con tie-break regular a 7 puntos)
+    @Default(false) bool isSuperTieBreak,
   }) = _SetScore;
 
   factory SetScore.fromJson(Map<String, dynamic> json) =>

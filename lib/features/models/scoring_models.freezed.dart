@@ -544,6 +544,11 @@ mixin _$SetScore {
   /// En tie-breaks, el servicio rota después de cada punto impar
   Team? get tieBreakStarter => throw _privateConstructorUsedError;
 
+  /// Indica si este set es un Super Tie-Break (a 10 puntos)
+  /// - true: Es un Super Tie-Break (tercer set en formato 1)
+  /// - false: Es un set normal (con tie-break regular a 7 puntos)
+  bool get isSuperTieBreak => throw _privateConstructorUsedError;
+
   /// Serializes this SetScore to a JSON map.
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
 
@@ -564,6 +569,7 @@ abstract class $SetScoreCopyWith<$Res> {
     int redGames,
     GamePoints currentGame,
     Team? tieBreakStarter,
+    bool isSuperTieBreak,
   });
 
   $GamePointsCopyWith<$Res> get currentGame;
@@ -588,6 +594,7 @@ class _$SetScoreCopyWithImpl<$Res, $Val extends SetScore>
     Object? redGames = null,
     Object? currentGame = null,
     Object? tieBreakStarter = freezed,
+    Object? isSuperTieBreak = null,
   }) {
     return _then(
       _value.copyWith(
@@ -611,6 +618,11 @@ class _$SetScoreCopyWithImpl<$Res, $Val extends SetScore>
                     ? _value.tieBreakStarter
                     : tieBreakStarter // ignore: cast_nullable_to_non_nullable
                         as Team?,
+            isSuperTieBreak:
+                null == isSuperTieBreak
+                    ? _value.isSuperTieBreak
+                    : isSuperTieBreak // ignore: cast_nullable_to_non_nullable
+                        as bool,
           )
           as $Val,
     );
@@ -641,6 +653,7 @@ abstract class _$$SetScoreImplCopyWith<$Res>
     int redGames,
     GamePoints currentGame,
     Team? tieBreakStarter,
+    bool isSuperTieBreak,
   });
 
   @override
@@ -665,6 +678,7 @@ class __$$SetScoreImplCopyWithImpl<$Res>
     Object? redGames = null,
     Object? currentGame = null,
     Object? tieBreakStarter = freezed,
+    Object? isSuperTieBreak = null,
   }) {
     return _then(
       _$SetScoreImpl(
@@ -688,6 +702,11 @@ class __$$SetScoreImplCopyWithImpl<$Res>
                 ? _value.tieBreakStarter
                 : tieBreakStarter // ignore: cast_nullable_to_non_nullable
                     as Team?,
+        isSuperTieBreak:
+            null == isSuperTieBreak
+                ? _value.isSuperTieBreak
+                : isSuperTieBreak // ignore: cast_nullable_to_non_nullable
+                    as bool,
       ),
     );
   }
@@ -701,6 +720,7 @@ class _$SetScoreImpl implements _SetScore {
     this.redGames = 0,
     this.currentGame = const GamePoints(),
     this.tieBreakStarter,
+    this.isSuperTieBreak = false,
   });
 
   factory _$SetScoreImpl.fromJson(Map<String, dynamic> json) =>
@@ -726,9 +746,16 @@ class _$SetScoreImpl implements _SetScore {
   @override
   final Team? tieBreakStarter;
 
+  /// Indica si este set es un Super Tie-Break (a 10 puntos)
+  /// - true: Es un Super Tie-Break (tercer set en formato 1)
+  /// - false: Es un set normal (con tie-break regular a 7 puntos)
+  @override
+  @JsonKey()
+  final bool isSuperTieBreak;
+
   @override
   String toString() {
-    return 'SetScore(blueGames: $blueGames, redGames: $redGames, currentGame: $currentGame, tieBreakStarter: $tieBreakStarter)';
+    return 'SetScore(blueGames: $blueGames, redGames: $redGames, currentGame: $currentGame, tieBreakStarter: $tieBreakStarter, isSuperTieBreak: $isSuperTieBreak)';
   }
 
   @override
@@ -743,7 +770,9 @@ class _$SetScoreImpl implements _SetScore {
             (identical(other.currentGame, currentGame) ||
                 other.currentGame == currentGame) &&
             (identical(other.tieBreakStarter, tieBreakStarter) ||
-                other.tieBreakStarter == tieBreakStarter));
+                other.tieBreakStarter == tieBreakStarter) &&
+            (identical(other.isSuperTieBreak, isSuperTieBreak) ||
+                other.isSuperTieBreak == isSuperTieBreak));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
@@ -754,6 +783,7 @@ class _$SetScoreImpl implements _SetScore {
     redGames,
     currentGame,
     tieBreakStarter,
+    isSuperTieBreak,
   );
 
   /// Create a copy of SetScore
@@ -776,6 +806,7 @@ abstract class _SetScore implements SetScore {
     final int redGames,
     final GamePoints currentGame,
     final Team? tieBreakStarter,
+    final bool isSuperTieBreak,
   }) = _$SetScoreImpl;
 
   factory _SetScore.fromJson(Map<String, dynamic> json) =
@@ -797,6 +828,12 @@ abstract class _SetScore implements SetScore {
   /// En tie-breaks, el servicio rota después de cada punto impar
   @override
   Team? get tieBreakStarter;
+
+  /// Indica si este set es un Super Tie-Break (a 10 puntos)
+  /// - true: Es un Super Tie-Break (tercer set en formato 1)
+  /// - false: Es un set normal (con tie-break regular a 7 puntos)
+  @override
+  bool get isSuperTieBreak;
 
   /// Create a copy of SetScore
   /// with the given fields replaced by the non-null parameter values.

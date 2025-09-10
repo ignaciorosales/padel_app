@@ -164,13 +164,27 @@ class _RulesTab extends StatelessWidget {
   // Determina si un set está completado (ganado por algún equipo)
   bool _isSetCompleted(SetScore set) {
     final a = set.blueGames, b = set.redGames;
-    final tbGames = settings.tieBreakAtGames;
     
-    // Set ganado por diferencia de 2 juegos cuando al menos uno alcanza el umbral de tie-break
-    if ((a >= tbGames || b >= tbGames) && (a - b).abs() >= 2) return true;
+    // CORRECCIÓN: Usar siempre 6 como valor efectivo para sets normales
+    // Si tieBreakAtGames es 1, esto indica Super TB para el 3er set, pero
+    // para verificar si un set normal está completo, siempre usamos 6
+    final effectiveTbGames = settings.tieBreakAtGames == 1 ? 6 : settings.tieBreakAtGames;
     
-    // Set ganado tras tie-break
-    if (a >= tbGames + 1 || b >= tbGames + 1) return true;
+    // CORRECCIÓN: Ahora aplicamos correctamente las reglas de finalización de set en pádel
+    
+    // Regla 1: Victoria cuando un jugador alcanza 6 juegos con ventaja de 2 o más
+    // Ejemplo: 6-4, 6-3, 6-0
+    if ((a >= 6 || b >= 6) && (a - b).abs() >= 2) return true;
+    
+    // Regla 2: Victoria cuando el marcador llega a 7-5 o 5-7 (un jugador alcanza 7 con ventaja de 2)
+    if ((a == 7 && b == 5) || (a == 5 && b == 7)) return true;
+    
+    // Regla 3: Victoria tras tie-break (7-6 o 6-7)
+    if (a == effectiveTbGames + 1 && b == effectiveTbGames) return true;
+    if (b == effectiveTbGames + 1 && a == effectiveTbGames) return true;
+    
+    // Caso límite: Si alguno alcanzó 8 o más juegos, el set debe terminar
+    if (a >= 8 || b >= 8) return true;
     
     // Set no completado
     return false;

@@ -46,6 +46,7 @@ _$SetScoreImpl _$$SetScoreImplFromJson(
           ? const GamePoints()
           : GamePoints.fromJson(json['currentGame'] as Map<String, dynamic>),
   tieBreakStarter: $enumDecodeNullable(_$TeamEnumMap, json['tieBreakStarter']),
+  isSuperTieBreak: json['isSuperTieBreak'] as bool? ?? false,
 );
 
 Map<String, dynamic> _$$SetScoreImplToJson(_$SetScoreImpl instance) =>
@@ -54,6 +55,7 @@ Map<String, dynamic> _$$SetScoreImplToJson(_$SetScoreImpl instance) =>
       'redGames': instance.redGames,
       'currentGame': instance.currentGame,
       'tieBreakStarter': _$TeamEnumMap[instance.tieBreakStarter],
+      'isSuperTieBreak': instance.isSuperTieBreak,
     };
 
 const _$TeamEnumMap = {Team.blue: 'blue', Team.red: 'red'};

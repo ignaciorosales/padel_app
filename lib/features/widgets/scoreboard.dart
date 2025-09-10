@@ -189,8 +189,8 @@ class Scoreboard extends StatelessWidget {
                             children: [
                               if (gp.isTieBreak)
                                 _TieBreakIndicator(
-                                  target: rules.tieBreakTarget,
-                                  isSuper: rules.tieBreakAtGames == 1 && m.currentSetIndex == 2,
+                                  target: m.currentSet.isSuperTieBreak ? 10 : 7,
+                                  isSuper: m.currentSet.isSuperTieBreak,
                                   fontSize: labelSize * 0.8,
                                 )
                               else if (!gp.isTieBreak && gp.blue >= 3 && gp.red >= 3 && gp.blue == gp.red)

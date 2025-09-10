@@ -12,6 +12,7 @@ import 'package:speech_to_text_min/features/scoring/bloc/scoring_event.dart';
 import 'package:speech_to_text_min/features/scoring/bloc/scoring_state.dart';
 import 'package:speech_to_text_min/features/widgets/scoreboard.dart';
 import 'package:speech_to_text_min/features/widgets/referee_sidebar.dart';
+import 'package:speech_to_text_min/features/widgets/winner_overlay.dart';
 import 'package:speech_to_text_min/features/settings/match_settings_sheet.dart' as settings;
 
 /// Simple app-wide theme controller
@@ -237,23 +238,31 @@ class _ScoreOnlyScreenState extends State<_ScoreOnlyScreen> {
           child: Scaffold(
             // background now comes from ThemeData.scaffoldBackgroundColor
             body: SafeArea(
-              child: Row(
+              child: Stack(
                 children: [
-                  // Contenido principal (90%)
-                  Expanded(
-                    flex: 90,
-                    child: Center(
-                      child: Padding(
-                        padding: const EdgeInsets.all(18),
-                        child: Scoreboard(),
+                  // Contenido base (marcador y panel lateral)
+                  Row(
+                    children: [
+                      // Contenido principal (90%)
+                      Expanded(
+                        flex: 90,
+                        child: Center(
+                          child: Padding(
+                            padding: const EdgeInsets.all(18),
+                            child: Scoreboard(),
+                          ),
+                        ),
                       ),
-                    ),
+                      
+                      // Barra lateral de árbitro (10%)
+                      RefereeSidebar(
+                        visibleNotifier: _refSidebarVisible,
+                      ),
+                    ],
                   ),
                   
-                  // Barra lateral de árbitro (10%)
-                  RefereeSidebar(
-                    visibleNotifier: _refSidebarVisible,
-                  ),
+                  // Overlay de ganador (aparece cuando hay un ganador)
+                  const WinnerOverlay(),
                 ],
               ),
             ),

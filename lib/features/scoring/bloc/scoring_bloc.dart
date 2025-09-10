@@ -1,4 +1,5 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'dart:math' as math;
 import 'package:speech_to_text_min/features/models/scoring_models.dart';
 import 'package:speech_to_text_min/features/scoring/bloc/scoring_event.dart';
 import 'package:speech_to_text_min/features/scoring/bloc/scoring_state.dart';
@@ -9,6 +10,7 @@ import 'package:speech_to_text_min/features/scoring/bloc/scoring_state.dart';
 /// - int tieBreakAtGames
 /// - bool goldenPoint
 /// - int tieBreakTarget
+/// - int thirdSetFormat (0=normal, 1=super-tb, 2=advantage)
 extension MatchSettingsCompat on MatchSettings {
   int get tbGames {
     try { return (this as dynamic).tieBreakAtGames as int; } catch (_) {}
@@ -29,6 +31,21 @@ extension MatchSettingsCompat on MatchSettings {
     try { return (this as dynamic).tieBreakTarget as int; } catch (_) {}
     return 7;
   }
+  
+  int get thirdSetFormat {
+    try { return (this as dynamic).thirdSetFormat as int; } catch (_) {}
+    // Compatibilidad con configuración anterior:
+    // Si tieBreakAtGames == 1, era súper tie-break (formato 1)
+    // Si tieBreakAtGames == 6, era set normal (formato 0)
+    // Si tieBreakAtGames == 12 o mayor, era set ventaja (formato 2)
+    try { 
+      final int tbGames = (this as dynamic).tieBreakAtGames as int;
+      if (tbGames == 1) return 1; // Super TB
+      if (tbGames >= 12) return 2; // Advantage set
+      return 0; // Normal set
+    } catch (_) {}
+    return 0; // Por defecto, set normal
+  }
 
   MatchSettings withTbGames(int games) {
     try { return (this as dynamic).copyWith(tieBreakAtGames: games) as MatchSettings; } catch (_) {}
@@ -43,6 +60,16 @@ extension MatchSettingsCompat on MatchSettings {
 
   MatchSettings withTbTarget(int target) {
     try { return (this as dynamic).copyWith(tieBreakTarget: target) as MatchSettings; } catch (_) {}
+    return this;
+  }
+  
+  MatchSettings withThirdSetFormat(int format) {
+    try { return (this as dynamic).copyWith(thirdSetFormat: format) as MatchSettings; } catch (_) {}
+    // Compatibilidad con configuración anterior: usar tieBreakAtGames
+    try { 
+      final int tbGames = format == 1 ? 1 : (format == 2 ? 12 : 6);
+      return (this as dynamic).copyWith(tieBreakAtGames: tbGames) as MatchSettings; 
+    } catch (_) {}
     return this;
   }
 }
@@ -114,54 +141,66 @@ class ScoringBloc extends Bloc<ScoringEvent, ScoringState> {
   }
 
   /// Determines if the current set is over based on user-configurable settings.
-  bool _isSetOver(SetScore s, MatchSettings settings) {
+  bool _isSetOver(SetScore s, MatchSettings settings, [int? setIndex]) {
     final a = s.blueGames, b = s.redGames;
-    final tbGames = settings.tbGames;
     
-    // Caso especial: Super Tie-Break en el tercer set (representado por un set 7-6 o 6-7)
-    if ((a == 7 && b == 6) || (a == 6 && b == 7)) return true;
+    // Verificar si es el tercer set (índice 2)
+    final bool isThirdSet = setIndex == 2;
     
-    // Si estamos en modo Super Tie-Break (tbGames = 1), esto solo aplica al tercer set
-    // y es manejado por la lógica especial en _onPointFor. Para los sets normales,
-    // el valor de tbGames debe ser 6.
-    final effectiveTbGames = tbGames == 1 ? 6 : tbGames;
+    // Obtenemos el formato del tercer set (0=normal, 1=super-tb, 2=advantage)
+    final int thirdSetFormat = settings.thirdSetFormat;
     
-    // Victoria por diferencia de 2 juegos cuando al menos uno alcanza el umbral de tie-break
-    if ((a >= effectiveTbGames || b >= effectiveTbGames) && (a - b).abs() >= 2) return true;
+    // Si es el tercer set y está en formato Super Tie-Break, se maneja de forma especial
+    if (isThirdSet && thirdSetFormat == 1) {
+      // Para Super Tie-Break, el set termina cuando se marca como 7-6 o 6-7
+      // (estos valores se asignan cuando se completa el súper tie-break)
+      if ((a == 7 && b == 6) || (a == 6 && b == 7)) return true;
+      return false; // El set no está terminado
+    }
     
-    // Después de un tie-break, un lado alcanzará tbGames+1 (p.ej. 7 en un tie-break a 6-6)
-    if (a >= effectiveTbGames + 1 || b >= effectiveTbGames + 1) return true;
+    // Para set normal (thirdSetFormat == 0) o para los dos primeros sets:
+    if (!isThirdSet || thirdSetFormat == 0) {
+      // Regla 1: Victoria cuando un jugador alcanza 6 juegos con ventaja de 2 o más
+      if ((a >= 6 || b >= 6) && (a - b).abs() >= 2) return true;
+      
+      // Regla 2: Victoria cuando el marcador llega a 7-5 o 5-7
+      if ((a == 7 && b == 5) || (a == 5 && b == 7)) return true;
+      
+      // Regla 3: Victoria tras tie-break (7-6 o 6-7)
+      if ((a == 7 && b == 6) || (a == 6 && b == 7)) return true;
+      
+      // Caso límite: Si alguno alcanzó 8 o más juegos (no debería ocurrir)
+      if (a >= 8 || b >= 8) return true;
+    }
     
+    // Para tercer set con ventaja sin tie-break (thirdSetFormat == 2):
+    if (isThirdSet && thirdSetFormat == 2) {
+      // En un set de ventaja, se gana cuando hay diferencia de 2 juegos
+      // y al menos uno de los equipos tiene 6 o más juegos
+      if ((a >= 6 || b >= 6) && (a - b).abs() >= 2) return true;
+      
+      // Añadir una regla de seguridad: si algún equipo alcanza una puntuación muy alta
+      // (esto no debería ocurrir normalmente, pero previene loops infinitos)
+      if (a >= 15 || b >= 15) return true;
+    }
+    
+    // Set no completado
     return false;
   }
 
   int _setsWonBy(MatchScore m, Team t, MatchSettings settings) {
     var won = 0;
-    for (final s in m.sets) {
-      final a = s.blueGames, b = s.redGames;
-      final tbGames = settings.tbGames;
+    for (int i = 0; i < m.sets.length; i++) {
+      final set = m.sets[i];
+      final a = set.blueGames, b = set.redGames;
       
-      // Si estamos en modo Super Tie-Break (tbGames = 1), esto solo aplica al tercer set.
-      // Para los sets normales, el valor de tbGames debe ser 6.
-      final effectiveTbGames = tbGames == 1 ? 6 : tbGames;
+      // Verificar si el set está completado usando la misma lógica de _isSetOver
+      final over = _isSetOver(set, settings, i);
       
-      // Caso especial: Super Tie-Break (7-6 o 6-7 en el tercer set)
-      final isSuperTieBreakWin = (a == 7 && b == 6) || (a == 6 && b == 7);
-      
-      // Condiciones normales de victoria de set
-      final over = isSuperTieBreakWin || 
-                   ((a >= effectiveTbGames || b >= effectiveTbGames) && (a - b).abs() >= 2) ||
-                   (a >= effectiveTbGames + 1 || b >= effectiveTbGames + 1);
-                   
       if (!over) continue;
       
-      // En caso de Super Tie-Break, verificar específicamente
-      if (isSuperTieBreakWin) {
-        if ((t == Team.blue && a > b) || (t == Team.red && b > a)) won++;
-      } else {
-        // Victoria normal de set
-        if ((t == Team.blue && a > b) || (t == Team.red && b > a)) won++;
-      }
+      // Determinar el ganador del set
+      if ((t == Team.blue && a > b) || (t == Team.red && b > a)) won++;
     }
     return won;
   }
@@ -169,38 +208,63 @@ class ScoringBloc extends Bloc<ScoringEvent, ScoringState> {
   MatchScore _maybeAdvanceSet(MatchScore m) {
     final s = m.sets[m.currentSetIndex];
     final settings = m.settings;
-    if (!_isSetOver(s, settings)) return m;
+    // Pasamos el índice del set actual para tener en cuenta el formato del tercer set
+    if (!_isSetOver(s, settings, m.currentSetIndex)) return m;
 
     final blueSets = _setsWonBy(m, Team.blue, settings);
     final redSets  = _setsWonBy(m, Team.red, settings);
     final needs    = settings.setsToWin;
 
+    // Verificar explícitamente si el partido ha terminado
     final matchOver = (blueSets >= needs || redSets >= needs);
-    if (matchOver) return m;
+    
+    // Si el partido ha terminado, anunciar ganador
+    if (matchOver) {
+      final winner = getMatchWinner(m);
+      
+      // Si hay un ganador, mostramos un mensaje especial
+      if (winner != null) {
+        // Emitimos un evento para anunciar al ganador
+        Future.delayed(const Duration(milliseconds: 100), () {
+          add(const AnnounceScoreEvent());
+        });
+        
+        // Añadimos un trofeo al nombre del ganador
+        return m.copyWith(
+          blueName: winner == Team.blue ? "${m.blueName} 🏆" : m.blueName,
+          redName: winner == Team.red ? "${m.redName} 🏆" : m.redName,
+        );
+      }
+      
+      return m;
+    }
 
     final newSets = [...m.sets, const SetScore()];
     final newIndex = newSets.length - 1;
     
-    // Si estamos comenzando el tercer set (índice 2) y está configurado como Super Tie-Break (tbGames == 1)
-    // marcamos el juego como tie-break inmediatamente y establecemos el objetivo a 10 puntos
-    if (newIndex == 2 && settings.tbGames == 1) {
-      // Crear una copia con el tie-break target a 10 puntos para el Super Tie-Break
-      final superTbSettings = settings.withTbTarget(10);
+    // Si estamos comenzando el tercer set (índice 2)
+    if (newIndex == 2) {
+      // Obtener el formato del tercer set
+      final thirdSetFormat = settings.thirdSetFormat;
       
-      // Asegurarnos de que comienza con puntuación 0-0 y en modo tie-break
-      newSets[newIndex] = const SetScore(
-        currentGame: GamePoints(isTieBreak: true, blue: 0, red: 0),
-        blueGames: 0,
-        redGames: 0,
-      );
-      
-      // Guardar el servidor de inicio del tie-break
-      newSets[newIndex] = newSets[newIndex].copyWith(
-        tieBreakStarter: m.server,
-      );
-      
-      // Actualizar la configuración para el Super Tie-Break
-      m = m.copyWith(settings: superTbSettings);
+      // OPCIÓN 1: Super Tie-Break a 10 puntos
+      if (thirdSetFormat == 1) {
+        // Asegurarnos de que comienza con puntuación 0-0 y en modo tie-break
+        newSets[newIndex] = const SetScore(
+          currentGame: GamePoints(isTieBreak: true, blue: 0, red: 0),
+          blueGames: 0,
+          redGames: 0,
+        );
+        
+        // Guardar el servidor de inicio del tie-break
+        newSets[newIndex] = newSets[newIndex].copyWith(
+          tieBreakStarter: m.server,
+          // Marcamos este set específicamente como Super Tie-Break
+          isSuperTieBreak: true,
+        );
+      }
+      // OPCIÓN 2: Set normal (no se necesita código especial)
+      // OPCIÓN 3: Set con ventaja sin tie-break (no se necesita código especial)
     }
     
     return m.copyWith(sets: newSets, currentSetIndex: newIndex);
@@ -220,6 +284,14 @@ class ScoringBloc extends Bloc<ScoringEvent, ScoringState> {
       blueName: state.match.blueName,
       redName: state.match.redName,
     );
+    
+    // Emitir estado con el partido reiniciado y sin ganador
+    emit(state.copyWith(
+      matchWinner: null,
+      matchWinnerName: '',
+      matchCompleted: false
+    ));
+    
     _pushHistory(emit, next, 'Nuevo partido');
   }
 
@@ -253,11 +325,9 @@ class ScoringBloc extends Bloc<ScoringEvent, ScoringState> {
 
       final starter = set.tieBreakStarter ?? m.server;
       
-      // Determinar el objetivo del tie-break
-      // - Para Super Tie-Break (tercer set con tbGames=1): 10 puntos
-      // - Para tie-break normal: 7 puntos
-      final bool isSuperTieBreak = idx == 2 && m.settings.tbGames == 1;
-      final tgt = isSuperTieBreak ? 10 : 7;
+      // Determinar el objetivo del tie-break según si es un Super Tie-Break o no
+      final bool isSuperTieBreak = set.isSuperTieBreak;
+      final tgt = isSuperTieBreak ? 10 : 7;  // 10 para Super TB, 7 para TB normal
       
       // Un tie-break se cierra cuando se alcanza el objetivo con diferencia de 2 puntos
       final tbClosed = (nb >= tgt || nr >= tgt) && (nb - nr).abs() >= 2;
@@ -314,18 +384,28 @@ class ScoringBloc extends Bloc<ScoringEvent, ScoringState> {
       // Standard game logic (with or without golden point)
       set = _advanceStandardPoint(set, e.team, m.settings.isGoldenPoint);
 
-      // Start a tiebreak if both teams reach tieBreakAtGames games
-      final tbGames = m.settings.tbGames;
+      // Verificar si debemos activar un tie-break en 6-6
+      final isThirdSet = idx == 2;
+      final thirdSetFormat = m.settings.thirdSetFormat;
       
-      // Si estamos en modo Super Tie-Break (tbGames = 1), esto solo aplica al tercer set.
-      // Para los sets normales, el valor efectivo debe ser 6.
-      final effectiveTbGames = tbGames == 1 ? 6 : tbGames;
-      
-      if (set.blueGames == effectiveTbGames && set.redGames == effectiveTbGames && !set.currentGame.isTieBreak) {
-        set = set.copyWith(
-          currentGame: const GamePoints(isTieBreak: true),
-          tieBreakStarter: m.server,
-        );
+      // Solo activamos tie-break en:
+      // - Primer y segundo set (siempre)
+      // - Tercer set en formato normal (thirdSetFormat == 0)
+      // No activamos tie-break en:
+      // - Tercer set en formato Super Tie-Break (thirdSetFormat == 1) - ya está en modo TB
+      // - Tercer set en formato ventaja (thirdSetFormat == 2) - nunca hay tie-break
+      if (!isThirdSet || (isThirdSet && thirdSetFormat == 0)) {
+        if (set.blueGames == 6 && set.redGames == 6 && !set.currentGame.isTieBreak) {
+          set = set.copyWith(
+            currentGame: const GamePoints(isTieBreak: true),
+            tieBreakStarter: m.server,
+            // Siempre a 7 para tie-breaks regulares
+            isSuperTieBreak: false,
+          );
+          
+          // Log para debug
+          print("Activando tie-break en 6-6 (set ${idx + 1}, formato: $thirdSetFormat)");
+        }
       }
       m = m.copyWith(sets: (m.sets.toList()..[idx] = set));
     }
@@ -419,7 +499,87 @@ class ScoringBloc extends Bloc<ScoringEvent, ScoringState> {
     final updated = m.sets.toList();
     final idx = m.currentSetIndex;
     final set = updated[idx];
-    final targetGames = m.settings.tbGames;
+    
+    // Dependiendo del formato del tercer set, forzamos diferentes valores
+    int targetGames = 6; // Por defecto, 6 juegos
+    
+    if (idx == 2) {
+      final thirdSetFormat = m.settings.thirdSetFormat;
+      if (thirdSetFormat == 1) {
+        // Para Super Tie-Break, asignamos directamente 7-6 o 6-7
+        updated[idx] = set.copyWith(
+          blueGames: e.team == Team.blue ? 7 : 6,
+          redGames: e.team == Team.red ? 7 : 6,
+          currentGame: const GamePoints(),
+        );
+        m = m.copyWith(sets: updated);
+        m = _maybeAdvanceSet(m);
+        
+        // Verificar si el partido ha terminado
+        final matchComplete = isMatchCompleted(m);
+        if (matchComplete) {
+          // Anunciar ganador
+          Future.delayed(const Duration(milliseconds: 100), () {
+            add(const AnnounceScoreEvent());
+          });
+        }
+        
+        _pushHistory(
+          emit,
+          m,
+          matchComplete ? 'Partido finalizado (Super TB)' : 'Set forzado (Super TB)',
+          actorTeam: e.team,
+          actionType: 'force-set'
+        );
+        return;
+      } else if (thirdSetFormat == 2) {
+        // Para set con ventaja, necesitamos asegurar una diferencia de 2 juegos
+        final blueGames = set.blueGames;
+        final redGames = set.redGames;
+        
+        if (e.team == Team.blue) {
+          // Si gana el azul, asegurar que tiene al menos 6 juegos y 2 más que el rojo
+          final newBlueGames = math.max(6, blueGames);
+          final newRedGames = newBlueGames - 2;
+          updated[idx] = set.copyWith(
+            blueGames: newBlueGames,
+            redGames: math.max(0, newRedGames), // Evitar negativos
+            currentGame: const GamePoints(),
+          );
+        } else {
+          // Si gana el rojo, asegurar que tiene al menos 6 juegos y 2 más que el azul
+          final newRedGames = math.max(6, redGames);
+          final newBlueGames = newRedGames - 2;
+          updated[idx] = set.copyWith(
+            redGames: newRedGames,
+            blueGames: math.max(0, newBlueGames), // Evitar negativos
+            currentGame: const GamePoints(),
+          );
+        }
+        m = m.copyWith(sets: updated);
+        m = _maybeAdvanceSet(m);
+        
+        // Verificar si el partido ha terminado
+        final matchComplete = isMatchCompleted(m);
+        if (matchComplete) {
+          // Anunciar ganador
+          Future.delayed(const Duration(milliseconds: 100), () {
+            add(const AnnounceScoreEvent());
+          });
+        }
+        
+        _pushHistory(
+          emit,
+          m,
+          matchComplete ? 'Partido finalizado (ventaja)' : 'Set forzado (ventaja)',
+          actorTeam: e.team,
+          actionType: 'force-set'
+        );
+        return;
+      }
+    }
+    
+    // Para sets normales o los dos primeros sets
     updated[idx] = set.copyWith(
       blueGames: e.team == Team.blue
           ? (set.blueGames >= targetGames ? set.blueGames : targetGames)
@@ -431,7 +591,23 @@ class ScoringBloc extends Bloc<ScoringEvent, ScoringState> {
     );
     m = m.copyWith(sets: updated);
     m = _maybeAdvanceSet(m);
-    _pushHistory(emit, m, 'Set forzado', actorTeam: e.team, actionType: 'force-set');
+    
+    // Verificar si el partido ha terminado
+    final matchComplete = isMatchCompleted(m);
+    if (matchComplete) {
+      // Anunciar ganador
+      Future.delayed(const Duration(milliseconds: 100), () {
+        add(const AnnounceScoreEvent());
+      });
+    }
+    
+    _pushHistory(
+      emit,
+      m,
+      matchComplete ? 'Partido finalizado' : 'Set forzado',
+      actorTeam: e.team,
+      actionType: 'force-set'
+    );
   }
 
   void _onSetExplicitGamePoints(SetExplicitGamePointsEvent e, Emitter<ScoringState> emit) {
@@ -445,18 +621,26 @@ class ScoringBloc extends Bloc<ScoringEvent, ScoringState> {
   void _onToggleTieBreakGamesEvent(ToggleTieBreakGamesEvent e, Emitter<ScoringState> emit) {
     final m = _clone(state.match);
     
-    // Si se cambia a Super Tie-Break (e.games == 1), asegurarse de que el objetivo sea 10 puntos
-    // Si se cambia a set normal (e.games == 6), establecer el objetivo a 7 puntos para tie-breaks normales
-    final int tieBreakTarget = e.games == 1 ? 10 : 7;
-    final settings = m.settings.withTbGames(e.games).withTbTarget(tieBreakTarget);
+    // ACTUALIZACIÓN: Ahora utilizamos thirdSetFormat en lugar de tbGames
+    // e.games == 1 significa Super Tie-Break (formato 1)
+    // e.games == 6 significa set normal (formato 0)
+    // e.games == 12 significa set ventaja sin tie-break (formato 2)
     
-    // Verificar si realmente estamos en el tercer set activo
-    // - El índice actual debe ser 2 (tercer set)
-    // - Debe existir realmente el tercer set en la lista
-    // - El tercer set debe estar activo (no terminado)
+    int thirdSetFormat = 0; // Default: set normal
+    if (e.games == 1) thirdSetFormat = 1; // Super TB
+    else if (e.games >= 12) thirdSetFormat = 2; // Advantage set
+    
+    // Configurar el formato del tercer set
+    
+    // Actualizar la configuración
+    final settings = m.settings
+                      .withTbGames(e.games) // Para compatibilidad
+                      .withThirdSetFormat(thirdSetFormat);
+    
+    // Verificar si estamos en el tercer set activo
     final bool isInThirdSet = m.currentSetIndex == 2 && 
-                            m.sets.length > 2 && 
-                            !_isSetOver(m.sets[2], m.settings);
+                             m.sets.length > 2 && 
+                             !_isSetOver(m.sets[2], m.settings, 2);
     
     // Si estamos en el tercer set activo, actualizar el juego en curso
     if (isInThirdSet) {
@@ -464,25 +648,33 @@ class ScoringBloc extends Bloc<ScoringEvent, ScoringState> {
       
       // Siempre resetear el juego actual a cero para evitar inconsistencias
       GamePoints newGamePoints;
+      bool isSuperTB = false;
       
-      // Si cambiamos a Super TB (valor 1), convertir a tie-break
-      if (e.games == 1) {
+      // Configurar el juego según el formato elegido
+      if (thirdSetFormat == 1) { // Super TB
         newGamePoints = const GamePoints(isTieBreak: true, blue: 0, red: 0);
+        isSuperTB = true;
       } else {
-        // Si cambiamos a set normal, convertir a juego normal
+        // Set normal o con ventaja: juego normal
         newGamePoints = const GamePoints(isTieBreak: false, blue: 0, red: 0);
       }
       
-      // Actualizar el set actual con los puntos reseteados
+      // Actualizar el set actual
       final updatedSet = currentSet.copyWith(
         currentGame: newGamePoints,
-        // Guardar o eliminar el servidor de inicio del TB según corresponda
-        tieBreakStarter: e.games == 1 ? m.server : null,
+        tieBreakStarter: thirdSetFormat == 1 ? m.server : null,
+        isSuperTieBreak: isSuperTB,
       );
       
       // Actualizar el set en la lista de sets
       final updatedSets = m.sets.toList();
       updatedSets[2] = updatedSet;
+      
+      // Nombres para los diferentes formatos
+      String formatName = "";
+      if (thirdSetFormat == 0) formatName = "set normal";
+      else if (thirdSetFormat == 1) formatName = "Super TB a 10";
+      else if (thirdSetFormat == 2) formatName = "set con ventaja";
       
       _pushHistory(
         emit,
@@ -490,30 +682,36 @@ class ScoringBloc extends Bloc<ScoringEvent, ScoringState> {
           settings: settings,
           sets: updatedSets,
         ),
-        e.games == 1 ? 'Cambiado a Super TB en el 3er set' : 'Cambiado a set normal en el 3er set',
-        actionType: 'config:tie-break-games',
+        'Cambiado a $formatName en el 3er set',
+        actionType: 'config:third-set-format',
       );
       return;
     }
     
     // Si no estamos en el tercer set, simplemente actualizamos la configuración
-    // pero no afectamos el set actual en progreso
+    String formatName = "";
+    if (thirdSetFormat == 0) formatName = "set normal";
+    else if (thirdSetFormat == 1) formatName = "Super TB a 10";
+    else if (thirdSetFormat == 2) formatName = "set con ventaja";
+    
     _pushHistory(
       emit,
       m.copyWith(settings: settings),
-      e.games == 1 ? 'Configurado Super TB para 3er set' : 'Configurado set normal para 3er set',
-      actionType: 'config:tie-break-games',
+      'Configurado $formatName para 3er set',
+      actionType: 'config:third-set-format',
     );
   }
 
   void _onToggleTieBreakTargetEvent(ToggleTieBreakTargetEvent e, Emitter<ScoringState> emit) {
-    final m = _clone(state.match);
-    _pushHistory(
-      emit,
-      m.copyWith(settings: m.settings.withTbTarget(e.target)),
-      'Tie-break a ${e.target} puntos',
-      actionType: 'config:tie-break-target',
-    );
+    // Este método se mantiene por compatibilidad pero ya no se usa.
+    // El target del tie-break ahora se determina por set:
+    // - Regular tie-breaks: 7 puntos (en 6-6 del primer y segundo set)
+    // - Super tie-breaks: 10 puntos (en tercer set con formato 1)
+    
+    // Emitimos un mensaje informativo pero no cambiamos nada
+    emit(state.copyWith(
+      lastActionLabel: 'Tie-break a ${e.target} puntos',
+    ));
   }
 
   void _onToggleGoldenPoint(ToggleGoldenPointEvent e, Emitter<ScoringState> emit) {
@@ -528,6 +726,38 @@ class ScoringBloc extends Bloc<ScoringEvent, ScoringState> {
 
   void _onAnnounceScore(AnnounceScoreEvent e, Emitter<ScoringState> emit) {
     final m = state.match;
+    
+    // Verificar si el partido ha terminado
+    if (isMatchCompleted(m)) {
+      final winner = getMatchWinner(m);
+      if (winner != null) {
+        final winnerName = winner == Team.blue ? m.blueName : m.redName;
+        final cleanWinnerName = winnerName.contains("🏆") ? 
+            winnerName.substring(0, winnerName.indexOf(" 🏆")) : winnerName;
+        final blueSets = _setsWonBy(m, Team.blue, m.settings);
+        final redSets = _setsWonBy(m, Team.red, m.settings);
+        
+        // Configurar el estado de ganador
+        emit(state.copyWith(
+          matchWinner: winner,
+          matchWinnerName: cleanWinnerName,
+          matchCompleted: true,
+          lastAnnouncement: '¡$cleanWinnerName GANA EL PARTIDO! (${blueSets}-${redSets})'
+        ));
+        
+        // Programar el reinicio automático después de un retraso
+        Future.delayed(const Duration(seconds: 8), () {
+          add(NewMatchEvent(
+            settings: m.settings,
+            startingServer: m.server, // mantener el mismo servidor
+          ));
+        });
+        
+        return;
+      }
+    }
+    
+    // Si no hay ganador, anuncio normal
     final cur = m.currentSet.currentGame;
     String gp(int v) => v == 0 ? '0' : v == 1 ? '15' : v == 2 ? '30' : v == 3 ? '40' : 'AD';
     final text = cur.isTieBreak
@@ -735,6 +965,28 @@ class ScoringBloc extends Bloc<ScoringEvent, ScoringState> {
   // Helper to deep-clone the match state (for undo/redo)
   MatchScore _clone(MatchScore m) =>
       m.copyWith(sets: m.sets.map((s) => s.copyWith()).toList());
+
+  // Determinar si el partido ha terminado (algún equipo alcanzó los sets necesarios)
+  bool isMatchCompleted(MatchScore m) {
+    final settings = m.settings;
+    final blueSets = _setsWonBy(m, Team.blue, settings);
+    final redSets = _setsWonBy(m, Team.red, settings);
+    final needs = settings.setsToWin;
+    
+    return (blueSets >= needs || redSets >= needs);
+  }
+  
+  // Determinar el equipo ganador del partido (null si no ha terminado)
+  Team? getMatchWinner(MatchScore m) {
+    final settings = m.settings;
+    final blueSets = _setsWonBy(m, Team.blue, settings);
+    final redSets = _setsWonBy(m, Team.red, settings);
+    final needs = settings.setsToWin;
+    
+    if (blueSets >= needs) return Team.blue;
+    if (redSets >= needs) return Team.red;
+    return null;
+  }
 
   void _pushHistory(
     Emitter<ScoringState> emit,

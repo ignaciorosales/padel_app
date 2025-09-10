@@ -11,5 +11,10 @@ class ScoringState with _$ScoringState {
     @Default(<MatchScore>[]) List<MatchScore> redoStack,
     @Default('') String lastActionLabel,
     @Default('') String lastAnnouncement,
+    
+    // Campos para mostrar el ganador del partido
+    Team? matchWinner,
+    @Default('') String matchWinnerName,
+    @Default(false) bool matchCompleted,
   }) = _ScoringState;
 }

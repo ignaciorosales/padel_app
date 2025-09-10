@@ -21,7 +21,11 @@ mixin _$ScoringState {
   List<MatchScore> get undoStack => throw _privateConstructorUsedError;
   List<MatchScore> get redoStack => throw _privateConstructorUsedError;
   String get lastActionLabel => throw _privateConstructorUsedError;
-  String get lastAnnouncement => throw _privateConstructorUsedError;
+  String get lastAnnouncement =>
+      throw _privateConstructorUsedError; // Campos para mostrar el ganador del partido
+  Team? get matchWinner => throw _privateConstructorUsedError;
+  String get matchWinnerName => throw _privateConstructorUsedError;
+  bool get matchCompleted => throw _privateConstructorUsedError;
 
   /// Create a copy of ScoringState
   /// with the given fields replaced by the non-null parameter values.
@@ -43,6 +47,9 @@ abstract class $ScoringStateCopyWith<$Res> {
     List<MatchScore> redoStack,
     String lastActionLabel,
     String lastAnnouncement,
+    Team? matchWinner,
+    String matchWinnerName,
+    bool matchCompleted,
   });
 
   $MatchScoreCopyWith<$Res> get match;
@@ -68,6 +75,9 @@ class _$ScoringStateCopyWithImpl<$Res, $Val extends ScoringState>
     Object? redoStack = null,
     Object? lastActionLabel = null,
     Object? lastAnnouncement = null,
+    Object? matchWinner = freezed,
+    Object? matchWinnerName = null,
+    Object? matchCompleted = null,
   }) {
     return _then(
       _value.copyWith(
@@ -96,6 +106,21 @@ class _$ScoringStateCopyWithImpl<$Res, $Val extends ScoringState>
                     ? _value.lastAnnouncement
                     : lastAnnouncement // ignore: cast_nullable_to_non_nullable
                         as String,
+            matchWinner:
+                freezed == matchWinner
+                    ? _value.matchWinner
+                    : matchWinner // ignore: cast_nullable_to_non_nullable
+                        as Team?,
+            matchWinnerName:
+                null == matchWinnerName
+                    ? _value.matchWinnerName
+                    : matchWinnerName // ignore: cast_nullable_to_non_nullable
+                        as String,
+            matchCompleted:
+                null == matchCompleted
+                    ? _value.matchCompleted
+                    : matchCompleted // ignore: cast_nullable_to_non_nullable
+                        as bool,
           )
           as $Val,
     );
@@ -127,6 +152,9 @@ abstract class _$$ScoringStateImplCopyWith<$Res>
     List<MatchScore> redoStack,
     String lastActionLabel,
     String lastAnnouncement,
+    Team? matchWinner,
+    String matchWinnerName,
+    bool matchCompleted,
   });
 
   @override
@@ -152,6 +180,9 @@ class __$$ScoringStateImplCopyWithImpl<$Res>
     Object? redoStack = null,
     Object? lastActionLabel = null,
     Object? lastAnnouncement = null,
+    Object? matchWinner = freezed,
+    Object? matchWinnerName = null,
+    Object? matchCompleted = null,
   }) {
     return _then(
       _$ScoringStateImpl(
@@ -180,6 +211,21 @@ class __$$ScoringStateImplCopyWithImpl<$Res>
                 ? _value.lastAnnouncement
                 : lastAnnouncement // ignore: cast_nullable_to_non_nullable
                     as String,
+        matchWinner:
+            freezed == matchWinner
+                ? _value.matchWinner
+                : matchWinner // ignore: cast_nullable_to_non_nullable
+                    as Team?,
+        matchWinnerName:
+            null == matchWinnerName
+                ? _value.matchWinnerName
+                : matchWinnerName // ignore: cast_nullable_to_non_nullable
+                    as String,
+        matchCompleted:
+            null == matchCompleted
+                ? _value.matchCompleted
+                : matchCompleted // ignore: cast_nullable_to_non_nullable
+                    as bool,
       ),
     );
   }
@@ -194,6 +240,9 @@ class _$ScoringStateImpl implements _ScoringState {
     final List<MatchScore> redoStack = const <MatchScore>[],
     this.lastActionLabel = '',
     this.lastAnnouncement = '',
+    this.matchWinner,
+    this.matchWinnerName = '',
+    this.matchCompleted = false,
   }) : _undoStack = undoStack,
        _redoStack = redoStack;
 
@@ -223,10 +272,19 @@ class _$ScoringStateImpl implements _ScoringState {
   @override
   @JsonKey()
   final String lastAnnouncement;
+  // Campos para mostrar el ganador del partido
+  @override
+  final Team? matchWinner;
+  @override
+  @JsonKey()
+  final String matchWinnerName;
+  @override
+  @JsonKey()
+  final bool matchCompleted;
 
   @override
   String toString() {
-    return 'ScoringState(match: $match, undoStack: $undoStack, redoStack: $redoStack, lastActionLabel: $lastActionLabel, lastAnnouncement: $lastAnnouncement)';
+    return 'ScoringState(match: $match, undoStack: $undoStack, redoStack: $redoStack, lastActionLabel: $lastActionLabel, lastAnnouncement: $lastAnnouncement, matchWinner: $matchWinner, matchWinnerName: $matchWinnerName, matchCompleted: $matchCompleted)';
   }
 
   @override
@@ -246,7 +304,13 @@ class _$ScoringStateImpl implements _ScoringState {
             (identical(other.lastActionLabel, lastActionLabel) ||
                 other.lastActionLabel == lastActionLabel) &&
             (identical(other.lastAnnouncement, lastAnnouncement) ||
-                other.lastAnnouncement == lastAnnouncement));
+                other.lastAnnouncement == lastAnnouncement) &&
+            (identical(other.matchWinner, matchWinner) ||
+                other.matchWinner == matchWinner) &&
+            (identical(other.matchWinnerName, matchWinnerName) ||
+                other.matchWinnerName == matchWinnerName) &&
+            (identical(other.matchCompleted, matchCompleted) ||
+                other.matchCompleted == matchCompleted));
   }
 
   @override
@@ -257,6 +321,9 @@ class _$ScoringStateImpl implements _ScoringState {
     const DeepCollectionEquality().hash(_redoStack),
     lastActionLabel,
     lastAnnouncement,
+    matchWinner,
+    matchWinnerName,
+    matchCompleted,
   );
 
   /// Create a copy of ScoringState
@@ -275,6 +342,9 @@ abstract class _ScoringState implements ScoringState {
     final List<MatchScore> redoStack,
     final String lastActionLabel,
     final String lastAnnouncement,
+    final Team? matchWinner,
+    final String matchWinnerName,
+    final bool matchCompleted,
   }) = _$ScoringStateImpl;
 
   @override
@@ -286,7 +356,13 @@ abstract class _ScoringState implements ScoringState {
   @override
   String get lastActionLabel;
   @override
-  String get lastAnnouncement;
+  String get lastAnnouncement; // Campos para mostrar el ganador del partido
+  @override
+  Team? get matchWinner;
+  @override
+  String get matchWinnerName;
+  @override
+  bool get matchCompleted;
 
   /// Create a copy of ScoringState
   /// with the given fields replaced by the non-null parameter values.
