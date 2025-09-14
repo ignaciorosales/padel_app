@@ -22,10 +22,33 @@
 #include <BLEAdvertising.h>
 #include <WiFi.h>
 
+#include <Wire.h>
+#include <Adafruit_VL6180X.h>
+
 #define BLE_DEVICE_NAME   "PadelScore-C3"
 #define MFG_ID_LSB  0xFF
 #define MFG_ID_MSB  0xFF
 static const uint8_t PROTO_VER = 0x01;
+
+Adafruit_VL6180X TOF;   // TOF050C (VL6180)
+
+// === TOF tuning ===
+const uint16_t TOF_MIN_MM       = 10;    // ignora “casi pegado”
+const uint16_t TOF_THRESH_MM    = 200;   // ≤ 20 cm “dentro de zona”
+const uint16_t TOF_RELEASE_MM   = 220;   // ≥ 22 cm “fuera de zona” (histéresis)
+const uint16_t TOF_HOLD_MS      = 1000;  // 1 s quieto
+const uint16_t TOF_COOLDOWN_MS  = 1000;  // anti-doble
+const uint16_t TOF_SAMPLE_MS    = 60;    // ~16 Hz
+const uint16_t TOF_RELEASE_HOLD = 150;   // 150 ms lejos para rearmar (anti-serrucho)
+const uint16_t TOF_MAX_MOTION   = 15;    // máx. variación dentro del hold (mm)
+
+struct {
+  uint32_t enterMs      = 0;
+  uint32_t lastFireMs   = 0;
+  uint32_t lastSampleMs = 0;
+  bool     armed        = true;
+  uint16_t lastDist     = 999;
+} tofState;
 
 // ======= Estado del marcador =======
 Score score;
@@ -158,7 +181,7 @@ static void printScoreboard(const Score &s) {
 
 // ======= Arduino setup/loop =======
 void setup() {
-  WiFi.mode(WIFI_OFF);          
+  WiFi.mode(WIFI_OFF);
   Serial.begin(115200);
   unsigned long t0 = millis();
   while (!Serial && (millis() - t0 < 2000)) { delay(10); }
@@ -169,6 +192,14 @@ void setup() {
   pinMode(BTN_P, INPUT_PULLUP);
   pinMode(BTN_U, INPUT_PULLUP);
   pinMode(BTN_G, INPUT_PULLUP);
+
+  Wire.begin(2, 3);          // SDA=2, SCL=3
+  Wire.setClock(100000);     // 100 kHz para bring-up
+  if (!TOF.begin()) {
+    Serial.println(F("VL6180 (TOF050C) NO encontrado — revisa cableado (VIN, GND, SDA=2, SCL=3)."));
+  } else {
+    Serial.println(F("VL6180 (TOF050C) OK — listo para medir a <20 cm con HOLD=1s."));
+  }
 
   resetMatch(score);
   setupBroadcast();
@@ -193,7 +224,7 @@ void loop() {
     Serial.printf("BTN U → TX 'u' seq=%u\n", gSeq);
   }
   if (edgePressed(BTN_G, lastG, tG)) {
-    pushHistory(); 
+    pushHistory();
     resetGame(score);
     gSeq = (gSeq == 255) ? 1 : (uint8_t)(gSeq + 1);
     applyAdvPayload('g');
@@ -201,7 +232,7 @@ void loop() {
     printScoreboard(score);
   }
 
-  // --- Comandos por Serial (igual que antes) ---
+  // --- Comandos por Serial ---
   if (Serial.available()) {
     int ch = Serial.read();
     if (ch != -1) {
@@ -221,6 +252,71 @@ void loop() {
           applyAdvPayload(c);
           Serial.printf("TX '%c' seq=%u\n", c, gSeq);
         }
+      }
+    }
+  }
+
+  // --- Lector TOF: HOLD + histéresis + anti-serrucho ---
+  {
+    const uint32_t nowMs = millis();
+    if (nowMs - tofState.lastSampleMs >= TOF_SAMPLE_MS) {
+      tofState.lastSampleMs = nowMs;
+
+      uint16_t d  = TOF.readRange();
+      uint8_t  st = TOF.readRangeStatus();
+
+      static uint16_t dPrev = 0xFFFF;  // “sin lectura previa válida”
+      static uint32_t farSinceMs = 0;
+
+      bool valid  = (st == 0);
+      bool inZone = valid && (d >= TOF_MIN_MM) && (d <= TOF_THRESH_MM);
+      bool farZone = (!valid) || (d >= TOF_RELEASE_MM);
+
+      if (tofState.armed) {
+        if (inZone) {
+          if (tofState.enterMs == 0) {
+            tofState.enterMs = nowMs;
+          }
+          if (valid && dPrev != 0xFFFF) {
+            int16_t delta = (int16_t)d - (int16_t)dPrev;
+            if (abs(delta) > TOF_MAX_MOTION) {
+              tofState.enterMs = nowMs; // reinicia temporizador de quietud
+            }
+          }
+
+          if ((nowMs - tofState.enterMs) >= TOF_HOLD_MS &&
+              (nowMs - tofState.lastFireMs) >= TOF_COOLDOWN_MS) {
+
+            // === DISPARO: AGREGAR PUNTO ===
+            gSeq = (gSeq == 255) ? 1 : (uint8_t)(gSeq + 1);
+            applyAdvPayload('p');
+            Serial.printf("TOF → TX 'p' seq=%u  (d=%umm)\n", gSeq, d);
+
+            tofState.lastFireMs = nowMs;
+            tofState.armed = false;     // desarmar hasta que se aleje
+            farSinceMs = 0;
+          }
+        } else {
+          tofState.enterMs = 0;         // fuera de zona → cancela hold
+        }
+      } else {
+        // Ya disparamos: esperar alejamiento real para rearmar
+        if (farZone) {
+          if (farSinceMs == 0) farSinceMs = nowMs;
+          if ((nowMs - farSinceMs) >= TOF_RELEASE_HOLD &&
+              (nowMs - tofState.lastFireMs) >= TOF_COOLDOWN_MS) {
+            tofState.armed = true;
+            tofState.enterMs = 0;
+            farSinceMs = 0;
+          }
+        } else {
+          farSinceMs = 0;               // aún cerca → no rearmar
+        }
+      }
+
+      if (valid) {
+        dPrev = d;
+        tofState.lastDist = d;
       }
     }
   }
