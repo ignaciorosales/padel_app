@@ -1,27 +1,218 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:speech_to_text_min/features/models/scoring_models.dart' hide SetScore;
 import 'package:speech_to_text_min/features/scoring/bloc/scoring_bloc.dart';
 import 'package:speech_to_text_min/features/scoring/bloc/scoring_state.dart';
-import 'package:speech_to_text_min/features/models/scoring_models.dart';
+import 'package:speech_to_text_min/features/widgets/set_score.dart';
+
+/// Displays a string of digits using the digital font. If [alignRight] is
+/// true the digits will align to the right edge of their container.
+class _DigitalPoints extends StatelessWidget {
+  final String text;
+  final double height;
+  final Color color;
+  final bool alignRight;
+  
+  const _DigitalPoints({
+    required this.text,
+    required this.height,
+    required this.color,
+    this.alignRight = false,
+  });
+  
+  @override
+  Widget build(BuildContext context) {
+    final width = height * 0.6;
+    final children = <Widget>[];
+    final chars = text.split('');
+    
+    for (int i = 0; i < chars.length; i++) {
+      final ch = chars[i];
+      children.add(Container(
+        width: width,
+        alignment: alignRight ? Alignment.bottomRight : Alignment.bottomLeft,
+        child: Text(
+          ch,
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            color: color,
+            fontSize: height,
+            fontFamily: 'Digital7',
+            height: 1.0,
+            shadows: [
+              Shadow(
+                offset: Offset(3, 3),
+                blurRadius: 6,
+                color: Colors.black.withOpacity(0.6),
+              ),
+            ],
+          ),
+        ),
+      ));
+    }
+    
+    return Row(
+      mainAxisAlignment: alignRight ? MainAxisAlignment.end : MainAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: children,
+    );
+  }
+}
+
+/// Left diagonal clipper for background
+class _LeftDiagonalClipper extends CustomClipper<Path> {
+  final double topCut;
+  final double bottomCut;
+  _LeftDiagonalClipper({this.topCut = 0.6, this.bottomCut = 0.4});
+  
+  @override
+  Path getClip(Size size) {
+    final path = Path();
+    path.moveTo(0, 0);
+    path.lineTo(size.width * topCut, 0);
+    path.lineTo(size.width * bottomCut, size.height);
+    path.lineTo(0, size.height);
+    path.close();
+    return path;
+  }
+  
+  @override
+  bool shouldReclip(covariant _LeftDiagonalClipper oldClipper) {
+    return oldClipper.topCut != topCut || oldClipper.bottomCut != bottomCut;
+  }
+}
+
+/// Right diagonal clipper
+class _RightDiagonalClipper extends CustomClipper<Path> {
+  final double topCut;
+  final double bottomCut;
+  _RightDiagonalClipper({this.topCut = 0.6, this.bottomCut = 0.4});
+  
+  @override
+  Path getClip(Size size) {
+    final path = Path();
+    path.moveTo(size.width * topCut, 0);
+    path.lineTo(size.width, 0);
+    path.lineTo(size.width, size.height);
+    path.lineTo(size.width * bottomCut, size.height);
+    path.close();
+    return path;
+  }
+  
+  @override
+  bool shouldReclip(covariant _RightDiagonalClipper oldClipper) {
+    return oldClipper.topCut != topCut || oldClipper.bottomCut != bottomCut;
+  }
+}
+
+/// Hexagonal hive pattern painter for background depth
+class _HexagonalHivePainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = Colors.white.withOpacity(0.05)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.5;
+
+    const hexRadius = 40.0;
+    final hexHeight = hexRadius * sqrt(3);
+    const hexWidth = hexRadius * 2;
+
+    final cols = (size.width / (hexWidth * 0.75)).ceil() + 2;
+    final rows = (size.height / hexHeight).ceil() + 2;
+
+    for (int row = -1; row < rows; row++) {
+      for (int col = -1; col < cols; col++) {
+        final xOffset = col * hexWidth * 0.75;
+        final yOffset = row * hexHeight + (col.isOdd ? hexHeight / 2 : 0);
+
+        final path = _createHexagonPath(xOffset, yOffset, hexRadius);
+        canvas.drawPath(path, paint);
+      }
+    }
+  }
+
+  Path _createHexagonPath(double x, double y, double radius) {
+    final path = Path();
+    for (int i = 0; i < 6; i++) {
+      final angle = (pi / 3) * i - pi / 6;
+      final px = x + radius * cos(angle);
+      final py = y + radius * sin(angle);
+      
+      if (i == 0) {
+        path.moveTo(px, py);
+      } else {
+        path.lineTo(px, py);
+      }
+    }
+    path.close();
+    return path;
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
 
 class Scoreboard extends StatelessWidget {
   const Scoreboard({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
-    return Container(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: isDark
-              ? const [Color(0xFF0D1117), Color(0xFF0B1222)]
-              : [Theme.of(context).colorScheme.surface, Theme.of(context).colorScheme.surfaceVariant],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
+    return Stack(
+      children: [
+        // Diagonal background with blue and red gradients
+        Positioned.fill(
+          child: Stack(
+            children: [
+              // Left side (Blue gradient for Blue team)
+              ClipPath(
+                clipper: _LeftDiagonalClipper(),
+                child: Container(
+                  decoration: const BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [Color.fromARGB(255, 78, 149, 255), Color(0xFF0D2A4D)],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                  ),
+                ),
+              ),
+              // Right side (Red gradient for Red team)
+              ClipPath(
+                clipper: _RightDiagonalClipper(),
+                child: Container(
+                  decoration: const BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [Color.fromARGB(255, 252, 66, 66), Color(0xFF912430)],
+                      begin: Alignment.topRight,
+                      end: Alignment.bottomLeft,
+                    ),
+                  ),
+                ),
+              ),
+              // Hexagonal hive pattern overlay
+              Positioned.fill(
+                child: CustomPaint(
+                  painter: _HexagonalHivePainter(),
+                ),
+              ),
+            ],
+          ),
         ),
-      ),
+        // Content
+        _ScoreboardContent(),
+      ],
+    );
+  }
+}
+
+class _ScoreboardContent extends StatelessWidget {
+  const _ScoreboardContent();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
       child: BlocBuilder<ScoringBloc, ScoringState>(
         buildWhen: (p, n) => p.match != n.match,
         builder: (context, state) {
@@ -31,11 +222,6 @@ class Scoreboard extends StatelessWidget {
 
           // Reglas
           final rules = m.settings;
-          final bool goldenPoint = rules.goldenPoint;
-          final int tieBreakTarget = rules.tieBreakTarget;
-
-          // 40–40 / deuce
-          final bool deuce = !gp.isTieBreak && gp.blue >= 3 && gp.red >= 3 && gp.blue == gp.red;
 
           // Mapeo de puntos del juego actual
           String mapPts(int us, int them) {
@@ -55,7 +241,7 @@ class Scoreboard extends StatelessWidget {
           final sets = m.sets;
           final curIdx = m.currentSetIndex;
 
-          final finishedSets = <_SetScore>[];   // todos los sets completados (cronológicamente)
+          final finishedSets = <SetScore>[];   // todos los sets completados (cronológicamente)
           
           // Ya no separamos por ganador, sino que mantenemos el orden cronológico
           for (int i = 0; i < sets.length; i++) {
@@ -63,12 +249,11 @@ class Scoreboard extends StatelessWidget {
             final sb = sets[i].blueGames;
             final sr = sets[i].redGames;
             if (sb == sr) continue; // por seguridad
-            finishedSets.add(_SetScore(sb, sr)); // siempre como blue–red
+            finishedSets.add(SetScore(sb, sr)); // siempre como blue–red
           }
 
-          // Colores de equipo
-          const blueColor = Color(0xFF66A3FF);
-          const redColor  = Color(0xFFFF5757);
+          // All text will be white
+          const textColor = Colors.white;
 
           return Padding(
             padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 16),
@@ -78,108 +263,318 @@ class Scoreboard extends StatelessWidget {
                 final pointsSize = h * 0.34;
                 final labelSize  = h * 0.06;
                 final histFont   = h * 0.06; // tamaño de texto del historial (grande, sin chip)
-
+          
                 return Stack(
                   children: [
+                    // ====== Brand at top center ======
+                    Positioned(
+                      top: 0,
+                      left: 0,
+                      right: 0,
+                      child: Center(
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                          decoration: BoxDecoration(
+                            color: Colors.black.withOpacity(0.3),
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Text(
+                            'PadelScore.uy',
+                            style: TextStyle(
+                              color: textColor,
+                              fontSize: labelSize * 1.2,
+                              fontWeight: FontWeight.bold,
+                              letterSpacing: 1.5,
+                              fontFamily: 'Digital7',
+                              shadows: [
+                                Shadow(
+                                  offset: Offset(1, 1),
+                                  blurRadius: 4,
+                                  color: Colors.black.withOpacity(0.5),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
                     // ====== Contenido central ======
                     Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        // Etiquetas de equipo + icono de servicio
+                        // Etiquetas de equipo + historial de sets (en una sola fila)
                         Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 40.0, vertical: 2),
+                          padding: const EdgeInsets.only(left: 20.0, right: 20.0, top: 100.0, bottom: 12),
                           child: Row(
                             children: [
-                              _TeamLabel(
-                                label: 'AZUL',
-                                color: blueColor,
-                                isServer: m.server == Team.blue,
-                                fontSize: labelSize,
+                              // AZUL (left side) - más hacia el borde
+                              Expanded(
+                                flex: 25,
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.start,
+                                  children: [
+                                    // Indicador de saque hacia el borde izquierdo
+                                    SizedBox(
+                                      width: labelSize * 0.9 + 8.0,
+                                      child: m.server == Team.blue
+                                          ? Image.asset(
+                                              'assets/images/padel_ball.png',
+                                              width: labelSize * 0.9,
+                                              height: labelSize * 0.9,
+                                              fit: BoxFit.contain,
+                                            )
+                                          : null,
+                                    ),
+                                    Text(
+                                      'AZUL',
+                                      style: TextStyle(
+                                        color: textColor.withOpacity(0.9),
+                                        fontSize: labelSize * 1.1,
+                                        fontWeight: FontWeight.bold,
+                                        letterSpacing: 1.5,
+                                        fontFamily: 'Digital7',
+                                        shadows: [
+                                          Shadow(
+                                            offset: Offset(1, 1),
+                                            blurRadius: 4,
+                                            color: Colors.black.withOpacity(0.5),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               ),
-                              const Spacer(),
-                              _TeamLabel(
-                                label: 'ROJO',
-                                color: redColor,
-                                isServer: m.server == Team.red,
-                                fontSize: labelSize,
-                                alignRight: true,
+                              
+                              // Historial de sets en el centro
+                              Expanded(
+                                flex: 50,
+                                child: finishedSets.isNotEmpty
+                                  ? Row(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: [
+                                        for (int i = 0; i < finishedSets.length; i++) ...[
+                                        Text(
+                                          '${finishedSets[i].blue}',
+                                          style: TextStyle(
+                                            color: textColor,
+                                            fontSize: histFont * 0.8,
+                                            fontWeight: FontWeight.bold,
+                                            fontFamily: 'Digital7',
+                                            shadows: [
+                                              Shadow(
+                                                offset: Offset(1, 1),
+                                                blurRadius: 4,
+                                                color: Colors.black.withOpacity(0.5),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                        Text(
+                                          '-',
+                                          style: TextStyle(
+                                            color: textColor.withOpacity(0.7),
+                                            fontSize: histFont * 0.8,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                        Text(
+                                          '${finishedSets[i].red}',
+                                          style: TextStyle(
+                                            color: textColor,
+                                            fontSize: histFont * 0.8,
+                                            fontWeight: FontWeight.bold,
+                                            fontFamily: 'Digital7',
+                                            shadows: [
+                                              Shadow(
+                                                offset: Offset(1, 1),
+                                                blurRadius: 4,
+                                                color: Colors.black.withOpacity(0.5),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                        if (i != finishedSets.length - 1)
+                                          Padding(
+                                            padding: const EdgeInsets.symmetric(horizontal: 12.0),
+                                            child: Text(
+                                              '|',
+                                              style: TextStyle(
+                                                color: textColor.withOpacity(0.5),
+                                                fontSize: histFont * 0.8,
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ],
+                                    )
+                                  : const SizedBox.shrink(),
+                              ),
+                              
+                              // ROJO (right side) - más hacia el borde
+                              Expanded(
+                                flex: 25,
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.end,
+                                  children: [
+                                    Text(
+                                      'ROJO',
+                                      style: TextStyle(
+                                        color: textColor.withOpacity(0.9),
+                                        fontSize: labelSize * 1.1,
+                                        fontWeight: FontWeight.bold,
+                                        letterSpacing: 1.5,
+                                        fontFamily: 'Digital7',
+                                        shadows: [
+                                          Shadow(
+                                            offset: Offset(1, 1),
+                                            blurRadius: 4,
+                                            color: Colors.black.withOpacity(0.5),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    // Indicador de saque hacia el borde derecho
+                                    SizedBox(
+                                      width: labelSize * 0.9 + 8.0,
+                                      child: m.server == Team.red
+                                          ? Image.asset(
+                                              'assets/images/padel_ball.png',
+                                              width: labelSize * 0.9,
+                                              height: labelSize * 0.9,
+                                              fit: BoxFit.contain,
+                                            )
+                                          : null,
+                                    ),
+                                  ],
+                                ),
                               ),
                             ],
                           ),
                         ),
-                        
-                        // Historial de sets completados (centrado)
-                        if (finishedSets.isNotEmpty)
-                          Padding(
-                            padding: const EdgeInsets.symmetric(vertical: 8.0),
-                            child: _SetHistoryCenter(
-                              sets: finishedSets,
-                              fontSize: histFont * 0.8,
-                            ),
-                          ),
-
+          
                               // Puntos grandes (juego actual)
                         Expanded(
-                          child: Row(
-                            crossAxisAlignment: CrossAxisAlignment.center,
-                            children: [
-                              Expanded(
-                                child: _BigPoints(text: bluePts, size: pointsSize, color: blueColor),
-                              ),
-                              
-                              // Verificar si estamos en Super Tie-Break del 3er set
-                              if (!(m.currentSetIndex == 2 && m.settings.tbGames == 1 && gp.isTieBreak)) 
-                                // Set actual (mostrar solo si NO es Super Tie-Break)
-                                Column(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Text(
-                                      'SET ACTUAL',
-                                      style: TextStyle(
-                                        color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
-                                        fontSize: labelSize * 0.7,
-                                        fontWeight: FontWeight.w600,
-                                        letterSpacing: 0.8,
-                                      ),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 20.0),
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              children: [
+                                // Lado AZUL - 40% del espacio
+                                Expanded(
+                                  flex: 40,
+                                  child: Center(
+                                    child: _DigitalPoints(
+                                      text: bluePts,
+                                      height: pointsSize,
+                                      color: textColor,
                                     ),
-                                    const SizedBox(height: 8),
-                                    Row(
+                                  ),
+                                ),
+                              
+                              // Centro - SET ACTUAL en la diagonal (perfectamente centrado)
+                              Expanded(
+                                flex: 20,
+                                child: !(m.currentSetIndex == 2 && m.settings.tbGames == 1 && gp.isTieBreak)
+                                  ? Column(
+                                      mainAxisAlignment: MainAxisAlignment.start,
+                                      crossAxisAlignment: CrossAxisAlignment.center,
                                       children: [
+                                        SizedBox(height: 52,),
+                                        // Etiqueta SET arriba como indicación
                                         Text(
-                                          '${s.blueGames}',
+                                          'SET ACTUAL',
                                           style: TextStyle(
-                                            color: blueColor,
-                                            fontSize: pointsSize * 0.4,
-                                            fontWeight: FontWeight.w700,
+                                            color: textColor.withOpacity(0.6),
+                                            fontSize: labelSize * 0.6,
+                                            fontWeight: FontWeight.w500,
+                                            letterSpacing: 1.0,
+                                            shadows: [
+                                              Shadow(
+                                                offset: Offset(1, 1),
+                                                blurRadius: 3,
+                                                color: Colors.black.withOpacity(0.4),
+                                              ),
+                                            ],
                                           ),
                                         ),
-                                        Text(
-                                          ' · ',
-                                          style: TextStyle(
-                                            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.5),
-                                            fontSize: pointsSize * 0.3,
-                                          ),
-                                        ),
-                                        Text(
-                                          '${s.redGames}',
-                                          style: TextStyle(
-                                            color: redColor,
-                                            fontSize: pointsSize * 0.4,
-                                            fontWeight: FontWeight.w700,
-                                          ),
+                                        const SizedBox(height: 4),
+                                        // Números del set centrados con ancho fijo
+                                        Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          mainAxisAlignment: MainAxisAlignment.center,
+                                          children: [
+                                            SizedBox(
+                                              width: pointsSize * 0.25,
+                                              child: Text(
+                                                '${s.blueGames}',
+                                                textAlign: TextAlign.center,
+                                                style: TextStyle(
+                                                  color: textColor,
+                                                  fontSize: pointsSize * 0.35,
+                                                  fontWeight: FontWeight.w700,
+                                                  fontFamily: 'Digital7',
+                                                  shadows: [
+                                                    Shadow(
+                                                      offset: Offset(1, 1),
+                                                      blurRadius: 4,
+                                                      color: Colors.black.withOpacity(0.5),
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                            ),
+                                            Padding(
+                                              padding: const EdgeInsets.symmetric(horizontal: 14.0),
+                                              child: Text(
+                                                '-',
+                                                style: TextStyle(
+                                                  color: textColor.withOpacity(0.5),
+                                                  fontSize: pointsSize * 0.3,
+                                                ),
+                                              ),
+                                            ),
+                                            SizedBox(
+                                              width: pointsSize * 0.25,
+                                              child: Text(
+                                                '${s.redGames}',
+                                                textAlign: TextAlign.center,
+                                                style: TextStyle(
+                                                  color: textColor,
+                                                  fontSize: pointsSize * 0.35,
+                                                  fontWeight: FontWeight.w700,
+                                                  fontFamily: 'Digital7',
+                                                  shadows: [
+                                                    Shadow(
+                                                      offset: Offset(1, 1),
+                                                      blurRadius: 4,
+                                                      color: Colors.black.withOpacity(0.5),
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                            ),
+                                          ],
                                         ),
                                       ],
-                                    ),
-                                  ],
-                                )
-                              else 
-                                // En Super Tie-Break, dejamos un espacio pero no mostramos el puntaje del set
-                                const SizedBox(width: 80),
-                              
-                              Expanded(
-                                child: _BigPoints(text: redPts, size: pointsSize, color: redColor, alignRight: true),
+                                    )
+                                  : const SizedBox.shrink(),
                               ),
-                            ],
+                              
+                                // Lado ROJO - 40% del espacio
+                                Expanded(
+                                  flex: 40,
+                                  child: Center(
+                                    child: _DigitalPoints(
+                                      text: redPts,
+                                      height: pointsSize,
+                                      color: textColor,
+                                      alignRight: true,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
                         ),                        // Añadimos información de tie-break/punto de oro abajo
                         Padding(
@@ -188,10 +583,28 @@ class Scoreboard extends StatelessWidget {
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
                               if (gp.isTieBreak)
-                                _TieBreakIndicator(
-                                  target: m.currentSet.isSuperTieBreak ? 10 : 7,
-                                  isSuper: m.currentSet.isSuperTieBreak,
-                                  fontSize: labelSize * 0.8,
+                                RichText(
+                                  text: TextSpan(
+                                    children: [
+                                      TextSpan(
+                                        text: m.currentSet.isSuperTieBreak ? 'SUPER TIE-BREAK' : 'TIE-BREAK',
+                                        style: TextStyle(
+                                          color: Colors.orangeAccent,
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: labelSize * 0.8,
+                                          fontFamily: 'Digital7',
+                                        ),
+                                      ),
+                                      TextSpan(
+                                        text: ' A ${m.currentSet.isSuperTieBreak ? 10 : 7}',
+                                        style: TextStyle(
+                                          color: Colors.orangeAccent.withOpacity(0.8),
+                                          fontSize: labelSize * 0.8,
+                                          fontFamily: 'Digital7',
+                                        ),
+                                      ),
+                                    ],
+                                  ),
                                 )
                               else if (!gp.isTieBreak && gp.blue >= 3 && gp.red >= 3 && gp.blue == gp.red)
                                 Row(
@@ -199,9 +612,10 @@ class Scoreboard extends StatelessWidget {
                                     Text(
                                       'DEUCE',
                                       style: TextStyle(
-                                        color: Theme.of(context).colorScheme.secondary.withOpacity(0.8),
-                                        fontWeight: FontWeight.w600,
+                                        color: Colors.purpleAccent,
+                                        fontWeight: FontWeight.bold,
                                         fontSize: labelSize * 0.8,
+                                        fontFamily: 'Digital7',
                                       ),
                                     ),
                                     if (rules.goldenPoint) ...[
@@ -209,9 +623,10 @@ class Scoreboard extends StatelessWidget {
                                       Text(
                                         '· PUNTO DE ORO',
                                         style: TextStyle(
-                                          color: const Color(0xFFFFC107).withOpacity(0.9),
-                                          fontWeight: FontWeight.w600,
+                                          color: Colors.amberAccent,
+                                          fontWeight: FontWeight.bold,
                                           fontSize: labelSize * 0.8,
+                                          fontFamily: 'Digital7',
                                         ),
                                       ),
                                     ],
@@ -233,215 +648,3 @@ class Scoreboard extends StatelessWidget {
   }
 }
 
-/// Widget para mostrar el historial de sets en el centro
-class _SetHistoryCenter extends StatelessWidget {
-  final List<_SetScore> sets;
-  final double fontSize;
-  
-  const _SetHistoryCenter({
-    required this.sets,
-    required this.fontSize,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    // Colores de equipo (mismos que en Scoreboard)
-    const blueColor = Color(0xFF66A3FF);
-    const redColor = Color(0xFFFF5757);
-    
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Text(
-          'SETS ANTERIORES',
-          style: TextStyle(
-            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
-            fontSize: fontSize * 0.5,
-            fontWeight: FontWeight.w600,
-            letterSpacing: 0.8,
-          ),
-        ),
-        const SizedBox(height: 4),
-        for (final s in sets)
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 2),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  '${s.blue}',
-                  style: TextStyle(
-                    color: blueColor,
-                    fontWeight: FontWeight.w700,
-                    fontSize: fontSize,
-                    letterSpacing: 0.5,
-                    height: 1.2,
-                  ),
-                ),
-                Text(
-                  ' · ',
-                  style: TextStyle(
-                    color: Theme.of(context).colorScheme.onSurface.withOpacity(0.5),
-                    fontSize: fontSize * 0.7,
-                  ),
-                ),
-                Text(
-                  '${s.red}',
-                  style: TextStyle(
-                    color: redColor,
-                    fontWeight: FontWeight.w700,
-                    fontSize: fontSize,
-                    letterSpacing: 0.5,
-                    height: 1.2,
-                  ),
-                ),
-              ],
-            ),
-          ),
-      ],
-    );
-  }
-}
-
-class _SetScore {
-  final int blue; // juegos de AZUL en ese set
-  final int red;  // juegos de ROJO en ese set
-  const _SetScore(this.blue, this.red);
-}
-
-class _TeamLabel extends StatelessWidget {
-  final String label;
-  final Color color;
-  final bool isServer;
-  final double fontSize;
-  final bool alignRight;
-
-  const _TeamLabel({
-    required this.label,
-    required this.color,
-    required this.isServer,
-    required this.fontSize,
-    this.alignRight = false,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final row = Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Text(
-          label,
-          style: TextStyle(
-            color: Theme.of(context).colorScheme.onSurface.withOpacity(.92),
-            fontSize: fontSize,
-            fontWeight: FontWeight.w900,
-            letterSpacing: 1.2,
-          ),
-        ),
-        const SizedBox(width: 10),
-        AnimatedOpacity(
-          duration: const Duration(milliseconds: 200),
-          opacity: isServer ? 1 : 0.16,
-          child: Icon(Icons.sports_tennis, size: fontSize * 0.6, color: color),
-        ),
-      ],
-    );
-    return alignRight
-        ? Row(mainAxisSize: MainAxisSize.min, children: row.children.reversed.toList())
-        : row;
-  }
-}
-
-class _BigPoints extends StatelessWidget {
-  final String text;
-  final double size;
-  final Color color;
-  final bool alignRight;
-  const _BigPoints({
-    required this.text,
-    required this.size,
-    required this.color,
-    this.alignRight = false,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Align(
-      alignment: alignRight ? Alignment.centerRight : Alignment.centerLeft,
-      child: Text(
-        text,
-        textAlign: alignRight ? TextAlign.right : TextAlign.left,
-        style: TextStyle(
-          color: color,
-          fontSize: size,
-          fontWeight: FontWeight.w900,
-          height: .9,
-          letterSpacing: -2,
-          shadows: [Shadow(blurRadius: 16, color: color.withOpacity(.55))],
-        ),
-      ),
-    );
-  }
-}
-
-/// Widget que muestra información sobre el tipo de tie-break en curso
-class _TieBreakIndicator extends StatelessWidget {
-  final int target;
-  final bool isSuper;
-  final double fontSize;
-  
-  const _TieBreakIndicator({
-    required this.target,
-    required this.isSuper,
-    required this.fontSize,
-  });
-  
-  @override
-  Widget build(BuildContext context) {
-    final isSuperTieBreak = isSuper;
-    
-    return Container(
-      padding: EdgeInsets.symmetric(
-        horizontal: isSuperTieBreak ? 10 : 8, 
-        vertical: isSuperTieBreak ? 6 : 4
-      ),
-      decoration: isSuperTieBreak 
-          ? BoxDecoration(
-              color: const Color(0xFFFFC107).withOpacity(0.2),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                color: const Color(0xFFFFC107).withOpacity(0.5),
-                width: 1.5,
-              ),
-            )
-          : null,
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          if (isSuperTieBreak) 
-            Icon(
-              Icons.star_rate_rounded,
-              size: fontSize * 0.9,
-              color: const Color(0xFFFFC107),
-            ),
-          Text(
-            isSuperTieBreak ? 'SUPER TIE-BREAK A $target' : 'TIE-BREAK A $target',
-            style: TextStyle(
-              color: isSuperTieBreak
-                  ? const Color(0xFFFFC107).withOpacity(0.9)
-                  : Theme.of(context).colorScheme.tertiary.withOpacity(0.8),
-              fontWeight: FontWeight.w600,
-              fontSize: fontSize,
-            ),
-          ),
-          if (isSuperTieBreak)
-            Icon(
-              Icons.star_rate_rounded,
-              size: fontSize * 0.9,
-              color: const Color(0xFFFFC107),
-            ),
-        ],
-      ),
-    );
-  }
-}

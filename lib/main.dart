@@ -10,6 +10,7 @@ import 'package:speech_to_text_min/features/models/scoring_models.dart';
 import 'package:speech_to_text_min/features/scoring/bloc/scoring_bloc.dart';
 import 'package:speech_to_text_min/features/scoring/bloc/scoring_event.dart';
 import 'package:speech_to_text_min/features/scoring/bloc/scoring_state.dart';
+import 'package:speech_to_text_min/features/widgets/digital_scoreboard.dart';
 import 'package:speech_to_text_min/features/widgets/scoreboard.dart';
 import 'package:speech_to_text_min/features/widgets/referee_sidebar.dart';
 import 'package:speech_to_text_min/features/widgets/winner_overlay.dart';

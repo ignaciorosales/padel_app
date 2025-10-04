@@ -24,8 +24,8 @@ android {
         applicationId = "com.example.speech_to_text_min"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
-        minSdk = 30
-        targetSdk = flutter.targetSdkVersion
+        minSdk = flutter.minSdkVersion
+        targetSdk = 30
         versionCode = flutter.versionCode
         versionName = flutter.versionName
     }
