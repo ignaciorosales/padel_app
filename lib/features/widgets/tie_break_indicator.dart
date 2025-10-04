@@ -44,7 +44,7 @@ class TieBreakIndicator extends StatelessWidget {
             isSuperTieBreak ? 'SUPER TIE-BREAK A $target' : 'TIE-BREAK A $target',
             style: TextStyle(
               color: isSuperTieBreak
-                  ? const Color(0xFFFFC107).withOpacity(0.9)
+                  ? Colors.white
                   : Theme.of(context).colorScheme.tertiary.withOpacity(0.8),
               fontWeight: FontWeight.w600,
               fontSize: fontSize,

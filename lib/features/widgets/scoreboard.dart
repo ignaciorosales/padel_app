@@ -589,7 +589,7 @@ class _ScoreboardContent extends StatelessWidget {
                                       TextSpan(
                                         text: m.currentSet.isSuperTieBreak ? 'SUPER TIE-BREAK' : 'TIE-BREAK',
                                         style: TextStyle(
-                                          color: Colors.orangeAccent,
+                                          color: Colors.white,
                                           fontWeight: FontWeight.bold,
                                           fontSize: labelSize * 0.8,
                                           fontFamily: 'Digital7',
@@ -598,7 +598,7 @@ class _ScoreboardContent extends StatelessWidget {
                                       TextSpan(
                                         text: ' A ${m.currentSet.isSuperTieBreak ? 10 : 7}',
                                         style: TextStyle(
-                                          color: Colors.orangeAccent.withOpacity(0.8),
+                                          color: Colors.white,
                                           fontSize: labelSize * 0.8,
                                           fontFamily: 'Digital7',
                                         ),
@@ -612,7 +612,7 @@ class _ScoreboardContent extends StatelessWidget {
                                     Text(
                                       'DEUCE',
                                       style: TextStyle(
-                                        color: Colors.purpleAccent,
+                                        color: Colors.white,
                                         fontWeight: FontWeight.bold,
                                         fontSize: labelSize * 0.8,
                                         fontFamily: 'Digital7',
@@ -623,7 +623,7 @@ class _ScoreboardContent extends StatelessWidget {
                                       Text(
                                         '· PUNTO DE ORO',
                                         style: TextStyle(
-                                          color: Colors.amberAccent,
+                                          color: Colors.white,
                                           fontWeight: FontWeight.bold,
                                           fontSize: labelSize * 0.8,
                                           fontFamily: 'Digital7',

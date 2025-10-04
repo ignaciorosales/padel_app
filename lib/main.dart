@@ -90,6 +90,7 @@ class _PadelAppState extends State<PadelApp> {
         backgroundColor: scheme.inverseSurface,
         contentTextStyle: TextStyle(color: scheme.onInverseSurface),
       ),
+      cardColor: Colors.white
     );
   }
 
@@ -120,6 +121,7 @@ class _PadelAppState extends State<PadelApp> {
         backgroundColor: scheme.inverseSurface,
         contentTextStyle: TextStyle(color: scheme.onInverseSurface),
       ),
+      cardColor: Colors.black
     );
   }
 

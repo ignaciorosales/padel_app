@@ -463,7 +463,7 @@ class _TieBreakOrDeuceIndicator extends StatelessWidget {
           Text(
             'DEUCE',
             style: TextStyle(
-              color: Colors.purpleAccent,
+              color: Colors.white,
               fontWeight: FontWeight.bold,
               fontSize: fontSize,
             ),
@@ -473,7 +473,7 @@ class _TieBreakOrDeuceIndicator extends StatelessWidget {
             Text(
               '· PUNTO DE ORO',
               style: TextStyle(
-                color: Colors.amberAccent,
+                color: Colors.white,
                 fontWeight: FontWeight.bold,
                 fontSize: fontSize,
               ),

@@ -19,8 +19,8 @@ class RefereeSidebar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cfg = context.read<AppConfig>();
-    final team1 = cfg.teams.isNotEmpty ? cfg.teams[0].displayName : 'Azul';
-    final team2 = cfg.teams.length > 1 ? cfg.teams[1].displayName : 'Rojo';
+    final team1 = cfg.teams.isNotEmpty ? cfg.teams[0].displayName : 'Equipo AZUL';
+    final team2 = cfg.teams.length > 1 ? cfg.teams[1].displayName : 'Equipo ROJO';
 
     return ValueListenableBuilder<bool>(
       valueListenable: visibleNotifier,
@@ -44,14 +44,11 @@ class _SidebarContent extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final bloc = context.read<ScoringBloc>();
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     
     return Card(
       margin: EdgeInsets.zero,
-      color: isDark 
-          ? Colors.black.withOpacity(0.6)
-          : Theme.of(context).colorScheme.surface.withOpacity(0.9),
-      elevation: 4,
+      color: Theme.of(context).cardColor,
+      elevation: 8,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.horizontal(left: Radius.circular(12)),
       ),
@@ -68,25 +65,7 @@ class _SidebarContent extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                // Encabezado
-                Container(
-                  padding: const EdgeInsets.symmetric(vertical: 8),
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.primaryContainer.withOpacity(0.7),
-                    borderRadius: const BorderRadius.only(
-                      topLeft: Radius.circular(12),
-                    ),
-                  ),
-                  child: Text(
-                    'ÁRBITRO',
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w800,
-                      color: Theme.of(context).colorScheme.onPrimaryContainer,
-                    ),
-                  ),
-                ),
+                const SizedBox(height: 12),
                 
                 // Sección de puntuación
                 _SectionTitle(title: 'PUNTUACIÓN'),
@@ -95,17 +74,17 @@ class _SidebarContent extends StatelessWidget {
                 _SidebarButton(
                   label: team1,
                   icon: Icons.add,
-                  color: const Color(0xFF1E88E5),
+                  color: const Color(0xFF4E95FF),
                   onPressed: () => bloc.add(const ScoringEvent.pointFor(Team.blue)),
                 ),
                 _SidebarButton(
                   label: team2,
                   icon: Icons.add,
-                  color: const Color(0xFFE53935),
+                  color: const Color(0xFFFC4242),
                   onPressed: () => bloc.add(const ScoringEvent.pointFor(Team.red)),
                 ),
                 
-                const Divider(height: 1, indent: 8, endIndent: 8),
+                Divider(height: 1, indent: 8, endIndent: 8, color: Colors.white.withOpacity(0.1)),
                 
                 // Sección de acciones
                 _SectionTitle(title: 'ACCIONES'),
@@ -470,7 +449,7 @@ class _SectionTitle extends StatelessWidget {
           fontSize: 10,
           fontWeight: FontWeight.w800,
           letterSpacing: 0.5,
-          color: Theme.of(context).colorScheme.primary.withOpacity(0.7),
+          color: Colors.white.withOpacity(0.6),
         ),
       ),
     );

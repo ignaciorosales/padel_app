@@ -6,13 +6,13 @@
   "teams": [
     {
       "id": "team1",
-      "displayName": "Equipo A",
+      "displayName": "Equipo Azul",
       "colorHex": "#1E88E5",
       "synonyms": ["azul", "equipo 1", "uno", "a"]
     },
     {
       "id": "team2",
-      "displayName": "Equipo B",
+      "displayName": "Equipo Rojo",
       "colorHex": "#E53935",
       "synonyms": ["rojo", "equipo 2", "dos", "b"]
     }
