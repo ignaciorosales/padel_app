@@ -1,6 +1,7 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:speech_to_text_min/config/app_theme.dart';
 import 'package:speech_to_text_min/features/models/scoring_models.dart' hide SetScore;
 import 'package:speech_to_text_min/features/scoring/bloc/scoring_bloc.dart';
 import 'package:speech_to_text_min/features/scoring/bloc/scoring_state.dart';
@@ -108,10 +109,14 @@ class _RightDiagonalClipper extends CustomClipper<Path> {
 
 /// Hexagonal hive pattern painter for background depth
 class _HexagonalHivePainter extends CustomPainter {
+  final Color color;
+  
+  const _HexagonalHivePainter({required this.color});
+  
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
-      ..color = Colors.white.withOpacity(0.05)
+      ..color = color
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1.5;
 
@@ -151,7 +156,7 @@ class _HexagonalHivePainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+  bool shouldRepaint(covariant _HexagonalHivePainter oldDelegate) => color != oldDelegate.color;
 }
 
 class Scoreboard extends StatelessWidget {
@@ -159,6 +164,8 @@ class Scoreboard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final padelTheme = context.padelTheme;
+    
     return Stack(
       children: [
         // Diagonal background with blue and red gradients
@@ -169,9 +176,9 @@ class Scoreboard extends StatelessWidget {
               ClipPath(
                 clipper: _LeftDiagonalClipper(),
                 child: Container(
-                  decoration: const BoxDecoration(
+                  decoration: BoxDecoration(
                     gradient: LinearGradient(
-                      colors: [Color.fromARGB(255, 78, 149, 255), Color(0xFF0D2A4D)],
+                      colors: [PadelColors.blueGradientStart, PadelColors.blueGradientEnd],
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                     ),
@@ -182,9 +189,9 @@ class Scoreboard extends StatelessWidget {
               ClipPath(
                 clipper: _RightDiagonalClipper(),
                 child: Container(
-                  decoration: const BoxDecoration(
+                  decoration: BoxDecoration(
                     gradient: LinearGradient(
-                      colors: [Color.fromARGB(255, 252, 66, 66), Color(0xFF912430)],
+                      colors: [PadelColors.redGradientStart, PadelColors.redGradientEnd],
                       begin: Alignment.topRight,
                       end: Alignment.bottomLeft,
                     ),
@@ -194,7 +201,7 @@ class Scoreboard extends StatelessWidget {
               // Hexagonal hive pattern overlay
               Positioned.fill(
                 child: CustomPaint(
-                  painter: _HexagonalHivePainter(),
+                  painter: _HexagonalHivePainter(color: padelTheme.hexPatternColor),
                 ),
               ),
             ],

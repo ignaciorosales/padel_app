@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:speech_to_text_min/config/app_config.dart';
+import 'package:speech_to_text_min/config/app_theme.dart';
 import 'package:speech_to_text_min/features/models/scoring_models.dart';
 import 'package:speech_to_text_min/features/scoring/bloc/scoring_bloc.dart';
 import 'package:speech_to_text_min/features/scoring/bloc/scoring_event.dart';
@@ -44,10 +45,11 @@ class _SidebarContent extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final bloc = context.read<ScoringBloc>();
+    final padelTheme = context.padelTheme;
     
     return Card(
       margin: EdgeInsets.zero,
-      color: Theme.of(context).cardColor,
+      color: padelTheme.sidebarBackground,
       elevation: 8,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.horizontal(left: Radius.circular(12)),
@@ -74,17 +76,17 @@ class _SidebarContent extends StatelessWidget {
                 _SidebarButton(
                   label: team1,
                   icon: Icons.add,
-                  color: const Color(0xFF4E95FF),
+                  color: padelTheme.teamBlueColor,
                   onPressed: () => bloc.add(const ScoringEvent.pointFor(Team.blue)),
                 ),
                 _SidebarButton(
                   label: team2,
                   icon: Icons.add,
-                  color: const Color(0xFFFC4242),
+                  color: padelTheme.teamRedColor,
                   onPressed: () => bloc.add(const ScoringEvent.pointFor(Team.red)),
                 ),
                 
-                Divider(height: 1, indent: 8, endIndent: 8, color: Colors.white.withOpacity(0.1)),
+                Divider(height: 1, indent: 8, endIndent: 8, color: padelTheme.sidebarDivider),
                 
                 // Sección de acciones
                 _SectionTitle(title: 'ACCIONES'),

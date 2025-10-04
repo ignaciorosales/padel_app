@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import 'package:speech_to_text_min/config/app_config.dart';
+import 'package:speech_to_text_min/config/app_theme.dart';
 import 'package:speech_to_text_min/config/config_loader.dart';
 import 'package:speech_to_text_min/features/ble/padel_ble_client.dart';
 import 'package:speech_to_text_min/features/models/scoring_models.dart';
@@ -61,68 +62,14 @@ class _PadelAppState extends State<PadelApp> {
     super.dispose();
   }
 
-  // --------- THEME DEFINITIONS (Material 3) ---------
+  // --------- THEME DEFINITIONS (Material 3 with Padel Custom Colors) ---------
 
   ThemeData _lightTheme() {
-    final scheme = ColorScheme.fromSeed(
-      seedColor: const Color(0xFF2A7BFF), // your Azul accent
-      brightness: Brightness.light,
-    );
-    return ThemeData(
-      useMaterial3: true,
-      colorScheme: scheme,
-      scaffoldBackgroundColor: scheme.background,
-      dividerColor: scheme.outlineVariant,
-      bottomSheetTheme: BottomSheetThemeData(
-        backgroundColor: scheme.surface,
-        modalBackgroundColor: scheme.surface,
-        surfaceTintColor: scheme.surfaceTint,
-        showDragHandle: true,
-        shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-        ),
-        modalElevation: 12,
-      ),
-      floatingActionButtonTheme: const FloatingActionButtonThemeData(
-        elevation: 2,
-      ),
-      snackBarTheme: SnackBarThemeData(
-        backgroundColor: scheme.inverseSurface,
-        contentTextStyle: TextStyle(color: scheme.onInverseSurface),
-      ),
-      cardColor: Colors.white
-    );
+    return PadelTheme.lightTheme();
   }
 
   ThemeData _darkTheme() {
-    final scheme = ColorScheme.fromSeed(
-      seedColor: const Color(0xFF2A7BFF),
-      brightness: Brightness.dark,
-    );
-    return ThemeData(
-      useMaterial3: true,
-      colorScheme: scheme,
-      scaffoldBackgroundColor: scheme.background,
-      dividerColor: scheme.outlineVariant,
-      bottomSheetTheme: BottomSheetThemeData(
-        backgroundColor: scheme.surface,
-        modalBackgroundColor: scheme.surface,
-        surfaceTintColor: scheme.surfaceTint,
-        showDragHandle: true,
-        shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-        ),
-        modalElevation: 12,
-      ),
-      floatingActionButtonTheme: const FloatingActionButtonThemeData(
-        elevation: 2,
-      ),
-      snackBarTheme: SnackBarThemeData(
-        backgroundColor: scheme.inverseSurface,
-        contentTextStyle: TextStyle(color: scheme.onInverseSurface),
-      ),
-      cardColor: Colors.black
-    );
+    return PadelTheme.darkTheme();
   }
 
   @override
