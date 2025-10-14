@@ -113,6 +113,38 @@ class PadelTheme {
         thickness: 1,
       ),
       
+      // Segmented Button (Light theme)
+      segmentedButtonTheme: SegmentedButtonThemeData(
+        style: ButtonStyle(
+          backgroundColor: WidgetStateProperty.resolveWith<Color>((states) {
+            if (states.contains(WidgetState.selected)) {
+              return colorScheme.primary;
+            }
+            return colorScheme.surface;
+          }),
+          foregroundColor: WidgetStateProperty.resolveWith<Color>((states) {
+            if (states.contains(WidgetState.selected)) {
+              return colorScheme.onPrimary;
+            }
+            return colorScheme.onSurface;
+          }),
+          side: WidgetStateProperty.resolveWith<BorderSide>((states) {
+            if (states.contains(WidgetState.selected)) {
+              return BorderSide(color: colorScheme.primary, width: 1.5);
+            }
+            return BorderSide(color: colorScheme.outline.withOpacity(0.5), width: 1);
+          }),
+        ),
+      ),
+      
+      // Floating Action Button (Light theme)
+      floatingActionButtonTheme: FloatingActionButtonThemeData(
+        backgroundColor: colorScheme.primary,
+        foregroundColor: colorScheme.onPrimary,
+        elevation: 4,
+        highlightElevation: 8,
+      ),
+      
       // Extensions personalizadas
       extensions: <ThemeExtension<dynamic>>[
         PadelThemeExtension(
@@ -217,6 +249,38 @@ class PadelTheme {
       dividerTheme: DividerThemeData(
         color: colorScheme.outline.withOpacity(0.2),
         thickness: 1,
+      ),
+      
+      // Segmented Button (Dark theme)
+      segmentedButtonTheme: SegmentedButtonThemeData(
+        style: ButtonStyle(
+          backgroundColor: WidgetStateProperty.resolveWith<Color>((states) {
+            if (states.contains(WidgetState.selected)) {
+              return colorScheme.primary;
+            }
+            return colorScheme.surfaceContainerHighest;
+          }),
+          foregroundColor: WidgetStateProperty.resolveWith<Color>((states) {
+            if (states.contains(WidgetState.selected)) {
+              return colorScheme.onPrimary;
+            }
+            return colorScheme.onSurface;
+          }),
+          side: WidgetStateProperty.resolveWith<BorderSide>((states) {
+            if (states.contains(WidgetState.selected)) {
+              return BorderSide(color: colorScheme.primary, width: 1.5);
+            }
+            return BorderSide(color: colorScheme.outline.withOpacity(0.5), width: 1);
+          }),
+        ),
+      ),
+      
+      // Floating Action Button (Dark theme)
+      floatingActionButtonTheme: FloatingActionButtonThemeData(
+        backgroundColor: colorScheme.primary,
+        foregroundColor: colorScheme.onPrimary,
+        elevation: 6,
+        highlightElevation: 12,
       ),
       
       // Extensions personalizadas

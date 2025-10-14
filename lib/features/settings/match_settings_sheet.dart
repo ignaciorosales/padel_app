@@ -1,4 +1,3 @@
-// lib/features/settings/match_settings_sheet.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:speech_to_text_min/features/ble/padel_ble_client.dart';
@@ -50,13 +49,28 @@ Future<void> showMatchSettingsSheet(BuildContext context, PadelBleClient ble) as
                 left: 16, right: 16, top: 8,
                 bottom: 16 + MediaQuery.of(ctx).viewInsets.bottom,
               ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Text(
-                    'Configuración',
-                    style: Theme.of(ctx).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w600),
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          'Configuración',
+                          style: Theme.of(ctx).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w600),
+                        ),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.close),
+                        tooltip: 'Cerrar',
+                        onPressed: () { 
+                          ble.cancelDiscovery(); 
+                          Navigator.of(ctx).maybePop(); 
+                        },
+                      ),
+                    ],
                   ),
                   const SizedBox(height: 16),
                   
@@ -90,7 +104,7 @@ Future<void> showMatchSettingsSheet(BuildContext context, PadelBleClient ble) as
                         
                         // Contenido de las pestañas
                         SizedBox(
-                          height: 420, // Altura fija para el contenido
+                          height: MediaQuery.of(ctx).size.height * 0.8, // 60% de la altura de la pantalla
                           child: TabBarView(
                             children: [
                               // ===== TAB 1: REGLAS DEL PARTIDO =====
@@ -117,25 +131,54 @@ Future<void> showMatchSettingsSheet(BuildContext context, PadelBleClient ble) as
                   ),
                   
                   // Botones de acción
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 16),
                   Row(
                     children: [
-                      TextButton(
-                        onPressed: () { ble.cancelDiscovery(); Navigator.of(ctx).maybePop(); },
-                        child: const Text('Cerrar'),
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: () async {
+                            final confirm = await showDialog<bool>(
+                              context: ctx,
+                              builder: (dialogCtx) => AlertDialog(
+                                title: const Text('Restablecer reglas'),
+                                content: const Text(
+                                  '¿Estás seguro de que quieres restablecer todas las reglas a los valores por defecto?\n\n'
+                                  '• Tie-break en 6-6 (sets normales)\n'
+                                  '• Ventaja/Desventaja en 40-40',
+                                ),
+                                actions: [
+                                  TextButton(
+                                    onPressed: () => Navigator.of(dialogCtx).pop(false),
+                                    child: const Text('Cancelar'),
+                                  ),
+                                  FilledButton(
+                                    onPressed: () => Navigator.of(dialogCtx).pop(true),
+                                    child: const Text('Restablecer'),
+                                  ),
+                                ],
+                              ),
+                            );
+                            if (confirm == true) {
+                              setTbGames(6); // Tie-break en 6-6 (set normal)
+                              setGolden(false); // Ventaja/Desventaja en 40-40
+                            }
+                          },
+                          icon: const Icon(Icons.refresh),
+                          label: const Text('Restablecer'),
+                        ),
                       ),
-                      const Spacer(),
-                      TextButton(
-                        onPressed: () {
-                          // Valores por defecto recomendados
-                          setTbGames(6); // Tie-break en 6-6 (set normal)
-                          setGolden(false); // Ventaja/Desventaja en 40-40
-                        },
-                        child: const Text('Restablecer reglas'),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: FilledButton.icon(
+                          onPressed: () { ble.cancelDiscovery(); Navigator.of(ctx).maybePop(); },
+                          icon: const Icon(Icons.check),
+                          label: const Text('Cerrar'),
+                        ),
                       ),
                     ],
                   ),
                 ],
+                ),
               ),
             );
           },
@@ -143,6 +186,49 @@ Future<void> showMatchSettingsSheet(BuildContext context, PadelBleClient ble) as
       );
     },
   );
+}
+
+// =======================================================================
+// Widget reutilizable para cajas de información
+// =======================================================================
+class _InfoBox extends StatelessWidget {
+  final String text;
+
+  const _InfoBox({
+    required this.text,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surfaceContainerHighest.withOpacity(0.5),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(
+            Icons.info_outline,
+            color: Theme.of(context).colorScheme.primary,
+            size: 18,
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              text,
+              style: TextStyle(
+                fontSize: 13,
+                height: 1.4,
+                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.8),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 // =======================================================================
@@ -199,12 +285,28 @@ class _RulesTab extends StatelessWidget {
           // Configuración de Punto Decisivo (40-40)
           Text('Punto decisivo (40–40)', style: Theme.of(context).textTheme.titleMedium),
           const SizedBox(height: 8),
-          SwitchListTile(
-            contentPadding: EdgeInsets.zero,
-            title: const Text('Punto de oro'),
-            subtitle: const Text('En 40-40, un único punto decide el juego en vez de Ventaja/Desventaja'),
-            value: settings.goldenPoint,
-            onChanged: setGolden,
+          const Text('Qué sucede cuando ambos equipos llegan a 40-40'),
+          const SizedBox(height: 8),
+          SegmentedButton<bool>(
+            segments: const [
+              ButtonSegment(
+                value: false,
+                label: Text('Ventaja/Desventaja'),
+              ),
+              ButtonSegment(
+                value: true,
+                label: Text('Punto de oro'),
+              ),
+            ],
+            selected: {settings.goldenPoint},
+            showSelectedIcon: false,
+            onSelectionChanged: (sel) => setGolden(sel.first),
+          ),
+          const SizedBox(height: 8),
+          _InfoBox(
+            text: settings.goldenPoint
+                ? 'En 40-40, un único punto decide el juego (formato WPT)'
+                : 'En 40-40, se juega Ventaja/Desventaja hasta ganar por 2 puntos',
           ),
 
           const SizedBox(height: 16),
@@ -247,32 +349,8 @@ class _RulesTab extends StatelessWidget {
                       onSelectionChanged: (sel) => setTbGames(sel.first ? 1 : 6), // 1 para Super TB, 6 para set normal
                     ),
                     const SizedBox(height: 8),
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: Theme.of(context).colorScheme.errorContainer.withOpacity(0.7),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Row(
-                        children: [
-                          Icon(
-                            Icons.warning_amber_rounded,
-                            color: Theme.of(context).colorScheme.error,
-                            size: 18,
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              'Estás cambiando el formato del tercer set mientras está en progreso. La puntuación del juego actual se reseteará a 0-0.',
-                              style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w500,
-                                color: Theme.of(context).colorScheme.onErrorContainer,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
+                    _InfoBox(
+                      text: 'Estás cambiando el formato del tercer set mientras está en progreso. La puntuación del juego actual se reseteará a 0-0.',
                     ),
                   ],
                 );
@@ -292,32 +370,8 @@ class _RulesTab extends StatelessWidget {
                       onSelectionChanged: (sel) => setTbGames(sel.first ? 1 : 6),
                     ),
                     const SizedBox(height: 8),
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: Theme.of(context).colorScheme.primaryContainer.withOpacity(0.4),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Row(
-                        children: [
-                          Icon(
-                            Icons.info_outline,
-                            color: Theme.of(context).colorScheme.primary,
-                            size: 18,
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              'Esta configuración se aplicará cuando se llegue al tercer set. El set ${match.currentSetIndex + 1} en curso debe completarse normalmente.',
-                              style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w500,
-                                color: Theme.of(context).colorScheme.onPrimaryContainer,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
+                    _InfoBox(
+                      text: 'Esta configuración se aplicará cuando se llegue al tercer set. El set ${match.currentSetIndex + 1} en curso debe completarse normalmente.',
                     ),
                   ],
                 );
@@ -336,31 +390,8 @@ class _RulesTab extends StatelessWidget {
                       onSelectionChanged: (sel) => setTbGames(sel.first ? 1 : 6), // 1 para Super TB, 6 para set normal
                     ),
                     const SizedBox(height: 10),
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: Theme.of(context).colorScheme.secondaryContainer.withOpacity(0.4),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Row(
-                        children: [
-                          Icon(
-                            Icons.info_outline,
-                            color: Theme.of(context).colorScheme.secondary,
-                            size: 18,
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              'El Super Tie-Break se juega a 10 puntos (con diferencia de 2) en lugar de un set completo en el tercer set.',
-                              style: TextStyle(
-                                fontSize: 14,
-                                color: Theme.of(context).colorScheme.onSecondaryContainer,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
+                    _InfoBox(
+                      text: 'El Super Tie-Break se juega a 10 puntos (con diferencia de 2) en lugar de un set completo en el tercer set.',
                     ),
                   ],
                 );
@@ -379,32 +410,8 @@ class _RulesTab extends StatelessWidget {
             const SizedBox(height: 8),
             const Text('En los sets normales, cuando se llega a 6-6, se juega un tie-break a 7 puntos (con diferencia de 2)'),
             const SizedBox(height: 10),
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.surfaceVariant.withOpacity(0.5),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Row(
-                children: [
-                  Icon(
-                    Icons.info_outline,
-                    color: Theme.of(context).colorScheme.primary,
-                    size: 18,
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      'El tie-break se juega hasta que un jugador alcanza 7 puntos con una diferencia de al menos 2 puntos.',
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontStyle: FontStyle.italic,
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
+            _InfoBox(
+              text: 'El tie-break se juega hasta que un jugador alcanza 7 puntos con una diferencia de al menos 2 puntos.',
             ),
           ],
         ],
@@ -603,39 +610,8 @@ class _AppearanceTab extends StatelessWidget {
         ),
         
         const SizedBox(height: 16),
-        
-        // Vista previa del tema
-        Container(
-          width: double.infinity,
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.surfaceVariant,
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Vista previa del tema',
-                style: Theme.of(context).textTheme.titleMedium,
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Así se verán los elementos de la aplicación con el tema seleccionado.',
-                style: Theme.of(context).textTheme.bodyMedium,
-              ),
-              const SizedBox(height: 16),
-              FilledButton(
-                onPressed: () {},
-                child: const Text('Botón principal'),
-              ),
-              const SizedBox(height: 8),
-              OutlinedButton(
-                onPressed: () {},
-                child: const Text('Botón secundario'),
-              ),
-            ],
-          ),
+        _InfoBox(
+          text: 'El tema seleccionado se aplicará inmediatamente a toda la aplicación.',
         ),
       ],
     );

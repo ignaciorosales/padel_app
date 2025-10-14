@@ -68,10 +68,6 @@ class _SidebarContent extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 const SizedBox(height: 12),
-                
-                // Sección de puntuación
-                _SectionTitle(title: 'PUNTUACIÓN'),
-                
                 // Botones de puntuación
                 _SidebarButton(
                   label: team1,
@@ -277,6 +273,8 @@ class _SidebarIconButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 2, horizontal: 6),
       child: Tooltip(
@@ -288,8 +286,14 @@ class _SidebarIconButton extends StatelessWidget {
               icon: Icon(icon),
               onPressed: onPressed,
               style: IconButton.styleFrom(
-                backgroundColor: Theme.of(context).colorScheme.surface,
-                foregroundColor: Theme.of(context).colorScheme.onSurface,
+                backgroundColor: isDark 
+                    ? Theme.of(context).colorScheme.surfaceContainerHighest
+                    : Theme.of(context).colorScheme.primaryContainer.withOpacity(0.3),
+                foregroundColor: Theme.of(context).colorScheme.primary,
+                side: BorderSide(
+                  color: Theme.of(context).colorScheme.outline.withOpacity(0.2),
+                  width: 1,
+                ),
               ),
             ),
             if (label != null)
@@ -326,6 +330,8 @@ class _SidebarToggleButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 2, horizontal: 6),
       child: Tooltip(
@@ -338,11 +344,23 @@ class _SidebarToggleButton extends StatelessWidget {
               onPressed: onPressed,
               style: IconButton.styleFrom(
                 backgroundColor: isActive
-                    ? Theme.of(context).colorScheme.tertiaryContainer
-                    : Theme.of(context).colorScheme.surfaceVariant,
+                    ? (isDark 
+                        ? Theme.of(context).colorScheme.tertiaryContainer
+                        : Theme.of(context).colorScheme.tertiary.withOpacity(0.2))
+                    : (isDark
+                        ? Theme.of(context).colorScheme.surfaceContainerHighest
+                        : Theme.of(context).colorScheme.surfaceVariant),
                 foregroundColor: isActive
-                    ? Theme.of(context).colorScheme.onTertiaryContainer
+                    ? (isDark
+                        ? Theme.of(context).colorScheme.onTertiaryContainer
+                        : Theme.of(context).colorScheme.tertiary)
                     : Theme.of(context).colorScheme.onSurfaceVariant,
+                side: BorderSide(
+                  color: isActive
+                      ? Theme.of(context).colorScheme.tertiary.withOpacity(0.5)
+                      : Theme.of(context).colorScheme.outline.withOpacity(0.2),
+                  width: 1,
+                ),
               ),
             ),
             if (label != null)
