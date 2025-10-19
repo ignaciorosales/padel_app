@@ -1,7 +1,7 @@
 // lib/features/commands/parser_es.dart
-import 'package:speech_to_text_min/commands/command.dart';
-import 'package:speech_to_text_min/config/app_config.dart';
-import 'package:speech_to_text_min/features/models/scoring_models.dart';
+import 'package:Puntazo/commands/command.dart';
+import 'package:Puntazo/config/app_config.dart';
+import 'package:Puntazo/features/models/scoring_models.dart';
 class DynamicEsParser {
   final AppConfig cfg;
   DynamicEsParser(this.cfg);

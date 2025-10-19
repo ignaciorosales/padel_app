@@ -90,12 +90,12 @@ BEGIN
         BLOCK "040904e4"
         BEGIN
             VALUE "CompanyName", "com.example" "\0"
-            VALUE "FileDescription", "speech_to_text_min" "\0"
+            VALUE "FileDescription", "Puntazo" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
-            VALUE "InternalName", "speech_to_text_min" "\0"
+            VALUE "InternalName", "Puntazo" "\0"
             VALUE "LegalCopyright", "Copyright (C) 2025 com.example. All rights reserved." "\0"
-            VALUE "OriginalFilename", "speech_to_text_min.exe" "\0"
-            VALUE "ProductName", "speech_to_text_min" "\0"
+            VALUE "OriginalFilename", "Puntazo.exe" "\0"
+            VALUE "ProductName", "Puntazo" "\0"
             VALUE "ProductVersion", VERSION_AS_STRING "\0"
         END
     END

@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:speech_to_text_min/features/ble/padel_ble_client.dart';
-import 'package:speech_to_text_min/features/scoring/bloc/scoring_bloc.dart';
-import 'package:speech_to_text_min/features/scoring/bloc/scoring_event.dart';
-import 'package:speech_to_text_min/features/scoring/bloc/scoring_state.dart';
-import 'package:speech_to_text_min/main.dart' show ThemeController; // theme controller
-import 'package:speech_to_text_min/features/models/scoring_models.dart'; // Para MatchSettings
+import 'package:Puntazo/features/ble/padel_ble_client.dart';
+import 'package:Puntazo/features/scoring/bloc/scoring_bloc.dart';
+import 'package:Puntazo/features/scoring/bloc/scoring_event.dart';
+import 'package:Puntazo/features/scoring/bloc/scoring_state.dart';
+import 'package:Puntazo/main.dart' show ThemeController; // theme controller
+import 'package:Puntazo/features/models/scoring_models.dart'; // Para MatchSettings
 
 Future<void> showMatchSettingsSheet(BuildContext context, PadelBleClient ble) async {
   await ble.refreshPaired();
@@ -49,9 +49,9 @@ Future<void> showMatchSettingsSheet(BuildContext context, PadelBleClient ble) as
                 left: 16, right: 16, top: 8,
                 bottom: 16 + MediaQuery.of(ctx).viewInsets.bottom,
               ),
-              child: SingleChildScrollView(
+              child: SizedBox(
+                height: MediaQuery.of(ctx).size.height * 0.85,
                 child: Column(
-                  mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                   Row(
@@ -75,62 +75,62 @@ Future<void> showMatchSettingsSheet(BuildContext context, PadelBleClient ble) as
                   const SizedBox(height: 16),
                   
                   // Tabs para organizar el contenido
-                  DefaultTabController(
-                    length: 3,
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        TabBar(
-                          tabs: const [
-                            Tab(
-                              icon: Icon(Icons.sports_tennis),
-                              text: 'Reglas',
-                            ),
-                            Tab(
-                              icon: Icon(Icons.bluetooth),
-                              text: 'Botones',
-                            ),
-                            Tab(
-                              icon: Icon(Icons.settings),
-                              text: 'Apariencia',
-                            ),
-                          ],
-                          labelColor: Theme.of(ctx).colorScheme.primary,
-                          unselectedLabelColor: Theme.of(ctx).colorScheme.onSurface.withOpacity(0.6),
-                          indicatorSize: TabBarIndicatorSize.tab,
-                        ),
-                        
-                        const SizedBox(height: 16),
-                        
-                        // Contenido de las pestañas
-                        SizedBox(
-                          height: MediaQuery.of(ctx).size.height * 0.8, // 60% de la altura de la pantalla
-                          child: TabBarView(
-                            children: [
-                              // ===== TAB 1: REGLAS DEL PARTIDO =====
-                              _RulesTab(
-                                settings: s,
-                                setTbGames: setTbGames,
-                                setTieBreakTarget: setTieBreakTarget,
-                                setGolden: setGolden,
+                  Expanded(
+                    child: DefaultTabController(
+                      length: 3,
+                      child: Column(
+                        children: [
+                          TabBar(
+                            tabs: const [
+                              Tab(
+                                icon: Icon(Icons.sports_tennis),
+                                text: 'Reglas',
                               ),
-                              
-                              // ===== TAB 2: MANDOS BLE =====
-                              _BleTab(ble: ble),
-                              
-                              // ===== TAB 3: APARIENCIA =====
-                              _AppearanceTab(
-                                isDark: isDark,
-                                themeCtrl: themeCtrl,
+                              Tab(
+                                icon: Icon(Icons.bluetooth),
+                                text: 'Botones',
+                              ),
+                              Tab(
+                                icon: Icon(Icons.settings),
+                                text: 'Apariencia',
                               ),
                             ],
+                            labelColor: Theme.of(ctx).colorScheme.primary,
+                            unselectedLabelColor: Theme.of(ctx).colorScheme.onSurface.withOpacity(0.6),
+                            indicatorSize: TabBarIndicatorSize.tab,
                           ),
-                        ),
-                      ],
+                          
+                          const SizedBox(height: 16),
+                          
+                          // Contenido de las pestañas
+                          Expanded(
+                            child: TabBarView(
+                              children: [
+                                // ===== TAB 1: REGLAS DEL PARTIDO =====
+                                _RulesTab(
+                                  settings: s,
+                                  setTbGames: setTbGames,
+                                  setTieBreakTarget: setTieBreakTarget,
+                                  setGolden: setGolden,
+                                ),
+                                
+                                // ===== TAB 2: MANDOS BLE =====
+                                _BleTab(ble: ble),
+                                
+                                // ===== TAB 3: APARIENCIA =====
+                                _AppearanceTab(
+                                  isDark: isDark,
+                                  themeCtrl: themeCtrl,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                   
-                  // Botones de acción
+                  // Botones de acción - FOCUSABLES para control remoto
                   const SizedBox(height: 16),
                   Row(
                     children: [
@@ -178,8 +178,8 @@ Future<void> showMatchSettingsSheet(BuildContext context, PadelBleClient ble) as
                     ],
                   ),
                 ],
-                ),
               ),
+            ),
             );
           },
         ),
@@ -278,29 +278,40 @@ class _RulesTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Configuración de Punto Decisivo (40-40)
-          Text('Punto decisivo (40–40)', style: Theme.of(context).textTheme.titleMedium),
-          const SizedBox(height: 8),
-          const Text('Qué sucede cuando ambos equipos llegan a 40-40'),
-          const SizedBox(height: 8),
-          SegmentedButton<bool>(
-            segments: const [
-              ButtonSegment(
-                value: false,
-                label: Text('Ventaja/Desventaja'),
+    return ListView(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      children: [
+        // Configuración de Punto Decisivo (40-40)
+        Text('Punto decisivo (40–40)', style: Theme.of(context).textTheme.titleMedium),
+        const SizedBox(height: 8),
+        const Text('Qué sucede cuando ambos equipos llegan a 40-40'),
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            Expanded(
+              child: settings.goldenPoint
+                    ? OutlinedButton(
+                        onPressed: () => setGolden(false),
+                        child: const Text('Ventaja/Desventaja'),
+                      )
+                    : FilledButton(
+                        onPressed: () => setGolden(false),
+                        child: const Text('Ventaja/Desventaja'),
+                      ),
               ),
-              ButtonSegment(
-                value: true,
-                label: Text('Punto de oro'),
+              const SizedBox(width: 8),
+              Expanded(
+                child: settings.goldenPoint
+                    ? FilledButton(
+                        onPressed: () => setGolden(true),
+                        child: const Text('Punto de oro'),
+                      )
+                    : OutlinedButton(
+                        onPressed: () => setGolden(true),
+                        child: const Text('Punto de oro'),
+                      ),
               ),
             ],
-            selected: {settings.goldenPoint},
-            showSelectedIcon: false,
-            onSelectionChanged: (sel) => setGolden(sel.first),
           ),
           const SizedBox(height: 8),
           _InfoBox(
@@ -339,14 +350,32 @@ class _RulesTab extends StatelessWidget {
                 return Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    SegmentedButton<bool>(
-                      segments: const [
-                        ButtonSegment(value: false, label: Text('Set completo')),
-                        ButtonSegment(value: true, label: Text('Súper TB a 10')),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: settings.tieBreakAtGames == 1
+                              ? OutlinedButton(
+                                  onPressed: () => setTbGames(6),
+                                  child: const Text('Set completo'),
+                                )
+                              : FilledButton(
+                                  onPressed: () => setTbGames(6),
+                                  child: const Text('Set completo'),
+                                ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: settings.tieBreakAtGames == 1
+                              ? FilledButton(
+                                  onPressed: () => setTbGames(1),
+                                  child: const Text('Súper TB a 10'),
+                                )
+                              : OutlinedButton(
+                                  onPressed: () => setTbGames(1),
+                                  child: const Text('Súper TB a 10'),
+                                ),
+                        ),
                       ],
-                      selected: {settings.tieBreakAtGames == 1}, // 1 indica Super TB en 3er set
-                      showSelectedIcon: false,
-                      onSelectionChanged: (sel) => setTbGames(sel.first ? 1 : 6), // 1 para Super TB, 6 para set normal
                     ),
                     const SizedBox(height: 8),
                     _InfoBox(
@@ -360,14 +389,32 @@ class _RulesTab extends StatelessWidget {
                 return Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    SegmentedButton<bool>(
-                      segments: const [
-                        ButtonSegment(value: false, label: Text('Set completo')),
-                        ButtonSegment(value: true, label: Text('Súper TB a 10')),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: settings.tieBreakAtGames == 1
+                              ? OutlinedButton(
+                                  onPressed: () => setTbGames(6),
+                                  child: const Text('Set completo'),
+                                )
+                              : FilledButton(
+                                  onPressed: () => setTbGames(6),
+                                  child: const Text('Set completo'),
+                                ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: settings.tieBreakAtGames == 1
+                              ? FilledButton(
+                                  onPressed: () => setTbGames(1),
+                                  child: const Text('Súper TB a 10'),
+                                )
+                              : OutlinedButton(
+                                  onPressed: () => setTbGames(1),
+                                  child: const Text('Súper TB a 10'),
+                                ),
+                        ),
                       ],
-                      selected: {settings.tieBreakAtGames == 1},
-                      showSelectedIcon: false,
-                      onSelectionChanged: (sel) => setTbGames(sel.first ? 1 : 6),
                     ),
                     const SizedBox(height: 8),
                     _InfoBox(
@@ -380,14 +427,32 @@ class _RulesTab extends StatelessWidget {
                 return Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    SegmentedButton<bool>(
-                      segments: const [
-                        ButtonSegment(value: false, label: Text('Set completo')),
-                        ButtonSegment(value: true, label: Text('Súper TB a 10')),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: settings.tieBreakAtGames == 1
+                              ? OutlinedButton(
+                                  onPressed: () => setTbGames(6),
+                                  child: const Text('Set completo'),
+                                )
+                              : FilledButton(
+                                  onPressed: () => setTbGames(6),
+                                  child: const Text('Set completo'),
+                                ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: settings.tieBreakAtGames == 1
+                              ? FilledButton(
+                                  onPressed: () => setTbGames(1),
+                                  child: const Text('Súper TB a 10'),
+                                )
+                              : OutlinedButton(
+                                  onPressed: () => setTbGames(1),
+                                  child: const Text('Súper TB a 10'),
+                                ),
+                        ),
                       ],
-                      selected: {settings.tieBreakAtGames == 1}, // 1 indica Super TB en 3er set
-                      showSelectedIcon: false,
-                      onSelectionChanged: (sel) => setTbGames(sel.first ? 1 : 6), // 1 para Super TB, 6 para set normal
                     ),
                     const SizedBox(height: 10),
                     _InfoBox(
@@ -415,7 +480,6 @@ class _RulesTab extends StatelessWidget {
             ),
           ],
         ],
-      ),
     );
   }
 }
@@ -430,139 +494,178 @@ class _BleTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Dispositivos pareados
-          Text('Dispositivos pareados', style: Theme.of(context).textTheme.titleMedium),
-          const SizedBox(height: 8),
-          
-          StreamBuilder<List<PairedRemote>>(
-            stream: ble.pairedDevices,
-            initialData: ble.pairedSnapshot,
-            builder: (_, snap) {
-              final paired = snap.data ?? const <PairedRemote>[];
-              if (paired.isEmpty) {
-                return Container(
-                  padding: const EdgeInsets.symmetric(vertical: 10),
-                  alignment: Alignment.centerLeft,
-                  child: const Text('No hay mandos pareados'),
-                );
-              }
-              return Column(
-                children: paired.map((p) {
-                  final hex = p.devId.toRadixString(16).padLeft(4, '0').toUpperCase();
-                  final isBlue = p.team == 'blue';
-                  return ListTile(
-                    dense: true,
-                    title: Text('Remote 0x$hex'),
-                    subtitle: Text('Equipo: ${isBlue ? 'Azul' : 'Rojo'}'),
-                    trailing: Row(
-                      mainAxisSize: MainAxisSize.min,
+    return ListView(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      children: [
+        // Dispositivos emparejados
+        Text('Dispositivos emparejados', style: Theme.of(context).textTheme.titleMedium),
+        const SizedBox(height: 8),
+        
+        StreamBuilder<List<PairedRemote>>(
+          stream: ble.pairedDevices,
+          initialData: ble.pairedSnapshot,
+          builder: (_, snap) {
+            final paired = snap.data ?? const <PairedRemote>[];
+            if (paired.isEmpty) {
+              return const Padding(
+                padding: EdgeInsets.symmetric(vertical: 10),
+                child: Text('No hay mandos emparejados'),
+              );
+            }
+            return Column(
+              children: paired.map((p) {
+                final hex = p.devId.toRadixString(16).padLeft(4, '0').toUpperCase();
+                final isBlue = p.team == 'blue';
+                return Card(
+                  margin: const EdgeInsets.only(bottom: 8),
+                  child: Padding(
+                    padding: const EdgeInsets.all(12),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        SegmentedButton<String>(
-                          segments: const [
-                            ButtonSegment(value: 'blue', label: Text('Azul')),
-                            ButtonSegment(value: 'red', label: Text('Rojo')),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text('Remote 0x$hex', style: Theme.of(context).textTheme.titleMedium),
+                                  const SizedBox(height: 4),
+                                  Text('Equipo: ${isBlue ? 'Azul' : 'Rojo'}', 
+                                    style: Theme.of(context).textTheme.bodySmall),
+                                ],
+                              ),
+                            ),
                           ],
-                          selected: {p.team},
-                          onSelectionChanged: (s) async {
-                            final t = s.first;
-                            await ble.pairAs(p.devId, t);
-                          },
                         ),
-                        const SizedBox(width: 8),
-                        IconButton(
-                          tooltip: 'Quitar emparejado',
-                          icon: const Icon(Icons.delete_outline),
-                          onPressed: () async { await ble.unpair(p.devId); },
+                        const SizedBox(height: 12),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: p.team == 'blue'
+                                  ? FilledButton(
+                                      onPressed: () async => await ble.pairAs(p.devId, 'blue'),
+                                      child: const Text('Azul'),
+                                    )
+                                  : OutlinedButton(
+                                      onPressed: () async => await ble.pairAs(p.devId, 'blue'),
+                                      child: const Text('Azul'),
+                                    ),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: p.team == 'red'
+                                  ? FilledButton(
+                                      onPressed: () async => await ble.pairAs(p.devId, 'red'),
+                                      child: const Text('Rojo'),
+                                    )
+                                  : OutlinedButton(
+                                      onPressed: () async => await ble.pairAs(p.devId, 'red'),
+                                      child: const Text('Rojo'),
+                                    ),
+                            ),
+                            const SizedBox(width: 8),
+                            IconButton(
+                              tooltip: 'Quitar',
+                              icon: const Icon(Icons.delete_outline),
+                              onPressed: () async { await ble.unpair(p.devId); },
+                            ),
+                          ],
                         ),
                       ],
                     ),
-                  );
-                }).toList(),
-              );
-            },
-          ),
-
-          const SizedBox(height: 20),
-          const Divider(),
-          const SizedBox(height: 12),
-
-          // Buscar nuevos dispositivos
-          Text('Buscar dispositivos', style: Theme.of(context).textTheme.titleMedium),
-          const SizedBox(height: 8),
-          
-          ValueListenableBuilder<bool>(
-            valueListenable: ble.discoveryArmed,
-            builder: (_, armed, __) {
-              return Row(
-                children: [
-                  if (!armed)
-                    FilledButton.icon(
-                      onPressed: () { ble.armDiscovery(window: const Duration(seconds: 20)); },
-                      icon: const Icon(Icons.radar),
-                      label: const Text('Escanear'),
-                    )
-                  else
-                    OutlinedButton.icon(
-                      onPressed: () { ble.cancelDiscovery(); },
-                      icon: const Icon(Icons.stop),
-                      label: const Text('Detener'),
-                    ),
-                ],
-              );
-            },
-          ),
-          const SizedBox(height: 8),
-
-          // Lista de dispositivos encontrados
-          SizedBox(
-            height: 220,
-            child: StreamBuilder<List<DiscoveredRemote>>(
-              stream: ble.discoveredRemotes,
-              initialData: ble.discoveredSnapshot,
-              builder: (_, snapshot) {
-                final items = snapshot.data ?? const <DiscoveredRemote>[];
-                if (items.isEmpty) {
-                  return const Center(child: Text('No hay eventos aún (pulsa Escanear)'));
-                }
-                return ListView.separated(
-                  itemCount: items.length,
-                  separatorBuilder: (_, __) => const Divider(height: 1),
-                  itemBuilder: (_, i) {
-                    final r = items[i];
-                    final hex = r.devId.toRadixString(16).padLeft(4, '0').toUpperCase();
-                    final already = ble.isPaired(r.devId);
-                    return ListTile(
-                      dense: true,
-                      title: Text('Remote 0x$hex'),
-                      subtitle: Text('RSSI ${r.rssi} dBm'),
-                      trailing: already
-                          ? const Text('Ya pareado')
-                          : Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                TextButton(
-                                  onPressed: () async { await ble.pairAs(r.devId, 'blue'); },
-                                  child: const Text('Azul'),
-                                ),
-                                const SizedBox(width: 6),
-                                TextButton(
-                                  onPressed: () async { await ble.pairAs(r.devId, 'red'); },
-                                  child: const Text('Rojo'),
-                                ),
-                              ],
-                            ),
-                    );
-                  },
+                  ),
                 );
-              },
-            ),
-          ),
+              }).toList(),
+            );
+          },
+        ),
+        
+        const SizedBox(height: 20),
+        const Divider(),
+        const SizedBox(height: 12),
+
+        // Buscar nuevos dispositivos
+        Text('Buscar dispositivos', style: Theme.of(context).textTheme.titleMedium),
+        const SizedBox(height: 8),
+        
+        ValueListenableBuilder<bool>(
+          valueListenable: ble.discoveryArmed,
+          builder: (_, armed, __) {
+            if (!armed) {
+              return FilledButton.icon(
+                onPressed: () { ble.armDiscovery(window: const Duration(seconds: 20)); },
+                icon: const Icon(Icons.radar),
+                label: const Text('Escanear'),
+              );
+            } else {
+              return OutlinedButton.icon(
+                onPressed: () { ble.cancelDiscovery(); },
+                icon: const Icon(Icons.stop),
+                label: const Text('Detener'),
+              );
+            }
+          },
+        ),
+        const SizedBox(height: 8),
+
+        // Lista de dispositivos encontrados
+        StreamBuilder<List<DiscoveredRemote>>(
+          stream: ble.discoveredRemotes,
+          initialData: ble.discoveredSnapshot,
+          builder: (_, snapshot) {
+            final items = snapshot.data ?? const <DiscoveredRemote>[];
+            if (items.isEmpty) {
+              return const Padding(
+                padding: EdgeInsets.symmetric(vertical: 16),
+                child: Text('No hay eventos aún (pulsa Escanear)'),
+              );
+            }
+            return Column(
+              children: items.map((r) {
+                final hex = r.devId.toRadixString(16).padLeft(4, '0').toUpperCase();
+                final already = ble.isPaired(r.devId);
+                return Card(
+                  margin: const EdgeInsets.only(bottom: 8),
+                  child: Padding(
+                    padding: const EdgeInsets.all(12),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text('Remote 0x$hex', style: Theme.of(context).textTheme.titleMedium),
+                              Text('RSSI ${r.rssi} dBm', style: Theme.of(context).textTheme.bodySmall),
+                            ],
+                          ),
+                        ),
+                        if (already)
+                          const Text('Ya pareado', style: TextStyle(fontWeight: FontWeight.w500))
+                        else
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              OutlinedButton(
+                                onPressed: () async { await ble.pairAs(r.devId, 'blue'); },
+                                child: const Text('Azul'),
+                              ),
+                              const SizedBox(width: 8),
+                              OutlinedButton(
+                                onPressed: () async { await ble.pairAs(r.devId, 'red'); },
+                                child: const Text('Rojo'),
+                              ),
+                            ],
+                          ),
+                      ],
+                    ),
+                  ),
+                );
+              }).toList(),
+            );
+          },
+        ),
         ],
-      ),
     );
   }
 }
@@ -588,25 +691,36 @@ class _AppearanceTab extends StatelessWidget {
         const SizedBox(height: 10),
         
         // Selector de tema
-        SegmentedButton<bool>(
-          segments: const [
-            ButtonSegment(
-              value: false, 
-              icon: Icon(Icons.light_mode),
-              label: Text('Claro'),
+        Row(
+          children: [
+            Expanded(
+              child: isDark
+                  ? OutlinedButton.icon(
+                      onPressed: () => themeCtrl.set(ThemeMode.light),
+                      icon: const Icon(Icons.light_mode),
+                      label: const Text('Claro'),
+                    )
+                  : FilledButton.icon(
+                      onPressed: () => themeCtrl.set(ThemeMode.light),
+                      icon: const Icon(Icons.light_mode),
+                      label: const Text('Claro'),
+                    ),
             ),
-            ButtonSegment(
-              value: true,
-              icon: Icon(Icons.dark_mode),
-              label: Text('Oscuro'),
+            const SizedBox(width: 8),
+            Expanded(
+              child: isDark
+                  ? FilledButton.icon(
+                      onPressed: () => themeCtrl.set(ThemeMode.dark),
+                      icon: const Icon(Icons.dark_mode),
+                      label: const Text('Oscuro'),
+                    )
+                  : OutlinedButton.icon(
+                      onPressed: () => themeCtrl.set(ThemeMode.dark),
+                      icon: const Icon(Icons.dark_mode),
+                      label: const Text('Oscuro'),
+                    ),
             ),
           ],
-          selected: {isDark},
-          showSelectedIcon: false,
-          onSelectionChanged: (s) {
-            final dark = s.first;
-            themeCtrl.set(dark ? ThemeMode.dark : ThemeMode.light);
-          },
         ),
         
         const SizedBox(height: 16),

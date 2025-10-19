@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:speech_to_text_min/config/app_theme.dart';
+import 'package:Puntazo/config/app_theme.dart';
 
 /// Widget que muestra información sobre el tipo de tie-break en curso
 class TieBreakIndicator extends StatelessWidget {

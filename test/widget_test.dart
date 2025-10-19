@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import 'package:speech_to_text_min/features/models/scoring_models.dart';
-import 'package:speech_to_text_min/features/scoring/bloc/scoring_bloc.dart';
-import 'package:speech_to_text_min/features/scoring/bloc/scoring_event.dart';
-import 'package:speech_to_text_min/features/scoring/bloc/scoring_state.dart';
+import 'package:Puntazo/features/models/scoring_models.dart';
+import 'package:Puntazo/features/scoring/bloc/scoring_bloc.dart';
+import 'package:Puntazo/features/scoring/bloc/scoring_event.dart';
+import 'package:Puntazo/features/scoring/bloc/scoring_state.dart';
 
 class _Harness extends StatelessWidget {
   const _Harness({super.key});

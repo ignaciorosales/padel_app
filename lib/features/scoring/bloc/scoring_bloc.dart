@@ -1,8 +1,8 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'dart:math' as math;
-import 'package:speech_to_text_min/features/models/scoring_models.dart';
-import 'package:speech_to_text_min/features/scoring/bloc/scoring_event.dart';
-import 'package:speech_to_text_min/features/scoring/bloc/scoring_state.dart';
+import 'package:Puntazo/features/models/scoring_models.dart';
+import 'package:Puntazo/features/scoring/bloc/scoring_event.dart';
+import 'package:Puntazo/features/scoring/bloc/scoring_state.dart';
 
 /// --- Compatibility layer ----------------------------------------------------
 /// Lets the bloc run whether MatchSettings already has the new fields or not.

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:speech_to_text_min/features/widgets/set_score.dart';
+import 'package:Puntazo/features/widgets/set_score.dart';
 
 /// Widget para mostrar el historial de sets en el centro
 class SetHistoryCenter extends StatelessWidget {

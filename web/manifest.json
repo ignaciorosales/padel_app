@@ -1,6 +1,6 @@
 {
-    "name": "speech_to_text_min",
-    "short_name": "speech_to_text_min",
+    "name": "Puntazo",
+    "short_name": "Puntazo",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",

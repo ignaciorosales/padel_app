@@ -2,9 +2,9 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:speech_to_text_min/features/models/scoring_models.dart' hide SetScore;
-import 'package:speech_to_text_min/features/scoring/bloc/scoring_bloc.dart';
-import 'package:speech_to_text_min/features/scoring/bloc/scoring_state.dart';
+import 'package:Puntazo/features/models/scoring_models.dart' hide SetScore;
+import 'package:Puntazo/features/scoring/bloc/scoring_bloc.dart';
+import 'package:Puntazo/features/scoring/bloc/scoring_state.dart';
 
 /// A scoreboard widget that mirrors the stylised layout shown in the
 /// provided padel scoreboard image. It uses a digital font for the

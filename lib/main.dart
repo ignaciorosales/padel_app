@@ -3,26 +3,29 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import 'package:speech_to_text_min/config/app_config.dart';
-import 'package:speech_to_text_min/config/app_theme.dart';
-import 'package:speech_to_text_min/config/config_loader.dart';
-import 'package:speech_to_text_min/features/ble/padel_ble_client.dart';
-import 'package:speech_to_text_min/features/models/scoring_models.dart';
-import 'package:speech_to_text_min/features/scoring/bloc/scoring_bloc.dart';
-import 'package:speech_to_text_min/features/scoring/bloc/scoring_event.dart';
-import 'package:speech_to_text_min/features/scoring/bloc/scoring_state.dart';
-import 'package:speech_to_text_min/features/widgets/digital_scoreboard.dart';
-import 'package:speech_to_text_min/features/widgets/scoreboard.dart';
-import 'package:speech_to_text_min/features/widgets/referee_sidebar.dart';
-import 'package:speech_to_text_min/features/widgets/winner_overlay.dart';
-import 'package:speech_to_text_min/features/settings/match_settings_sheet.dart' as settings;
+import 'package:Puntazo/config/app_config.dart';
+import 'package:Puntazo/config/app_theme.dart';
+import 'package:Puntazo/config/config_loader.dart';
+import 'package:Puntazo/features/ble/padel_ble_client.dart';
+import 'package:Puntazo/features/models/scoring_models.dart';
+import 'package:Puntazo/features/scoring/bloc/scoring_bloc.dart';
+import 'package:Puntazo/features/scoring/bloc/scoring_event.dart';
+import 'package:Puntazo/features/scoring/bloc/scoring_state.dart';
+import 'package:Puntazo/features/widgets/scoreboard.dart';
+import 'package:Puntazo/features/widgets/referee_sidebar.dart';
+import 'package:Puntazo/features/widgets/winner_overlay.dart';
+import 'package:Puntazo/features/settings/match_settings_screen.dart';
 
 /// Simple app-wide theme controller
 class ThemeController {
-  final ValueNotifier<ThemeMode> mode;
   ThemeController(ThemeMode initial) : mode = ValueNotifier<ThemeMode>(initial);
+
+  final ValueNotifier<ThemeMode> mode;
+
   void set(ThemeMode m) => mode.value = m;
+
   ThemeMode get current => mode.value;
+
   void dispose() => mode.dispose();
 }
 
@@ -39,8 +42,9 @@ Future<void> main() async {
 }
 
 class PadelApp extends StatefulWidget {
-  final AppConfig config;
   const PadelApp({super.key, required this.config});
+
+  final AppConfig config;
 
   @override
   State<PadelApp> createState() => _PadelAppState();
@@ -50,16 +54,16 @@ class _PadelAppState extends State<PadelApp> {
   late final ThemeController _themeCtrl;
 
   @override
+  void dispose() {
+    _themeCtrl.dispose();
+    super.dispose();
+  }
+
+  @override
   void initState() {
     super.initState();
     // Start however you prefer (Dark by default). You could persist this.
     _themeCtrl = ThemeController(ThemeMode.dark);
-  }
-
-  @override
-  void dispose() {
-    _themeCtrl.dispose();
-    super.dispose();
   }
 
   // --------- THEME DEFINITIONS (Material 3 with Padel Custom Colors) ---------
@@ -125,8 +129,17 @@ class _ScoreOnlyScreen extends StatefulWidget {
 class _ScoreOnlyScreenState extends State<_ScoreOnlyScreen> {
   final PadelBleClient _ble = PadelBleClient();
   StreamSubscription<String>? _cmdSub;
-  bool _serverDialogOpen = false;
   final ValueNotifier<bool> _refSidebarVisible = ValueNotifier<bool>(false);
+  bool _serverDialogOpen = false;
+
+  @override
+  void dispose() {
+    _ble.serverSelectActive.removeListener(_onServerSelectChanged);
+    _cmdSub?.cancel();
+    _ble.dispose();
+    _refSidebarVisible.dispose();
+    super.dispose();
+  }
 
   @override
   void initState() {
@@ -161,15 +174,6 @@ class _ScoreOnlyScreenState extends State<_ScoreOnlyScreen> {
     );
   }
 
-  @override
-  void dispose() {
-    _ble.serverSelectActive.removeListener(_onServerSelectChanged);
-    _cmdSub?.cancel();
-    _ble.dispose();
-    _refSidebarVisible.dispose();
-    super.dispose();
-  }
-
   void _toggleRefPanel() {
     // Ya no abrimos un bottom sheet, sino que alternamos la visibilidad de la barra lateral
     _refSidebarVisible.value = !_refSidebarVisible.value;
@@ -183,8 +187,8 @@ class _ScoreOnlyScreenState extends State<_ScoreOnlyScreen> {
         actions: {
           ActivateIntent: CallbackAction<ActivateIntent>(onInvoke: (_) { _toggleRefPanel(); return null; }),
         },
-        child: Focus(
-          autofocus: true,
+        child: FocusScope(
+          skipTraversal: true, // Evitar que el Scaffold capture focus
           child: Scaffold(
             // background now comes from ThemeData.scaffoldBackgroundColor
             body: SafeArea(
@@ -231,17 +235,27 @@ class _ScoreOnlyScreenState extends State<_ScoreOnlyScreen> {
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          FloatingActionButton.small(
-                            heroTag: 'referee',
-                            tooltip: isVisible ? 'Ocultar panel árbitro (F1)' : 'Mostrar panel árbitro (F1)',
+                          // Botón de panel árbitro - FOCUSABLE para control remoto
+                          _FocusableButton(
+                            autofocus: true,
                             onPressed: _toggleRefPanel,
-                            child: Icon(isVisible ? Icons.chevron_right : Icons.sports),
+                            icon: isVisible ? Icons.chevron_right : Icons.sports,
+                            tooltip: isVisible ? 'Ocultar panel árbitro (F1)' : 'Mostrar panel árbitro (F1)',
+                            heroTag: 'referee',
                           ),
                           const SizedBox(height: 10),
-                          FloatingActionButton.small(
+                          // Botón de configuración - FOCUSABLE para control remoto
+                          _FocusableButton(
+                            onPressed: () {
+                              Navigator.of(scaffoldCtx).push(
+                                MaterialPageRoute(
+                                  builder: (_) => MatchSettingsScreen(ble: _ble),
+                                ),
+                              );
+                            },
+                            icon: Icons.settings,
+                            tooltip: 'Configuración',
                             heroTag: 'settings',
-                            onPressed: () => settings.showMatchSettingsSheet(scaffoldCtx, _ble),
-                            child: const Icon(Icons.settings),
                           ),
                         ],
                       ),
@@ -317,13 +331,83 @@ class _ServerSelectDialog extends StatelessWidget {
 }
 
 class _InstructionRow extends StatelessWidget {
-  final String text;
   const _InstructionRow({required this.text});
+
+  final String text;
+
   @override
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 3),
       child: Text(text),
+    );
+  }
+}
+
+/// Widget personalizado para botones focusables sin doble-focus
+class _FocusableButton extends StatefulWidget {
+  const _FocusableButton({
+    required this.onPressed,
+    required this.icon,
+    required this.tooltip,
+    required this.heroTag,
+    this.autofocus = false,
+  });
+
+  final VoidCallback onPressed;
+  final IconData icon;
+  final String tooltip;
+  final String heroTag;
+  final bool autofocus;
+
+  @override
+  State<_FocusableButton> createState() => _FocusableButtonState();
+}
+
+class _FocusableButtonState extends State<_FocusableButton> {
+  final FocusNode _focusNode = FocusNode();
+  bool _hasFocus = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _focusNode.addListener(_onFocusChange);
+  }
+
+  @override
+  void dispose() {
+    _focusNode.removeListener(_onFocusChange);
+    _focusNode.dispose();
+    super.dispose();
+  }
+
+  void _onFocusChange() {
+    setState(() {
+      _hasFocus = _focusNode.hasFocus;
+    });
+    print('${widget.heroTag} focus: $_hasFocus');
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FloatingActionButton.small(
+      heroTag: widget.heroTag,
+      tooltip: widget.tooltip,
+      onPressed: widget.onPressed,
+      autofocus: widget.autofocus,
+      focusNode: _focusNode,
+      backgroundColor: _hasFocus 
+          ? Theme.of(context).colorScheme.primary
+          : Colors.grey[800],
+      elevation: _hasFocus ? 8 : 2,
+      focusColor: Colors.transparent,
+      hoverColor: Colors.transparent,
+      splashColor: Colors.white.withOpacity(0.2),
+      child: Icon(
+        widget.icon,
+        color: Colors.white,
+        size: _hasFocus ? 26 : 24,
+      ),
     );
   }
 }

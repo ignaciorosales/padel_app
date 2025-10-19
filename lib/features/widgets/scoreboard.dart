@@ -1,11 +1,11 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:speech_to_text_min/config/app_theme.dart';
-import 'package:speech_to_text_min/features/models/scoring_models.dart' hide SetScore;
-import 'package:speech_to_text_min/features/scoring/bloc/scoring_bloc.dart';
-import 'package:speech_to_text_min/features/scoring/bloc/scoring_state.dart';
-import 'package:speech_to_text_min/features/widgets/set_score.dart';
+import 'package:Puntazo/config/app_theme.dart';
+import 'package:Puntazo/features/models/scoring_models.dart' hide SetScore;
+import 'package:Puntazo/features/scoring/bloc/scoring_bloc.dart';
+import 'package:Puntazo/features/scoring/bloc/scoring_state.dart';
+import 'package:Puntazo/features/widgets/set_score.dart';
 
 /// Displays a string of digits using the digital font. If [alignRight] is
 /// true the digits will align to the right edge of their container.
@@ -286,7 +286,7 @@ class _ScoreboardContent extends StatelessWidget {
                             borderRadius: BorderRadius.circular(20),
                           ),
                           child: Text(
-                            'PadelScore.uy',
+                            'Puntazo.uy',
                             style: TextStyle(
                               color: textColor,
                               fontSize: labelSize * 1.2,

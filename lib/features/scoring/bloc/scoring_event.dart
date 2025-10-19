@@ -1,5 +1,5 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
-import 'package:speech_to_text_min/features/models/scoring_models.dart';
+import 'package:Puntazo/features/models/scoring_models.dart';
 part 'scoring_event.freezed.dart';
 
 @freezed

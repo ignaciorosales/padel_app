@@ -174,7 +174,7 @@ final custom = PadelThemeExtension(
 
 ## 📝 Notas Importantes
 
-1. **Import Necesario**: `import 'package:speech_to_text_min/config/app_theme.dart';`
+1. **Import Necesario**: `import 'package:Puntazo/config/app_theme.dart';`
 2. **Acceso Fácil**: Usa `context.padelTheme` en lugar de `Theme.of(context).extension<PadelThemeExtension>()`
 3. **Null Safety**: Todos los colores tienen valores por defecto
 4. **Material 3**: Los temas son compatibles con Material 3

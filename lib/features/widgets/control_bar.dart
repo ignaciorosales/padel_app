@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:speech_to_text_min/config/app_config.dart';
-import 'package:speech_to_text_min/features/models/scoring_models.dart';
-import 'package:speech_to_text_min/features/scoring/bloc/scoring_bloc.dart';
-import 'package:speech_to_text_min/features/scoring/bloc/scoring_event.dart';
-import 'package:speech_to_text_min/features/scoring/bloc/scoring_state.dart';
+import 'package:Puntazo/config/app_config.dart';
+import 'package:Puntazo/features/models/scoring_models.dart';
+import 'package:Puntazo/features/scoring/bloc/scoring_bloc.dart';
+import 'package:Puntazo/features/scoring/bloc/scoring_event.dart';
+import 'package:Puntazo/features/scoring/bloc/scoring_state.dart';
 
 /// Tournament mode: simple, obvious controls for a referee (no hotkeys, no hints).
 class ControlBar extends StatelessWidget {

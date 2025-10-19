@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:speech_to_text_min/config/app_config.dart';
-import 'package:speech_to_text_min/config/app_theme.dart';
-import 'package:speech_to_text_min/features/models/scoring_models.dart';
-import 'package:speech_to_text_min/features/scoring/bloc/scoring_bloc.dart';
-import 'package:speech_to_text_min/features/scoring/bloc/scoring_event.dart';
-import 'package:speech_to_text_min/features/scoring/bloc/scoring_state.dart';
+import 'package:Puntazo/config/app_config.dart';
+import 'package:Puntazo/config/app_theme.dart';
+import 'package:Puntazo/features/models/scoring_models.dart';
+import 'package:Puntazo/features/scoring/bloc/scoring_bloc.dart';
+import 'package:Puntazo/features/scoring/bloc/scoring_event.dart';
+import 'package:Puntazo/features/scoring/bloc/scoring_state.dart';
 
 /// Panel lateral minimalista para el árbitro.
 /// Ocupa aproximadamente el 10% del ancho de la pantalla.
@@ -63,10 +63,11 @@ class _SidebarContent extends StatelessWidget {
             final settings = state.match.settings;
             final golden = settings.goldenPoint;
 
-            return Column(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
+            return SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
                 const SizedBox(height: 12),
                 // Botones de puntuación
                 _SidebarButton(
@@ -197,7 +198,7 @@ class _SidebarContent extends StatelessWidget {
                   ),
                 ],
                 
-                const Spacer(),
+                const SizedBox(height: 16), // Espaciado antes del botón de peligro
                 
                 // Botón de nuevo partido
                 _SidebarDangerButton(
@@ -205,7 +206,9 @@ class _SidebarContent extends StatelessWidget {
                   label: 'Nuevo partido',
                   onPressed: () => _confirmNewMatch(context),
                 ),
+                const SizedBox(height: 12), // Padding inferior
               ],
+            ),
             );
           },
         ),

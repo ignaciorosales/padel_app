@@ -1,4 +1,4 @@
-package com.example.speech_to_text_min
+package com.example.Puntazo
 
 import io.flutter.embedding.android.FlutterActivity
 
