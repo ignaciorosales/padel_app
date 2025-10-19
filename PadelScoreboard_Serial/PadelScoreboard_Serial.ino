@@ -21,6 +21,8 @@
 #include <BLEUtils.h>
 #include <BLEAdvertising.h>
 #include <WiFi.h>
+#include <Preferences.h>
+#include <esp_system.h>
 
 #include <Wire.h>
 #include <Adafruit_VL6180X.h>
@@ -88,14 +90,55 @@ static inline bool edgePressed(int pin, int &last, unsigned long &tMark) {
 static BLEAdvertising* adv = nullptr;
 static char lastCmd = 'p';                   // último comando emitido
 static unsigned long lastReTx = 0;
-static const unsigned long RE_TX_MS = 2000;  // reemite cada 2 s
+static const unsigned long RE_TX_MS = 1000;  // reemite cada 1 s (antes 2s)
 static uint8_t gSeq = 1;                     // 1..255
 
-// Stable device id from efuse MAC (low 16 bits)
+// Persistent unique device ID (stored in NVS flash)
 static uint16_t gDeviceId = 0;
-static inline uint16_t calcDevIdFromEfuse() {
-  uint64_t mac = ESP.getEfuseMac();
-  return (uint16_t)(mac & 0xFFFF);
+static Preferences prefs;
+
+static inline uint16_t getOrCreateDeviceId() {
+  prefs.begin("padel", false); // namespace "padel", read-write
+  
+  // Intentar leer devId existente
+  uint16_t stored = prefs.getUShort("devId", 0);
+  
+  if (stored != 0) {
+    // Ya existe un ID guardado - reutilizarlo
+    Serial.printf("✓ DevId persistente recuperado: 0x%04X\n", stored);
+    prefs.end();
+    return stored;
+  }
+  
+  // Primera vez: generar UUID único
+  // Semilla con múltiples fuentes de entropía
+  WiFi.mode(WIFI_MODE_STA);
+  String macStr = WiFi.macAddress();
+  uint8_t mac[6];
+  sscanf(macStr.c_str(), "%hhx:%hhx:%hhx:%hhx:%hhx:%hhx",
+         &mac[0], &mac[1], &mac[2], &mac[3], &mac[4], &mac[5]);
+  WiFi.mode(WIFI_OFF);
+  
+  uint32_t seed = (mac[0] << 24) | (mac[1] << 16) | (mac[2] << 8) | mac[3];
+  seed ^= esp_random(); // Hardware RNG del ESP32
+  seed ^= millis();     // Timing boot
+  randomSeed(seed);
+  
+  // Generar devId aleatorio (evitar 0x0000 y 0xFFFF)
+  uint16_t newId;
+  do {
+    newId = (uint16_t)random(1, 0xFFFE); // rango 1..65534
+  } while (newId == 0x0000 || newId == 0xFFFF);
+  
+  // Guardar permanentemente en NVS flash
+  prefs.putUShort("devId", newId);
+  prefs.end();
+  
+  Serial.printf("🆕 Nuevo devId generado y guardado: 0x%04X\n", newId);
+  Serial.printf("   (WiFi MAC: %02X:%02X:%02X:%02X:%02X:%02X)\n",
+    mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
+  
+  return newId;
 }
 
 // CRC16-CCITT (poly 0x1021, init 0xFFFF)
@@ -134,31 +177,66 @@ static void applyAdvPayload(char cmd) {
   mfg.reserve(sizeof(p));
   for (size_t i = 0; i < sizeof(p); ++i) mfg += (char)p[i];
 
-  BLEAdvertisementData advData, scanResp;
+  BLEAdvertisementData advData;
   advData.setManufacturerData(mfg);
-  scanResp.setName(BLE_DEVICE_NAME);
+  // Sin scan response ni nombre: todo va en el paquete principal (más simple)
 
   adv->stop();
   adv->setAdvertisementData(advData);
-  adv->setScanResponseData(scanResp);
   adv->start();
 }
 
-// Inicializa BLE “beacon”
+// Ráfaga de anuncios para aumentar probabilidad de captura
+static void sendCmdBurst(char c, int n = 4, int gapMs = 40, bool debug = false) {
+  for (int i = 0; i < n; ++i) {
+    gSeq = (gSeq == 255) ? 1 : (uint8_t)(gSeq + 1);
+    applyAdvPayload(c);
+    if (debug && i == 0) {
+      Serial.printf("  [TX devId=0x%04X cmd='%c' seq=%u]\n", gDeviceId, c, gSeq);
+    }
+    if (i < n - 1) delay(gapMs); // 40ms entre ráfagas
+  }
+}
+
+// Inicializa BLE "beacon" con máxima potencia e intervalos agresivos
 static void setupBroadcast() {
   BLEDevice::init(BLE_DEVICE_NAME);
+
+  // ▲ POTENCIA MÁXIMA: +9 dBm en ESP32-C3 (alcance máximo)
+  BLEDevice::setPower(ESP_PWR_LVL_P9);
+
   adv = BLEDevice::getAdvertising();
-  adv->setScanResponse(true);
+
+  // ▲ Sin scan response: menos overhead, captura más simple
+  adv->setScanResponse(false);
+
+  // ▲ Intervalos cortos: 50-62.5 ms (unidades de 0.625ms)
+  //   80 = 50ms  /  100 = 62.5ms
+  adv->setMinInterval(80);
+  adv->setMaxInterval(100);
+  
+  // ▲ Advertising no-conectable: más eficiente (implícito en advertising beacon)
+
   applyAdvPayload('p'); // estado neutro
 }
 
 // ======= Serial helpers =======
 static void printHelp() {
-  Serial.println(F("Comandos por Serial: p u g s (h=ayuda)"));
+  Serial.println(F("Comandos por Serial: p u g s r (h=ayuda)"));
   Serial.println(F("p: POINT (solo transmite)"));
   Serial.println(F("u: UNDO  (solo transmite)"));
   Serial.println(F("g: START/RESTART GAME (resetea juego local y transmite)"));
   Serial.println(F("s: ver estado local"));
+  Serial.println(F("r: REGENERAR devId (borra y crea nuevo UUID)"));
+}
+
+static void regenerateDevId() {
+  prefs.begin("padel", false);
+  prefs.remove("devId");
+  prefs.end();
+  Serial.println(F("❌ DevId borrado - reinicia el ESP32 para generar nuevo UUID"));
+  delay(1000);
+  ESP.restart();
 }
 
 static void printScoreboard(const Score &s) {
@@ -187,7 +265,7 @@ void setup() {
   while (!Serial && (millis() - t0 < 2000)) { delay(10); }
 
   setCpuFrequencyMhz(80);
-  gDeviceId = calcDevIdFromEfuse();
+  gDeviceId = getOrCreateDeviceId();
 
   pinMode(BTN_P, INPUT_PULLUP);
   pinMode(BTN_U, INPUT_PULLUP);
@@ -205,30 +283,31 @@ void setup() {
   setupBroadcast();
 
   Serial.println();
-  Serial.printf("devId: 0x%04X (derivado de efuse MAC)\n", gDeviceId);
+  Serial.println(F("=========================================="));
+  Serial.printf("devId: 0x%04X (%u decimal)\n", gDeviceId, gDeviceId);
+  Serial.printf("  devIdLo (byte 5): 0x%02X\n", (uint8_t)(gDeviceId & 0xFF));
+  Serial.printf("  devIdHi (byte 6): 0x%02X\n", (uint8_t)((gDeviceId >> 8) & 0xFF));
+  Serial.println(F("=========================================="));
   Serial.println(F("MD: [FF FF] 'P' 'S' ver devLo devHi 'C' cmd seq crcLo crcHi"));
   printHelp();
   printScoreboard(score);
 }
 
 void loop() {
-  // --- Botones físicos ---
+  // --- Botones físicos (con ráfaga de 4 paquetes) ---
   if (edgePressed(BTN_P, lastP, tP)) {
-    gSeq = (gSeq == 255) ? 1 : (uint8_t)(gSeq + 1);
-    applyAdvPayload('p');
-    Serial.printf("BTN P → TX 'p' seq=%u\n", gSeq);
+    Serial.printf("BTN P → BURST 'p' (4 pkts)\n");
+    sendCmdBurst('p', 4, 40, true); // Debug activado
   }
   if (edgePressed(BTN_U, lastU, tU)) {
-    gSeq = (gSeq == 255) ? 1 : (uint8_t)(gSeq + 1);
-    applyAdvPayload('u');
-    Serial.printf("BTN U → TX 'u' seq=%u\n", gSeq);
+    Serial.printf("BTN U → BURST 'u' (4 pkts)\n");
+    sendCmdBurst('u', 4, 40, true);
   }
   if (edgePressed(BTN_G, lastG, tG)) {
     pushHistory();
     resetGame(score);
-    gSeq = (gSeq == 255) ? 1 : (uint8_t)(gSeq + 1);
-    applyAdvPayload('g');
-    Serial.printf("BTN G → TX 'g' seq=%u\n", gSeq);
+    Serial.printf("BTN G → BURST 'g' (4 pkts)\n");
+    sendCmdBurst('g', 4, 40, true);
     printScoreboard(score);
   }
 
@@ -239,18 +318,18 @@ void loop() {
       char c = (char)ch;
       if (c != '\r' && c != '\n') {
         if (c >= 'A' && c <= 'Z') c = char(c - 'A' + 'a');
-        bool bumpSeq = false;
+        bool sendBurst = false;
         switch (c) {
-          case 'p': bumpSeq = true; break;
-          case 'u': bumpSeq = true; break;
-          case 'g': pushHistory(); resetGame(score); bumpSeq = true; break;
+          case 'p': sendBurst = true; break;
+          case 'u': sendBurst = true; break;
+          case 'g': pushHistory(); resetGame(score); sendBurst = true; break;
           case 's': printScoreboard(score); break;
+          case 'r': regenerateDevId(); break; // Borra UUID y reinicia
           case 'h': default: printHelp(); break;
         }
-        if (bumpSeq) {
-          gSeq = (gSeq == 255) ? 1 : (uint8_t)(gSeq + 1);
-          applyAdvPayload(c);
-          Serial.printf("TX '%c' seq=%u\n", c, gSeq);
+        if (sendBurst) {
+          Serial.printf("BURST '%c' (4 pkts)\n", c);
+          sendCmdBurst(c, 4, 40, true);
         }
       }
     }
@@ -287,10 +366,9 @@ void loop() {
           if ((nowMs - tofState.enterMs) >= TOF_HOLD_MS &&
               (nowMs - tofState.lastFireMs) >= TOF_COOLDOWN_MS) {
 
-            // === DISPARO: AGREGAR PUNTO ===
-            gSeq = (gSeq == 255) ? 1 : (uint8_t)(gSeq + 1);
-            applyAdvPayload('p');
-            Serial.printf("TOF → TX 'p' seq=%u  (d=%umm)\n", gSeq, d);
+            // === DISPARO: AGREGAR PUNTO (con ráfaga) ===
+            Serial.printf("TOF → BURST 'p' (4 pkts)  (d=%umm)\n", d);
+            sendCmdBurst('p', 4, 40, true);
 
             tofState.lastFireMs = nowMs;
             tofState.armed = false;     // desarmar hasta que se aleje
@@ -321,10 +399,16 @@ void loop() {
     }
   }
 
-  // --- Reemisión periódica ---
-  const unsigned long now = millis();
-  if (now - lastReTx > RE_TX_MS) {
-    lastReTx = now;
-    applyAdvPayload(lastCmd);
-  }
+  // --- Reemisión periódica DESHABILITADA ---
+  // PROBLEMA: Con múltiples dispositivos causa comandos duplicados fantasma
+  // SOLUCIÓN: Solo transmitir en pulsaciones reales (ráfagas de 4 paquetes son suficientes)
+  // const unsigned long now = millis();
+  // if (now - lastReTx > RE_TX_MS) {
+  //   lastReTx = now;
+  //   for (int i = 0; i < 2; ++i) {
+  //     gSeq = (gSeq == 255) ? 1 : (uint8_t)(gSeq + 1);
+  //     applyAdvPayload(lastCmd);
+  //     if (i < 1) delay(40);
+  //   }
+  // }
 }
