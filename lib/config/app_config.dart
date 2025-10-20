@@ -53,7 +53,8 @@ class VoiceConfig with _$VoiceConfig {
 class AppConfig with _$AppConfig {
   const factory AppConfig({
     @Default(UiConfig()) UiConfig ui,
-    @Default(<TeamDef>[]) List<TeamDef> teams,     // orden = team1, team2
+    @Default(<TeamDef>[]) List<TeamDef> availableTeams,  // Paleta de equipos disponibles
+    @Default(<TeamDef>[]) List<TeamDef> teams,            // Para sinónimos de voz
     @Default(RulesConfig()) RulesConfig rules,
     @Default(VoiceConfig()) VoiceConfig voice,
   }) = _AppConfig;
@@ -64,12 +65,17 @@ class AppConfig with _$AppConfig {
 extension AppConfigX on AppConfig {
   Color get seedColor => _hex(seedColorHexOrDefault(ui.seedColorHex));
 
-  Color colorFor(String teamId) {
-    final t = teams.firstWhere(
-      (x) => x.id == teamId,
-      orElse: () => teams.isNotEmpty ? teams.first : const TeamDef(id: 'team1', displayName: 'Equipo 1'),
+  TeamDef? teamById(String id) {
+    return availableTeams.cast<TeamDef?>().firstWhere(
+      (t) => t?.id == id,
+      orElse: () => null,
     );
-    return _hex(seedColorHexOrDefault(t.colorHex));
+  }
+  
+  Color colorForTeamId(String id) {
+    final team = teamById(id);
+    if (team != null) return _hex(team.colorHex);
+    return _hex('#1976D2'); // Fallback azul
   }
 
   static String seedColorHexOrDefault(String s) => (s.isEmpty ? '#0062FF' : s);

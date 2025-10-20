@@ -13,8 +13,8 @@ class ControlBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cfg = context.read<AppConfig>();
-    final team1 = cfg.teams.isNotEmpty ? cfg.teams[0].displayName : 'Azul';
-    final team2 = cfg.teams.length > 1 ? cfg.teams[1].displayName : 'Rojo';
+    final team1 = cfg.teams.isNotEmpty ? cfg.teams[0].displayName : 'Verde';
+    final team2 = cfg.teams.length > 1 ? cfg.teams[1].displayName : 'Negro';
 
     return _Panel(team1: team1, team2: team2);
   }

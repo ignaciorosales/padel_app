@@ -74,6 +74,11 @@ _$AppConfigImpl _$$AppConfigImplFromJson(Map<String, dynamic> json) =>
           json['ui'] == null
               ? const UiConfig()
               : UiConfig.fromJson(json['ui'] as Map<String, dynamic>),
+      availableTeams:
+          (json['availableTeams'] as List<dynamic>?)
+              ?.map((e) => TeamDef.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          const <TeamDef>[],
       teams:
           (json['teams'] as List<dynamic>?)
               ?.map((e) => TeamDef.fromJson(e as Map<String, dynamic>))
@@ -92,6 +97,7 @@ _$AppConfigImpl _$$AppConfigImplFromJson(Map<String, dynamic> json) =>
 Map<String, dynamic> _$$AppConfigImplToJson(_$AppConfigImpl instance) =>
     <String, dynamic>{
       'ui': instance.ui,
+      'availableTeams': instance.availableTeams,
       'teams': instance.teams,
       'rules': instance.rules,
       'voice': instance.voice,

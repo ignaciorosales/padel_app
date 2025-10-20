@@ -889,8 +889,10 @@ AppConfig _$AppConfigFromJson(Map<String, dynamic> json) {
 /// @nodoc
 mixin _$AppConfig {
   UiConfig get ui => throw _privateConstructorUsedError;
+  List<TeamDef> get availableTeams =>
+      throw _privateConstructorUsedError; // Paleta de equipos disponibles
   List<TeamDef> get teams =>
-      throw _privateConstructorUsedError; // orden = team1, team2
+      throw _privateConstructorUsedError; // Para sinónimos de voz
   RulesConfig get rules => throw _privateConstructorUsedError;
   VoiceConfig get voice => throw _privateConstructorUsedError;
 
@@ -911,6 +913,7 @@ abstract class $AppConfigCopyWith<$Res> {
   @useResult
   $Res call({
     UiConfig ui,
+    List<TeamDef> availableTeams,
     List<TeamDef> teams,
     RulesConfig rules,
     VoiceConfig voice,
@@ -937,6 +940,7 @@ class _$AppConfigCopyWithImpl<$Res, $Val extends AppConfig>
   @override
   $Res call({
     Object? ui = null,
+    Object? availableTeams = null,
     Object? teams = null,
     Object? rules = null,
     Object? voice = null,
@@ -948,6 +952,11 @@ class _$AppConfigCopyWithImpl<$Res, $Val extends AppConfig>
                     ? _value.ui
                     : ui // ignore: cast_nullable_to_non_nullable
                         as UiConfig,
+            availableTeams:
+                null == availableTeams
+                    ? _value.availableTeams
+                    : availableTeams // ignore: cast_nullable_to_non_nullable
+                        as List<TeamDef>,
             teams:
                 null == teams
                     ? _value.teams
@@ -1010,6 +1019,7 @@ abstract class _$$AppConfigImplCopyWith<$Res>
   @useResult
   $Res call({
     UiConfig ui,
+    List<TeamDef> availableTeams,
     List<TeamDef> teams,
     RulesConfig rules,
     VoiceConfig voice,
@@ -1038,6 +1048,7 @@ class __$$AppConfigImplCopyWithImpl<$Res>
   @override
   $Res call({
     Object? ui = null,
+    Object? availableTeams = null,
     Object? teams = null,
     Object? rules = null,
     Object? voice = null,
@@ -1049,6 +1060,11 @@ class __$$AppConfigImplCopyWithImpl<$Res>
                 ? _value.ui
                 : ui // ignore: cast_nullable_to_non_nullable
                     as UiConfig,
+        availableTeams:
+            null == availableTeams
+                ? _value._availableTeams
+                : availableTeams // ignore: cast_nullable_to_non_nullable
+                    as List<TeamDef>,
         teams:
             null == teams
                 ? _value._teams
@@ -1074,10 +1090,12 @@ class __$$AppConfigImplCopyWithImpl<$Res>
 class _$AppConfigImpl implements _AppConfig {
   const _$AppConfigImpl({
     this.ui = const UiConfig(),
+    final List<TeamDef> availableTeams = const <TeamDef>[],
     final List<TeamDef> teams = const <TeamDef>[],
     this.rules = const RulesConfig(),
     this.voice = const VoiceConfig(),
-  }) : _teams = teams;
+  }) : _availableTeams = availableTeams,
+       _teams = teams;
 
   factory _$AppConfigImpl.fromJson(Map<String, dynamic> json) =>
       _$$AppConfigImplFromJson(json);
@@ -1085,7 +1103,18 @@ class _$AppConfigImpl implements _AppConfig {
   @override
   @JsonKey()
   final UiConfig ui;
+  final List<TeamDef> _availableTeams;
+  @override
+  @JsonKey()
+  List<TeamDef> get availableTeams {
+    if (_availableTeams is EqualUnmodifiableListView) return _availableTeams;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(_availableTeams);
+  }
+
+  // Paleta de equipos disponibles
   final List<TeamDef> _teams;
+  // Paleta de equipos disponibles
   @override
   @JsonKey()
   List<TeamDef> get teams {
@@ -1094,7 +1123,7 @@ class _$AppConfigImpl implements _AppConfig {
     return EqualUnmodifiableListView(_teams);
   }
 
-  // orden = team1, team2
+  // Para sinónimos de voz
   @override
   @JsonKey()
   final RulesConfig rules;
@@ -1104,7 +1133,7 @@ class _$AppConfigImpl implements _AppConfig {
 
   @override
   String toString() {
-    return 'AppConfig(ui: $ui, teams: $teams, rules: $rules, voice: $voice)';
+    return 'AppConfig(ui: $ui, availableTeams: $availableTeams, teams: $teams, rules: $rules, voice: $voice)';
   }
 
   @override
@@ -1113,6 +1142,10 @@ class _$AppConfigImpl implements _AppConfig {
         (other.runtimeType == runtimeType &&
             other is _$AppConfigImpl &&
             (identical(other.ui, ui) || other.ui == ui) &&
+            const DeepCollectionEquality().equals(
+              other._availableTeams,
+              _availableTeams,
+            ) &&
             const DeepCollectionEquality().equals(other._teams, _teams) &&
             (identical(other.rules, rules) || other.rules == rules) &&
             (identical(other.voice, voice) || other.voice == voice));
@@ -1123,6 +1156,7 @@ class _$AppConfigImpl implements _AppConfig {
   int get hashCode => Object.hash(
     runtimeType,
     ui,
+    const DeepCollectionEquality().hash(_availableTeams),
     const DeepCollectionEquality().hash(_teams),
     rules,
     voice,
@@ -1145,6 +1179,7 @@ class _$AppConfigImpl implements _AppConfig {
 abstract class _AppConfig implements AppConfig {
   const factory _AppConfig({
     final UiConfig ui,
+    final List<TeamDef> availableTeams,
     final List<TeamDef> teams,
     final RulesConfig rules,
     final VoiceConfig voice,
@@ -1156,7 +1191,9 @@ abstract class _AppConfig implements AppConfig {
   @override
   UiConfig get ui;
   @override
-  List<TeamDef> get teams; // orden = team1, team2
+  List<TeamDef> get availableTeams; // Paleta de equipos disponibles
+  @override
+  List<TeamDef> get teams; // Para sinónimos de voz
   @override
   RulesConfig get rules;
   @override

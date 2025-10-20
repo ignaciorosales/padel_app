@@ -71,8 +71,8 @@ _$MatchScoreImpl _$$MatchScoreImplFromJson(
   currentSetIndex: (json['currentSetIndex'] as num?)?.toInt() ?? 0,
   server: $enumDecodeNullable(_$TeamEnumMap, json['server']) ?? Team.blue,
   receiver: $enumDecodeNullable(_$TeamEnumMap, json['receiver']) ?? Team.red,
-  blueName: json['blueName'] as String? ?? 'Azul',
-  redName: json['redName'] as String? ?? 'Rojo',
+  blueName: json['blueName'] as String? ?? 'Verde',
+  redName: json['redName'] as String? ?? 'Negro',
   paused: json['paused'] as bool? ?? false,
   settings:
       json['settings'] == null

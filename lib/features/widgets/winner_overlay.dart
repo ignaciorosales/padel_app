@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:Puntazo/config/team_selection_service.dart';
 import 'package:Puntazo/features/models/scoring_models.dart';
 import 'package:Puntazo/features/scoring/bloc/scoring_bloc.dart';
 import 'package:Puntazo/features/scoring/bloc/scoring_state.dart';
@@ -63,10 +64,14 @@ class _WinnerOverlayState extends State<WinnerOverlay>
           return const SizedBox.shrink(); // No mostrar nada si no hay ganador
         }
 
+        final teamService = context.read<TeamSelectionService>();
         final isBlueWinner = state.matchWinner == Team.blue;
         final winnerColor = isBlueWinner 
-            ? const Color(0xFF66A3FF) // Azul
-            : const Color(0xFFFF5757); // Rojo
+            ? teamService.getColor1()
+            : teamService.getColor2();
+        final winnerName = isBlueWinner
+            ? (teamService.getTeam1()?.displayName ?? 'Equipo 1')
+            : (teamService.getTeam2()?.displayName ?? 'Equipo 2');
         
         return AnimatedBuilder(
           animation: _controller,
@@ -95,7 +100,7 @@ class _WinnerOverlayState extends State<WinnerOverlay>
                           
                           // Nombre del ganador
                           Text(
-                            state.matchWinnerName.toUpperCase(),
+                            winnerName.toUpperCase(),
                             style: TextStyle(
                               fontSize: 50,
                               fontWeight: FontWeight.w900,

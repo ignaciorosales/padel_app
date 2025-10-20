@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'dart:math' as math;
 import 'package:Puntazo/features/models/scoring_models.dart';
@@ -104,8 +105,11 @@ class ScoringBloc extends Bloc<ScoringEvent, ScoringState> {
     on<UndoEvent>(_onUndo);
     on<RedoEvent>(_onRedo);
 
-    // BLE + team-undo
-    on<BleCommandEvent>(_onBleCommand);
+    // BLE + team-undo (transformer: procesar inmediatamente sin agrupar)
+    on<BleCommandEvent>(_onBleCommand, transformer: (events, mapper) {
+      // Procesar cada comando BLE inmediatamente sin debounce ni throttle
+      return events.asyncExpand(mapper);
+    });
     on<UndoForTeamEvent>(_onUndoForTeam);
   }
 
@@ -538,7 +542,7 @@ class ScoringBloc extends Bloc<ScoringEvent, ScoringState> {
         final redGames = set.redGames;
         
         if (e.team == Team.blue) {
-          // Si gana el azul, asegurar que tiene al menos 6 juegos y 2 más que el rojo
+          // Si gana el verde, asegurar que tiene al menos 6 juegos y 2 más que el negro
           final newBlueGames = math.max(6, blueGames);
           final newRedGames = newBlueGames - 2;
           updated[idx] = set.copyWith(
@@ -547,7 +551,7 @@ class ScoringBloc extends Bloc<ScoringEvent, ScoringState> {
             currentGame: const GamePoints(),
           );
         } else {
-          // Si gana el rojo, asegurar que tiene al menos 6 juegos y 2 más que el azul
+          // Si gana el negro, asegurar que tiene al menos 6 juegos y 2 más que el verde
           final newRedGames = math.max(6, redGames);
           final newBlueGames = newRedGames - 2;
           updated[idx] = set.copyWith(
@@ -900,18 +904,7 @@ class ScoringBloc extends Bloc<ScoringEvent, ScoringState> {
   void _onBleCommand(BleCommandEvent e, Emitter<ScoringState> emit) {
     final cmd = e.cmd.trim().toLowerCase();
 
-    if (cmd == 'cmd:toggle-server') {
-      final m = _clone(state.match);
-      final nextServer = _other(m.server);
-      final next = m.copyWith(
-        server: nextServer,
-        receiver: _other(nextServer),
-      );
-      _pushHistory(emit, next, 'Cambiar servicio', actionType: 'config:toggle-server');
-      return;
-    }
-
-    // existing behavior
+    // Procesar comando directamente
     if (cmd.startsWith('cmd:')) {
       final ch = cmd.substring(4);
       if (ch.isEmpty) return;
@@ -922,12 +915,17 @@ class ScoringBloc extends Bloc<ScoringEvent, ScoringState> {
   }
 
   void _dispatchCmd(String ch) {
+    final t0 = DateTime.now();
     switch (ch) {
       case 'a': add(PointForEvent(Team.blue)); break;
       case 'b': add(PointForEvent(Team.red));  break;
       case 'u': add(const UndoEvent());        break;
       case 'g': add(const NewGameEvent());     break;
       default:  break;
+    }
+    if (kDebugMode) {
+      final latency = DateTime.now().difference(t0).inMicroseconds;
+      debugPrint('[⏱️ BLOC] cmd=$ch dispatched | ${latency}µs');
     }
   }
 

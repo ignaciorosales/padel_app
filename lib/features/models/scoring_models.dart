@@ -2,7 +2,7 @@ import 'package:freezed_annotation/freezed_annotation.dart';
 part 'scoring_models.freezed.dart';
 part 'scoring_models.g.dart';
 
-/// Representa los dos equipos: azul y rojo
+/// Representa los dos equipos: verde y negro
 enum Team { blue, red }
 
 /// Configuración del partido de pádel
@@ -42,10 +42,10 @@ class MatchSettings with _$MatchSettings {
 @freezed
 class GamePoints with _$GamePoints {
   const factory GamePoints({
-    /// Puntos del equipo azul en el juego actual
+    /// Puntos del equipo verde en el juego actual
     @Default(0) int blue,
     
-    /// Puntos del equipo rojo en el juego actual
+    /// Puntos del equipo negro en el juego actual
     @Default(0) int red,
     
     /// Indica si el juego actual es un tie-break
@@ -62,10 +62,10 @@ class GamePoints with _$GamePoints {
 @freezed
 class SetScore with _$SetScore {
   const factory SetScore({
-    /// Juegos ganados por el equipo azul en este set
+    /// Juegos ganados por el equipo verde en este set
     @Default(0) int blueGames,
     
-    /// Juegos ganados por el equipo rojo en este set
+    /// Juegos ganados por el equipo negro en este set
     @Default(0) int redGames,
     
     /// Puntos del juego actual dentro del set
@@ -102,11 +102,11 @@ class MatchScore with _$MatchScore {
     /// Equipo que recibe actualmente
     @Default(Team.red) Team receiver,
     
-    /// Nombre del equipo azul
-    @Default('Azul') String blueName,
+    /// Nombre del equipo verde
+    @Default('Verde') String blueName,
     
-    /// Nombre del equipo rojo
-    @Default('Rojo') String redName,
+    /// Nombre del equipo negro
+    @Default('Negro') String redName,
     
     /// Indica si el partido está en pausa
     @Default(false) bool paused,

@@ -3,18 +3,65 @@
     "seedColorHex": "#0062FF",
     "showGoldenPointChip": true
   },
+  "availableTeams": [
+    {
+      "id": "azul",
+      "displayName": "Azul",
+      "colorHex": "#1976D2"
+    },
+    {
+      "id": "rojo",
+      "displayName": "Rojo",
+      "colorHex": "#D32F2F"
+    },
+    {
+      "id": "verde",
+      "displayName": "Verde",
+      "colorHex": "#009900"
+    },
+    {
+      "id": "negro",
+      "displayName": "Negro",
+      "colorHex": "#171717"
+    },
+    {
+      "id": "rosa",
+      "displayName": "Rosa",
+      "colorHex": "#E91E63"
+    },
+    {
+      "id": "violeta",
+      "displayName": "Violeta",
+      "colorHex": "#9C27B0"
+    },
+    {
+      "id": "naranja",
+      "displayName": "Naranja",
+      "colorHex": "#FF6600"
+    },
+    {
+      "id": "turquesa",
+      "displayName": "Turquesa",
+      "colorHex": "#00BCD4"
+    },
+    {
+      "id": "amarillo",
+      "displayName": "Amarillo",
+      "colorHex": "#FFC107"
+    }
+  ],
   "teams": [
     {
       "id": "team1",
-      "displayName": "Equipo Azul",
-      "colorHex": "#1E88E5",
-      "synonyms": ["azul", "equipo 1", "uno", "a"]
+      "displayName": "Equipo Verde",
+      "colorHex": "#009900",
+      "synonyms": ["verde", "equipo 1", "uno", "a"]
     },
     {
       "id": "team2",
-      "displayName": "Equipo Rojo",
-      "colorHex": "#E53935",
-      "synonyms": ["rojo", "equipo 2", "dos", "b"]
+      "displayName": "Equipo Negro",
+      "colorHex": "#171717",
+      "synonyms": ["negro", "equipo 2", "dos", "b"]
     }
   ],
   "rules": {

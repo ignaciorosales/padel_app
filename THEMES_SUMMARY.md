@@ -40,7 +40,7 @@ winnerColor:        #FFC107 (Dorado)
 ### 3. Widgets Actualizados
 
 #### ✅ Scoreboard (`lib/features/widgets/scoreboard.dart`)
-- Usa gradientes de PadelColors para fondos azul y rojo
+- Usa gradientes de PadelColors para fondos verde y negro
 - Patrón hexagonal usa `padelTheme.hexPatternColor`
 - Import agregado: `app_theme.dart`
 
@@ -184,12 +184,12 @@ final custom = PadelThemeExtension(
 
 ```dart
 // Equipos
-teamBlueColor:            #4E95FF (Azul brillante)
-teamRedColor:             #FC4242 (Rojo brillante)
+teamBlueColor:            #4E95FF (Verde brillante)
+teamRedColor:             #FC4242 (Negro brillante)
 
 // Fondos del Scoreboard
-scoreboardBackgroundBlue: #4E95FF → #0D2A4D (Gradiente azul)
-scoreboardBackgroundRed:  #FC4242 → #912430 (Gradiente rojo)
+scoreboardBackgroundBlue: #4E95FF → #0D2A4D (Gradiente verde)
+scoreboardBackgroundRed:  #FC4242 → #912430 (Gradiente negro)
 
 // UI Elements
 sidebarBackground:        White/Dark (#1A1A2E) según tema

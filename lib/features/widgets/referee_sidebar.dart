@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:Puntazo/config/app_config.dart';
 import 'package:Puntazo/config/app_theme.dart';
+import 'package:Puntazo/config/team_selection_service.dart';
 import 'package:Puntazo/features/models/scoring_models.dart';
 import 'package:Puntazo/features/scoring/bloc/scoring_bloc.dart';
 import 'package:Puntazo/features/scoring/bloc/scoring_event.dart';
@@ -19,16 +19,16 @@ class RefereeSidebar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cfg = context.read<AppConfig>();
-    final team1 = cfg.teams.isNotEmpty ? cfg.teams[0].displayName : 'Equipo AZUL';
-    final team2 = cfg.teams.length > 1 ? cfg.teams[1].displayName : 'Equipo ROJO';
+    final teamService = context.read<TeamSelectionService>();
+    final team1Name = teamService.getTeam1()?.displayName ?? 'Equipo 1';
+    final team2Name = teamService.getTeam2()?.displayName ?? 'Equipo 2';
 
     return ValueListenableBuilder<bool>(
       valueListenable: visibleNotifier,
       builder: (context, isVisible, _) {
         if (!isVisible) return const SizedBox.shrink();
         
-        return _SidebarContent(team1: team1, team2: team2);
+        return _SidebarContent(team1: team1Name, team2: team2Name);
       },
     );
   }
@@ -382,7 +382,7 @@ class _SidebarToggleButton extends StatelessWidget {
   }
 }
 
-/// Botón de peligro (rojo) para acciones destructivas
+/// Botón de peligro (negro) para acciones destructivas
 class _SidebarDangerButton extends StatelessWidget {
   final IconData icon;
   final String label;

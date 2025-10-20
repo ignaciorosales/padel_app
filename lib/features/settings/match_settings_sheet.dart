@@ -531,7 +531,7 @@ class _BleTab extends StatelessWidget {
                                 children: [
                                   Text('Remote 0x$hex', style: Theme.of(context).textTheme.titleMedium),
                                   const SizedBox(height: 4),
-                                  Text('Equipo: ${isBlue ? 'Azul' : 'Rojo'}', 
+                                  Text('Equipo: ${isBlue ? 'Verde' : 'Negro'}', 
                                     style: Theme.of(context).textTheme.bodySmall),
                                 ],
                               ),
@@ -545,11 +545,11 @@ class _BleTab extends StatelessWidget {
                               child: p.team == 'blue'
                                   ? FilledButton(
                                       onPressed: () async => await ble.pairAs(p.devId, 'blue'),
-                                      child: const Text('Azul'),
+                                      child: const Text('Verde'),
                                     )
                                   : OutlinedButton(
                                       onPressed: () async => await ble.pairAs(p.devId, 'blue'),
-                                      child: const Text('Azul'),
+                                      child: const Text('Verde'),
                                     ),
                             ),
                             const SizedBox(width: 8),
@@ -557,11 +557,11 @@ class _BleTab extends StatelessWidget {
                               child: p.team == 'red'
                                   ? FilledButton(
                                       onPressed: () async => await ble.pairAs(p.devId, 'red'),
-                                      child: const Text('Rojo'),
+                                      child: const Text('Negro'),
                                     )
                                   : OutlinedButton(
                                       onPressed: () async => await ble.pairAs(p.devId, 'red'),
-                                      child: const Text('Rojo'),
+                                      child: const Text('Negro'),
                                     ),
                             ),
                             const SizedBox(width: 8),
@@ -648,12 +648,12 @@ class _BleTab extends StatelessWidget {
                             children: [
                               OutlinedButton(
                                 onPressed: () async { await ble.pairAs(r.devId, 'blue'); },
-                                child: const Text('Azul'),
+                                child: const Text('Verde'),
                               ),
                               const SizedBox(width: 8),
                               OutlinedButton(
                                 onPressed: () async { await ble.pairAs(r.devId, 'red'); },
-                                child: const Text('Rojo'),
+                                child: const Text('Negro'),
                               ),
                             ],
                           ),

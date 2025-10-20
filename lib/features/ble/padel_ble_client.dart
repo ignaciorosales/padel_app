@@ -39,8 +39,9 @@ class PairedRemote {
 }
 
 class PadelBleClient {
-  final ValueNotifier<bool> serverSelectActive = ValueNotifier<bool>(false);
-  final ValueNotifier<int?> serverSelectDevId = ValueNotifier<int?>(null);
+  // UI feedback para restart (sin lógica de serverSelect)
+  final ValueNotifier<bool> restartArmed = ValueNotifier<bool>(false);
+  final ValueNotifier<int?> restartDevId = ValueNotifier<int?>(null);
 
   PadelBleClient({String targetName = "PadelScore-C3"}) : _targetName = targetName {
     _ble.statusStream.listen((s) {
@@ -58,7 +59,8 @@ class PadelBleClient {
 
   // === Streams públicos ===
   /// Emite: 'a','b','u','g' y comandos especiales tipo 'cmd:toggle-server'
-  final _commandsCtrl = StreamController<String>.broadcast();
+  /// sync: true = procesamiento inmediato sin microtask queue (latencia crítica)
+  final _commandsCtrl = StreamController<String>.broadcast(sync: true);
   Stream<String> get commands => _commandsCtrl.stream;
 
   final _discoveredCtrl = StreamController<List<DiscoveredRemote>>.broadcast();
@@ -82,6 +84,17 @@ class PadelBleClient {
 
   // Dedup + warm-up por dispositivo
   final _lastSeqByDev = <int, int>{};
+  final _lastCmdTimeByDev = <int, DateTime>{}; // Anti-duplicación inteligente
+  final _lastCmdByDev = <int, int>{}; // Último comando procesado
+  static const _minCmdInterval = Duration(milliseconds: 300); // 300ms = permite rallies rápidos
+  
+  // Set-based seq deduplication: IMPOSIBLE marcar dos veces con mismo seq
+  final _processedSeqs = <int, Set<int>>{}; // deviceId -> Set de seqs procesados
+  static const _maxSeqHistory = 30; // Mantener últimos 30 seqs
+  
+  // === ANTI-DOBLE PUNTO: 4 segundos entre puntos por dispositivo ===
+  final _lastPointTimeByDev = <int, DateTime>{}; // Timestamp del último punto
+  static const _pointCooldown = Duration(seconds: 4); // 4s entre puntos
 
   // Cache de descubrimiento
   final _discovered = <int, DiscoveredRemote>{};
@@ -92,16 +105,10 @@ class PadelBleClient {
   List<PairedRemote> get pairedSnapshot => List.unmodifiable(_pairedCache);
   List<DiscoveredRemote> get discoveredSnapshot => List.unmodifiable(_discCache);
 
-  // === Doble pulsación para restart ===
+  // === Restart simplificado: G (armar) + U (confirmar) ===
   static const _restartWindow = Duration(seconds: 4);
   int? _restartPendingDev;
   Timer? _restartTimer;
-
-  // === Selección de servidor tras confirmar restart ===
-  static const _srvSelectWindow = Duration(seconds: 4);
-  bool _srvSelectActive = false;
-  int? _srvSelectDev;
-  Timer? _srvSelectTimer;
 
   Timer? _discoverTimer;
 
@@ -133,6 +140,11 @@ class PadelBleClient {
 
   Future<void> init() async {
     await _loadPersisted();
+    // Inicializar Sets de seq dedup para todos los dispositivos pareados
+    for (final devId in _teamByDev.keys) {
+      _processedSeqs[devId] = <int>{};
+      _lastPointTimeByDev[devId] = DateTime.fromMillisecondsSinceEpoch(0); // Epoch = permite primer punto
+    }
     _publishPaired();
   }
 
@@ -176,12 +188,16 @@ class PadelBleClient {
     _pairedCtrl.close();
     _advCtrl.close();
     _rawFramesCtrl.close();
+    restartArmed.dispose();
+    restartDevId.dispose();
   }
 
   // ===================== Pairing / equipos =====================
 
   Future<void> pairAs(int devId, String team) async {
     _teamByDev[devId] = (team == 'blue') ? 'blue' : 'red';
+    _processedSeqs[devId] = <int>{}; // Inicializar Set para seq dedup
+    _lastPointTimeByDev[devId] = DateTime.fromMillisecondsSinceEpoch(0); // Epoch = permite primer punto
     await _saveTeams();
     _publishPaired();
     _discovered.remove(devId);
@@ -191,6 +207,10 @@ class PadelBleClient {
   Future<void> unpair(int devId) async {
     _teamByDev.remove(devId);
     _lastSeqByDev.remove(devId);
+    _lastCmdTimeByDev.remove(devId);
+    _lastCmdByDev.remove(devId);
+    _processedSeqs.remove(devId); // Limpiar Set de seq dedup
+    _lastPointTimeByDev.remove(devId); // Limpiar timestamp de punto
     await _saveTeams();
     _publishPaired();
   }
@@ -244,56 +264,32 @@ class PadelBleClient {
   void _armRestart(int devId) {
     _restartTimer?.cancel();
     _restartPendingDev = devId;
+    restartArmed.value = true;
+    restartDevId.value = devId;
     _restartTimer = Timer(_restartWindow, () {
       if (kDebugMode) debugPrint('Restart: timeout (dev=0x${devId.toRadixString(16).padLeft(4, '0')})');
       _restartPendingDev = null;
+      restartArmed.value = false;
+      restartDevId.value = null;
     });
-    if (kDebugMode) debugPrint('Restart: armed for dev=0x${devId.toRadixString(16).padLeft(4, '0')}');
+    if (kDebugMode) debugPrint('🔫 RESTART ARMADO: Presiona U (botón negro) para confirmar');
   }
 
-  void _startServerSelect(int devId) {
-    _srvSelectActive = true;
-    _srvSelectDev = devId;
-    _srvSelectTimer?.cancel();
-    _srvSelectTimer = Timer(_srvSelectWindow, _finishServerSelect);
-
-    // NEW: notify UI to show the popup
-    serverSelectDevId.value = devId;
-    serverSelectActive.value = true;
-
-    if (kDebugMode) debugPrint('ServerSelect: active (press P to toggle; timeout to confirm)');
+  void _confirmRestart() {
+    _restartTimer?.cancel();
+    _restartPendingDev = null;
+    restartArmed.value = false;
+    restartDevId.value = null;
+    _commandsCtrl.add('g'); // Emitir comando de restart
+    if (kDebugMode) debugPrint('✅ REINICIO CONFIRMADO -> nuevo juego');
   }
 
-  void _finishServerSelect() {
-    _srvSelectTimer?.cancel();
-    _srvSelectTimer = null;
-    _srvSelectActive = false;
-    _srvSelectDev = null;
-
-    // NEW: tell UI to close
-    serverSelectActive.value = false;
-    serverSelectDevId.value = null;
-
-    // Confirm and start the game
-    _commandsCtrl.add('g');
-    if (kDebugMode) debugPrint('ServerSelect: confirmed -> start new game');
-  }
-
-  void cancelServerSelect() {
-    if (!_srvSelectActive) return;
-    _srvSelectTimer?.cancel();
-    _srvSelectActive = false;
-    _srvSelectDev = null;
-    serverSelectActive.value = false;
-    serverSelectDevId.value = null;
-  }
-
-  void _cancelRestartIfFrom(int devId) {
-    if (_restartPendingDev == devId) {
-      _restartTimer?.cancel();
-      _restartPendingDev = null;
-      if (kDebugMode) debugPrint('Restart: canceled by other button from same device');
-    }
+  void _cancelRestart() {
+    _restartTimer?.cancel();
+    _restartPendingDev = null;
+    restartArmed.value = false;
+    restartDevId.value = null;
+    if (kDebugMode) debugPrint('❌ REINICIO CANCELADO (presionaste P)');
   }
 
   bool _isPressForDiscovery(int cmd) {
@@ -313,16 +309,16 @@ class PadelBleClient {
     final frame = _parse(md);
     if (frame == null) return; // Silenciar logs de paquetes no coincidentes para reducir overhead
     
-    final t1 = DateTime.now(); // ⏱️ Timestamp post-parsing
     _rawFramesCtrl.add(frame);
     
-    // ▲ DEBUG: Mostrar latencia BLE → Parse para TODOS los comandos
-    if (kDebugMode) {
-      final parseLatency = t1.difference(t0).inMicroseconds;
-      debugPrint('[⏱️ RX] devId=0x${frame.devId.toRadixString(16).padLeft(4, '0')} '
-                 'cmd=${String.fromCharCode(frame.cmd)} seq=${frame.seq} '
-                 'rssi=${d.rssi} | parse=${parseLatency}µs');
-    }
+    // ▲ DEBUG SILENCIADO: Solo loguear en modo verbose (descomentar para activar)
+    // if (kDebugMode) {
+    //   final t1 = DateTime.now();
+    //   final parseLatency = t1.difference(t0).inMicroseconds;
+    //   debugPrint('[⏱️ RX] devId=0x${frame.devId.toRadixString(16).padLeft(4, '0')} '
+    //              'cmd=${String.fromCharCode(frame.cmd)} seq=${frame.seq} rssi=${d.rssi} | '
+    //              'parse=${parseLatency}µs');
+    // }
 
     final devId = frame.devId;
     final now = DateTime.now();
@@ -333,6 +329,8 @@ class PadelBleClient {
     final seenBefore = _lastSeqByDev.containsKey(devId);
     if (!seenBefore) {
       _lastSeqByDev[devId] = frame.seq;
+      _lastCmdTimeByDev[devId] = DateTime.fromMillisecondsSinceEpoch(0); // Epoch = permite primera pulsación
+      _lastCmdByDev[devId] = 0; // Sin comando previo
       if (kDebugMode) debugPrint('[WARM-UP] dev=0x${devId.toRadixString(16).padLeft(4, '0')} '
                                  'seq=${frame.seq} - primera vez visto');
 
@@ -373,63 +371,78 @@ class PadelBleClient {
       }
       
       _lastSeqByDev[devId] = frame.seq; // siempre avanzamos seq
-      if (!isNewSeq) return; // re-emisión: ignorar
-    }
-
-    // ===== Si estamos eligiendo servidor, interceptamos todo =====
-    if (_srvSelectActive) {
-      // Solo reacciona al mismo mando que confirmó el restart
-      if (devId == _srvSelectDev) {
-        if (frame.cmd == 'p'.codeUnitAt(0) ||
-            frame.cmd == 'a'.codeUnitAt(0) || // legacy
-            frame.cmd == 'b'.codeUnitAt(0)) {
-          // Toggle de servidor en el Bloc
-          _commandsCtrl.add('cmd:toggle-server');
-          // reinicia ventana
-          _srvSelectTimer?.cancel();
-          _srvSelectTimer = Timer(_srvSelectWindow, _finishServerSelect);
-          return;
-        }
-        if (frame.cmd == 'g'.codeUnitAt(0)) {
-          // Confirmación inmediata
-          _finishServerSelect();
-          return;
-        }
-        if (frame.cmd == 'u'.codeUnitAt(0)) {
-          // Cancelar selección y cancelar todo el restart
-          _srvSelectTimer?.cancel();
-          _srvSelectActive = false;
-          _srvSelectDev = null;
-          if (kDebugMode) debugPrint('ServerSelect: canceled');
-          return;
-        }
+      
+      // ▲ SET-BASED DEDUP: Verificar si este seq ya fue procesado (BULLETPROOF)
+      final processedSet = _processedSeqs[devId];
+      if (processedSet != null && processedSet.contains(frame.seq)) {
+        // Silencioso: paquete duplicado de ráfaga (normal, esperado)
+        return; // ← IMPOSIBLE procesar mismo seq dos veces
       }
-      // Ignora otras pulsaciones (no damos puntos mientras se elige servidor)
-      return;
+      
+      if (!isNewSeq) {
+        // Silencioso: seq ya visto (normal con ráfagas)
+        return; // re-emisión: ignorar
+      }
+      
+      // ▲ PROTECCIÓN ANTI-DOBLE: Cooldown de 300ms + validación de comando
+      final lastCmdTime = _lastCmdTimeByDev[devId]!;
+      final lastCmd = _lastCmdByDev[devId]!;
+      final timeSinceLastCmd = now.difference(lastCmdTime);
+      
+      // Si es el MISMO comando en <300ms → BLOCK (claramente duplicado)
+      if (lastCmd == frame.cmd && timeSinceLastCmd < _minCmdInterval) {
+        // Silencioso: cooldown activo (normal)
+        return; // ← BLOCK: mismo comando muy rápido = duplicado
+      }
+      
+      // Actualizar tracking (ANTES de procesar, para que sea atómico)
+      _lastCmdTimeByDev[devId] = now;
+      _lastCmdByDev[devId] = frame.cmd;
     }
 
-    // ===== Doble 'g' para restart (solo si pareado) =====
+    // ===== Restart simplificado: G (armar) + U (confirmar) =====
     if (frame.cmd == 'g'.codeUnitAt(0)) {
       if (!paired) return;
+      _armRestart(devId);
+      return;
+    }
+
+    // U (UNDO/RED button) confirma restart si está armado, sino hace UNDO normal
+    if (frame.cmd == 'u'.codeUnitAt(0)) {
+      if (!paired) return;
+      
       if (_restartPendingDev == devId) {
-        // Confirmado: entrar a elegir servidor
-        _restartTimer?.cancel();
-        _restartPendingDev = null;
-        _startServerSelect(devId);
-      } else {
-        _armRestart(devId);
+        // Confirmar restart
+        _confirmRestart();
+        return;
+      }
+      
+      // ✅ UNDO normal: procesar comando
+      _commandsCtrl.add('u');
+      
+      // ✅ Marcar seq como procesada DESPUÉS de emitir comando exitosamente
+      final processedSet = _processedSeqs[devId]!;
+      processedSet.add(frame.seq);
+      if (processedSet.length > _maxSeqHistory) {
+        final oldest = processedSet.first;
+        processedSet.remove(oldest);
+      }
+      
+      if (kDebugMode) {
+        debugPrint('↩️ UNDO | dev=0x${devId.toRadixString(16).padLeft(4, '0')} seq=${frame.seq}');
       }
       return;
     }
 
-    // Cualquier otra pulsación del mismo mando cancela la ventana de restart
-    _cancelRestartIfFrom(devId);
+    // Cualquier comando 'p' del mismo mando cancela restart armado
+    if (frame.cmd == 'p'.codeUnitAt(0) && _restartPendingDev == devId) {
+      _cancelRestart();
+      return; // ✅ Cancelar restart SIN sumar punto
+    }
 
     // ===== Scoring solo si pareado =====
     if (!paired) {
-      if (kDebugMode) {
-        debugPrint('DROP (unpaired) dev=0x${devId.toRadixString(16).padLeft(4, '0')}');
-      }
+      // Silencioso: dispositivo no pareado (normal)
       return;
     }
 
@@ -437,13 +450,38 @@ class PadelBleClient {
 
     // Preferido: 'p' => punto (mapeado por pairing)
     if (frame.cmd == 'p'.codeUnitAt(0)) {
-      final t2 = DateTime.now(); // ⏱️ Timestamp antes de emitir comando
+      // ▲ ANTI-DOBLE PUNTO: Verificar cooldown de 4s
+      final lastPointTime = _lastPointTimeByDev[devId];
+      if (lastPointTime != null) {
+        final timeSinceLastPoint = now.difference(lastPointTime);
+        if (timeSinceLastPoint < _pointCooldown) {
+          final remainingMs = (_pointCooldown - timeSinceLastPoint).inMilliseconds;
+          if (kDebugMode) {
+            debugPrint('❌ [ANTI-DOBLE] Punto BLOQUEADO dev=0x${devId.toRadixString(16).padLeft(4, '0')} '
+                       '(cooldown: ${remainingMs}ms restantes)');
+          }
+          return; // Bloquear punto
+        }
+      }
+      
       if (team == 'blue') _commandsCtrl.add('a');
       else if (team == 'red') _commandsCtrl.add('b');
       
+      // ✅ Actualizar timestamp del último punto
+      _lastPointTimeByDev[devId] = now;
+      
+      // ✅ Marcar seq como procesada DESPUÉS de emitir comando exitosamente
+      final processedSet = _processedSeqs[devId]!;
+      processedSet.add(frame.seq);
+      if (processedSet.length > _maxSeqHistory) {
+        final oldest = processedSet.first;
+        processedSet.remove(oldest);
+      }
+      
       if (kDebugMode) {
-        final totalLatency = t2.difference(t0).inMicroseconds;
-        debugPrint('[⏱️ EMIT] team=$team | total=${totalLatency}µs (BLE→emit)');
+        final latency = DateTime.now().difference(t0).inMicroseconds;
+        debugPrint('✅ PUNTO $team | dev=0x${devId.toRadixString(16).padLeft(4, '0')} '
+                   'seq=${frame.seq} | ${latency}µs');
       }
       return;
     }
@@ -452,12 +490,14 @@ class PadelBleClient {
     if (frame.cmd == 'a'.codeUnitAt(0) || frame.cmd == 'b'.codeUnitAt(0)) {
       if (team == 'blue') _commandsCtrl.add('a');
       else if (team == 'red') _commandsCtrl.add('b');
-      return;
-    }
-
-    // Undo
-    if (frame.cmd == 'u'.codeUnitAt(0)) {
-      _commandsCtrl.add('u');
+      
+      // Marcar seq como procesada
+      final processedSet = _processedSeqs[devId]!;
+      processedSet.add(frame.seq);
+      if (processedSet.length > _maxSeqHistory) {
+        final oldest = processedSet.first;
+        processedSet.remove(oldest);
+      }
       return;
     }
   }

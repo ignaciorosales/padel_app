@@ -18,10 +18,10 @@ Este archivo contiene:
 
 ### Colores de Equipos
 ```dart
-PadelColors.blueTeamLight  // #4E95FF - Azul claro del equipo azul
-PadelColors.blueTeamDark   // #0D2A4D - Azul oscuro del equipo azul
-PadelColors.redTeamLight   // #FC4242 - Rojo claro del equipo rojo
-PadelColors.redTeamDark    // #912430 - Rojo oscuro del equipo rojo
+PadelColors.blueTeamLight  // #4E95FF - Verde claro del equipo verde
+PadelColors.blueTeamDark   // #0D2A4D - Verde oscuro del equipo verde
+PadelColors.redTeamLight   // #FC4242 - Negro claro del equipo negro
+PadelColors.redTeamDark    // #912430 - Negro oscuro del equipo negro
 ```
 
 ### Colores de Acento
@@ -78,7 +78,7 @@ Widget build(BuildContext context) {
   return Container(
     color: padelTheme.teamBlueColor,
     child: Text(
-      'Equipo Azul',
+      'Equipo Verde',
       style: TextStyle(color: padelTheme.digitalFontColor),
     ),
   );
@@ -88,10 +88,10 @@ Widget build(BuildContext context) {
 ## Propiedades de PadelThemeExtension
 
 ```dart
-teamBlueColor               // Color del equipo azul
-teamRedColor                // Color del equipo rojo
-scoreboardBackgroundBlue    // Color de fondo del scoreboard (lado azul)
-scoreboardBackgroundRed     // Color de fondo del scoreboard (lado rojo)
+teamBlueColor               // Color del equipo verde
+teamRedColor                // Color del equipo negro
+scoreboardBackgroundBlue    // Color de fondo del scoreboard (lado verde)
+scoreboardBackgroundRed     // Color de fondo del scoreboard (lado negro)
 sidebarBackground           // Color de fondo del sidebar del árbitro
 sidebarDivider              // Color de divisores en el sidebar
 digitalFontColor            // Color de la fuente digital
@@ -186,7 +186,7 @@ Card(
         style: FilledButton.styleFrom(
           backgroundColor: padelTheme.teamBlueColor,
         ),
-        child: Text('Equipo AZUL'),
+        child: Text('Equipo VERDE'),
       ),
       Divider(color: padelTheme.sidebarDivider),
     ],
@@ -228,7 +228,7 @@ Container(
 
 1. **Usa `context.padelTheme`** para acceder a colores personalizados
 2. **Usa `Theme.of(context).colorScheme`** para colores estándar de Material
-3. **Mantén consistencia**: Si un widget usa `teamBlueColor`, todos los widgets de equipo azul deberían usar el mismo
+3. **Mantén consistencia**: Si un widget usa `teamBlueColor`, todos los widgets de equipo verde deberían usar el mismo
 4. **Respeta el modo del sistema**: Usa `ThemeMode.system` cuando sea posible
 5. **Prueba ambos temas**: Siempre verifica que tu UI se vea bien en claro y oscuro
 

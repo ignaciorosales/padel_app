@@ -1,11 +1,19 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:Puntazo/config/app_config.dart';
 import 'package:Puntazo/config/app_theme.dart';
+import 'package:Puntazo/config/team_selection_service.dart';
 import 'package:Puntazo/features/models/scoring_models.dart' hide SetScore;
 import 'package:Puntazo/features/scoring/bloc/scoring_bloc.dart';
 import 'package:Puntazo/features/scoring/bloc/scoring_state.dart';
 import 'package:Puntazo/features/widgets/set_score.dart';
+
+/// Helper para crear color más oscuro para gradiente
+Color _darkenColor(Color color, [double amount = 0.3]) {
+  final hsl = HSLColor.fromColor(color);
+  return hsl.withLightness((hsl.lightness - amount).clamp(0.0, 1.0)).toColor();
+}
 
 /// Displays a string of digits using the digital font. If [alignRight] is
 /// true the digits will align to the right edge of their container.
@@ -172,26 +180,26 @@ class Scoreboard extends StatelessWidget {
         Positioned.fill(
           child: Stack(
             children: [
-              // Left side (Blue gradient for Blue team)
+              // Left side (Team 1 gradient - color from config)
               ClipPath(
                 clipper: _LeftDiagonalClipper(),
                 child: Container(
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
-                      colors: [PadelColors.blueGradientStart, PadelColors.blueGradientEnd],
+                      colors: [padelTheme.scoreboardBackgroundBlue, _darkenColor(padelTheme.scoreboardBackgroundBlue)],
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                     ),
                   ),
                 ),
               ),
-              // Right side (Red gradient for Red team)
+              // Right side (Team 2 gradient - color from config)
               ClipPath(
                 clipper: _RightDiagonalClipper(),
                 child: Container(
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
-                      colors: [PadelColors.redGradientStart, PadelColors.redGradientEnd],
+                      colors: [padelTheme.scoreboardBackgroundRed, _darkenColor(padelTheme.scoreboardBackgroundRed)],
                       begin: Alignment.topRight,
                       end: Alignment.bottomLeft,
                     ),
@@ -285,22 +293,31 @@ class _ScoreboardContent extends StatelessWidget {
                             color: Colors.black.withOpacity(0.3),
                             borderRadius: BorderRadius.circular(20),
                           ),
-                          child: Text(
-                            'Puntazo.uy',
-                            style: TextStyle(
-                              color: textColor,
-                              fontSize: labelSize * 1.2,
-                              fontWeight: FontWeight.bold,
-                              letterSpacing: 1.5,
-                              fontFamily: 'Digital7',
-                              shadows: [
-                                Shadow(
-                                  offset: Offset(1, 1),
-                                  blurRadius: 4,
-                                  color: Colors.black.withOpacity(0.5),
+                          child: StreamBuilder<DateTime>(
+                            stream: Stream.periodic(const Duration(seconds: 1), (_) => DateTime.now()),
+                            initialData: DateTime.now(),
+                            builder: (context, snapshot) {
+                              final now = snapshot.data ?? DateTime.now();
+                              final hour = now.hour.toString().padLeft(2, '0');
+                              final minute = now.minute.toString().padLeft(2, '0');
+                              return Text(
+                                '$hour:$minute',
+                                style: TextStyle(
+                                  color: textColor,
+                                  fontSize: labelSize * 1.2,
+                                  fontWeight: FontWeight.bold,
+                                  letterSpacing: 1.5,
+                                  fontFamily: 'Digital7',
+                                  shadows: [
+                                    Shadow(
+                                      offset: Offset(1, 1),
+                                      blurRadius: 4,
+                                      color: Colors.black.withOpacity(0.5),
+                                    ),
+                                  ],
                                 ),
-                              ],
-                            ),
+                              );
+                            },
                           ),
                         ),
                       ),
@@ -314,7 +331,7 @@ class _ScoreboardContent extends StatelessWidget {
                           padding: const EdgeInsets.only(left: 20.0, right: 20.0, top: 100.0, bottom: 12),
                           child: Row(
                             children: [
-                              // AZUL (left side) - más hacia el borde
+                              // VERDE (left side) - más hacia el borde
                               Expanded(
                                 flex: 25,
                                 child: Row(
@@ -332,23 +349,31 @@ class _ScoreboardContent extends StatelessWidget {
                                             )
                                           : null,
                                     ),
-                                    Text(
-                                      'AZUL',
-                                      style: TextStyle(
-                                        color: textColor.withOpacity(0.9),
-                                        fontSize: labelSize * 1.1,
-                                        fontWeight: FontWeight.bold,
-                                        letterSpacing: 1.5,
-                                        fontFamily: 'Digital7',
-                                        shadows: [
+                                    BlocBuilder<ScoringBloc, ScoringState>(
+                                      buildWhen: (p, n) => false,
+                                      builder: (ctx, _) {
+                                        final teamService = RepositoryProvider.of<TeamSelectionService>(ctx);
+                                        final team = teamService.getTeam1();
+                                        final teamName = team?.displayName.toUpperCase() ?? 'EQUIPO 1';
+                                        return Text(
+                                          teamName,
+                                          style: TextStyle(
+                                            color: textColor.withOpacity(0.9),
+                                            fontSize: labelSize * 1.1,
+                                            fontWeight: FontWeight.bold,
+                                            letterSpacing: 1.5,
+                                            fontFamily: 'Digital7',
+                                            shadows: [
                                           Shadow(
                                             offset: Offset(1, 1),
                                             blurRadius: 4,
                                             color: Colors.black.withOpacity(0.5),
                                           ),
-                                        ],
-                                      ),
-                                    ),
+                                          ],
+                                        ),
+                                      );
+                                    },
+                                  ),
                                   ],
                                 ),
                               ),
@@ -418,29 +443,37 @@ class _ScoreboardContent extends StatelessWidget {
                                   : const SizedBox.shrink(),
                               ),
                               
-                              // ROJO (right side) - más hacia el borde
+                              // NEGRO (right side) - más hacia el borde
                               Expanded(
                                 flex: 25,
                                 child: Row(
                                   mainAxisAlignment: MainAxisAlignment.end,
                                   children: [
-                                    Text(
-                                      'ROJO',
-                                      style: TextStyle(
-                                        color: textColor.withOpacity(0.9),
-                                        fontSize: labelSize * 1.1,
-                                        fontWeight: FontWeight.bold,
-                                        letterSpacing: 1.5,
-                                        fontFamily: 'Digital7',
-                                        shadows: [
+                                    BlocBuilder<ScoringBloc, ScoringState>(
+                                      buildWhen: (p, n) => false,
+                                      builder: (ctx, _) {
+                                        final teamService = RepositoryProvider.of<TeamSelectionService>(ctx);
+                                        final team = teamService.getTeam2();
+                                        final teamName = team?.displayName.toUpperCase() ?? 'EQUIPO 2';
+                                        return Text(
+                                          teamName,
+                                          style: TextStyle(
+                                            color: textColor.withOpacity(0.9),
+                                            fontSize: labelSize * 1.1,
+                                            fontWeight: FontWeight.bold,
+                                            letterSpacing: 1.5,
+                                            fontFamily: 'Digital7',
+                                            shadows: [
                                           Shadow(
                                             offset: Offset(1, 1),
                                             blurRadius: 4,
                                             color: Colors.black.withOpacity(0.5),
                                           ),
-                                        ],
-                                      ),
-                                    ),
+                                          ],
+                                        ),
+                                      );
+                                    },
+                                  ),
                                     // Indicador de saque hacia el borde derecho
                                     SizedBox(
                                       width: labelSize * 0.9 + 8.0,
@@ -467,7 +500,7 @@ class _ScoreboardContent extends StatelessWidget {
                             child: Row(
                               crossAxisAlignment: CrossAxisAlignment.center,
                               children: [
-                                // Lado AZUL - 40% del espacio
+                                // Lado VERDE - 40% del espacio
                                 Expanded(
                                   flex: 40,
                                   child: Center(
@@ -568,7 +601,7 @@ class _ScoreboardContent extends StatelessWidget {
                                   : const SizedBox.shrink(),
                               ),
                               
-                                // Lado ROJO - 40% del espacio
+                                // Lado NEGRO - 40% del espacio
                                 Expanded(
                                   flex: 40,
                                   child: Center(

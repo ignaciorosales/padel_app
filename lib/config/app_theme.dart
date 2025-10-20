@@ -29,12 +29,15 @@ class PadelColors {
 
 /// Tema personalizado para la app de pádel
 class PadelTheme {
-  // Tema claro
-  static ThemeData lightTheme() {
+  // Tema claro con colores personalizables SOLO para equipos (no para UI general)
+  static ThemeData lightTheme({Color? team1Color, Color? team2Color}) {
+    final t1Color = team1Color ?? PadelColors.blueTeamLight;
+    final t2Color = team2Color ?? PadelColors.redTeamLight;
+    
     final colorScheme = ColorScheme.light(
-      primary: PadelColors.blueTeamLight,
+      primary: PadelColors.blueTeamLight,  // UI general siempre azul
       primaryContainer: const Color(0xFFD6E8FF),
-      secondary: PadelColors.redTeamLight,
+      secondary: PadelColors.redTeamLight,  // UI general siempre rojo
       secondaryContainer: const Color(0xFFFFDAD6),
       tertiary: PadelColors.gold,
       tertiaryContainer: const Color(0xFFFFECB3),
@@ -148,10 +151,10 @@ class PadelTheme {
       // Extensions personalizadas
       extensions: <ThemeExtension<dynamic>>[
         PadelThemeExtension(
-          teamBlueColor: PadelColors.blueTeamLight,
-          teamRedColor: PadelColors.redTeamLight,
-          scoreboardBackgroundBlue: PadelColors.blueGradientStart,
-          scoreboardBackgroundRed: PadelColors.redGradientStart,
+          teamBlueColor: t1Color,
+          teamRedColor: t2Color,
+          scoreboardBackgroundBlue: t1Color,
+          scoreboardBackgroundRed: t2Color,
           sidebarBackground: Colors.white.withOpacity(0.95),
           sidebarDivider: Colors.black.withOpacity(0.1),
           digitalFontColor: Colors.white,
@@ -166,12 +169,15 @@ class PadelTheme {
     );
   }
 
-  // Tema oscuro
-  static ThemeData darkTheme() {
+  // Tema oscuro con colores personalizables SOLO para equipos (no para UI general)
+  static ThemeData darkTheme({Color? team1Color, Color? team2Color}) {
+    final t1Color = team1Color ?? PadelColors.blueTeamLight;
+    final t2Color = team2Color ?? PadelColors.redTeamLight;
+    
     final colorScheme = ColorScheme.dark(
-      primary: PadelColors.blueTeamLight,
+      primary: PadelColors.blueTeamLight,  // UI general siempre azul
       primaryContainer: const Color(0xFF1E3A5F),
-      secondary: PadelColors.redTeamLight,
+      secondary: PadelColors.redTeamLight,  // UI general siempre rojo
       secondaryContainer: const Color(0xFF5F1E1E),
       tertiary: PadelColors.gold,
       tertiaryContainer: const Color(0xFF5F4C1E),
@@ -286,10 +292,10 @@ class PadelTheme {
       // Extensions personalizadas
       extensions: <ThemeExtension<dynamic>>[
         PadelThemeExtension(
-          teamBlueColor: PadelColors.blueTeamLight,
-          teamRedColor: PadelColors.redTeamLight,
-          scoreboardBackgroundBlue: PadelColors.blueGradientStart,
-          scoreboardBackgroundRed: PadelColors.redGradientStart,
+          teamBlueColor: t1Color,
+          teamRedColor: t2Color,
+          scoreboardBackgroundBlue: t1Color,
+          scoreboardBackgroundRed: t2Color,
           sidebarBackground: const Color(0xFF1A1A2E).withOpacity(0.95),
           sidebarDivider: Colors.white.withOpacity(0.1),
           digitalFontColor: Colors.white,

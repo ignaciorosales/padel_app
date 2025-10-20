@@ -6,6 +6,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:Puntazo/config/app_config.dart';
 import 'package:Puntazo/config/app_theme.dart';
 import 'package:Puntazo/config/config_loader.dart';
+import 'package:Puntazo/config/team_selection_service.dart';
 import 'package:Puntazo/features/ble/padel_ble_client.dart';
 import 'package:Puntazo/features/models/scoring_models.dart';
 import 'package:Puntazo/features/scoring/bloc/scoring_bloc.dart';
@@ -38,13 +39,15 @@ Future<void> main() async {
   await SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
 
   final config = await ConfigLoader.load();
-  runApp(PadelApp(config: config));
+  final teamSelection = await TeamSelectionService.init(config);
+  runApp(PadelApp(config: config, teamSelection: teamSelection));
 }
 
 class PadelApp extends StatefulWidget {
-  const PadelApp({super.key, required this.config});
+  const PadelApp({super.key, required this.config, required this.teamSelection});
 
   final AppConfig config;
+  final TeamSelectionService teamSelection;
 
   @override
   State<PadelApp> createState() => _PadelAppState();
@@ -55,7 +58,10 @@ class _PadelAppState extends State<PadelApp> {
 
   @override
   void dispose() {
+    widget.teamSelection.team1Selection.removeListener(_onTeamColorsChanged);
+    widget.teamSelection.team2Selection.removeListener(_onTeamColorsChanged);
     _themeCtrl.dispose();
+    widget.teamSelection.dispose();
     super.dispose();
   }
 
@@ -64,16 +70,32 @@ class _PadelAppState extends State<PadelApp> {
     super.initState();
     // Start however you prefer (Dark by default). You could persist this.
     _themeCtrl = ThemeController(ThemeMode.dark);
+    
+    // Escuchar cambios en la selección de equipos para reconstruir el tema
+    widget.teamSelection.team1Selection.addListener(_onTeamColorsChanged);
+    widget.teamSelection.team2Selection.addListener(_onTeamColorsChanged);
+  }
+  
+  void _onTeamColorsChanged() {
+    if (mounted) {
+      setState(() {
+        // Forzar reconstrucción del MaterialApp con nuevos colores
+      });
+    }
   }
 
   // --------- THEME DEFINITIONS (Material 3 with Padel Custom Colors) ---------
 
   ThemeData _lightTheme() {
-    return PadelTheme.lightTheme();
+    final team1Color = widget.teamSelection.getColor1();
+    final team2Color = widget.teamSelection.getColor2();
+    return PadelTheme.lightTheme(team1Color: team1Color, team2Color: team2Color);
   }
 
   ThemeData _darkTheme() {
-    return PadelTheme.darkTheme();
+    final team1Color = widget.teamSelection.getColor1();
+    final team2Color = widget.teamSelection.getColor2();
+    return PadelTheme.darkTheme(team1Color: team1Color, team2Color: team2Color);
   }
 
   @override
@@ -82,6 +104,7 @@ class _PadelAppState extends State<PadelApp> {
       providers: [
         RepositoryProvider<AppConfig>.value(value: widget.config),
         RepositoryProvider<ThemeController>.value(value: _themeCtrl),
+        RepositoryProvider<TeamSelectionService>.value(value: widget.teamSelection),
       ],
       child: BlocProvider(
         create: (_) {
@@ -130,11 +153,10 @@ class _ScoreOnlyScreenState extends State<_ScoreOnlyScreen> {
   final PadelBleClient _ble = PadelBleClient();
   StreamSubscription<String>? _cmdSub;
   final ValueNotifier<bool> _refSidebarVisible = ValueNotifier<bool>(false);
-  bool _serverDialogOpen = false;
+  bool _restartDialogOpen = false;
 
   @override
   void dispose() {
-    _ble.serverSelectActive.removeListener(_onServerSelectChanged);
     _cmdSub?.cancel();
     _ble.dispose();
     _refSidebarVisible.dispose();
@@ -150,28 +172,25 @@ class _ScoreOnlyScreenState extends State<_ScoreOnlyScreen> {
       _cmdSub = _ble.commands.listen(
         (cmd) => context.read<ScoringBloc>().add(ScoringEvent.bleCommand(cmd)),
       );
-      _ble.serverSelectActive.addListener(_onServerSelectChanged);
+      
+      // Listener para mostrar diálogo de restart
+      _ble.restartArmed.addListener(_onRestartArmedChanged);
     }();
   }
-
-  void _onServerSelectChanged() {
-    final active = _ble.serverSelectActive.value;
-    if (active && !_serverDialogOpen && mounted) {
-      _serverDialogOpen = true;
-      _showServerSelectDialog();
-    } else if (!active && _serverDialogOpen && mounted) {
-      _serverDialogOpen = false;
-      final nav = Navigator.of(context, rootNavigator: true);
-      if (nav.canPop()) nav.pop();
+  
+  void _onRestartArmedChanged() {
+    final armed = _ble.restartArmed.value;
+    if (armed && !_restartDialogOpen) {
+      _restartDialogOpen = true;
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (_) => _RestartDialog(devId: _ble.restartDevId.value),
+      ).then((_) => _restartDialogOpen = false);
+    } else if (!armed && _restartDialogOpen) {
+      Navigator.of(context, rootNavigator: true).pop();
+      _restartDialogOpen = false;
     }
-  }
-
-  Future<void> _showServerSelectDialog() async {
-    await showDialog<void>(
-      context: context,
-      barrierDismissible: false,
-      builder: (_) => const _ServerSelectDialog(),
-    );
   }
 
   void _toggleRefPanel() {
@@ -272,78 +291,6 @@ class _ScoreOnlyScreenState extends State<_ScoreOnlyScreen> {
   }
 }
 
-class _ServerSelectDialog extends StatelessWidget {
-  const _ServerSelectDialog();
-
-  @override
-  Widget build(BuildContext context) {
-    return Dialog(
-      backgroundColor: Theme.of(context).colorScheme.surface,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(18, 18, 18, 14),
-        child: BlocBuilder<ScoringBloc, ScoringState>(
-          builder: (_, state) {
-            final server = state.match.server;
-            final blueOn = server == Team.blue;
-            final servingText = blueOn ? 'AZUL' : 'ROJO';
-            final blueColor = const Color(0xFF66A3FF);
-            final redColor  = const Color(0xFFFF5757);
-
-            return Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Text(
-                  'Reiniciar juego',
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
-                ),
-                const SizedBox(height: 10),
-                Text(
-                  'Sirve primero: $servingText',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.w800,
-                    color: blueOn ? blueColor : redColor,
-                  ),
-                ),
-                const SizedBox(height: 14),
-                const _InstructionRow(text: '• Presiona P para cambiar entre equipos'),
-                const _InstructionRow(text: '• Presiona G para confirmar'),
-                const _InstructionRow(text: '• Presiona U para cancelar'),
-                const SizedBox(height: 4),
-                Divider(height: 20, color: Theme.of(context).dividerColor),
-                Text(
-                  'Usa el mismo mando que inició el reinicio.',
-                  textAlign: TextAlign.center,
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(.7),
-                      ),
-                ),
-              ],
-            );
-          },
-        ),
-      ),
-    );
-  }
-}
-
-class _InstructionRow extends StatelessWidget {
-  const _InstructionRow({required this.text});
-
-  final String text;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 3),
-      child: Text(text),
-    );
-  }
-}
-
 /// Widget personalizado para botones focusables sin doble-focus
 class _FocusableButton extends StatefulWidget {
   const _FocusableButton({
@@ -407,6 +354,64 @@ class _FocusableButtonState extends State<_FocusableButton> {
         widget.icon,
         color: Colors.white,
         size: _hasFocus ? 26 : 24,
+      ),
+    );
+  }
+}
+
+/// Diálogo simple que muestra feedback cuando se arma restart
+class _RestartDialog extends StatelessWidget {
+  const _RestartDialog({this.devId});
+
+  final int? devId;
+
+  @override
+  Widget build(BuildContext context) {
+    final devIdStr = devId != null 
+        ? '0x${devId!.toRadixString(16).padLeft(4, '0').toUpperCase()}'
+        : 'desconocido';
+    
+    return Dialog(
+      backgroundColor: Colors.black87,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.warning_amber_rounded, color: Colors.orange, size: 64),
+            const SizedBox(height: 24),
+            Text(
+              '🔫 REINICIO ARMADO',
+              style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'Dispositivo: $devIdStr',
+              style: Theme.of(context).textTheme.bodyLarge?.copyWith(color: Colors.white70),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Presiona U (botón negro) para confirmar',
+              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                color: Colors.redAccent,
+                fontWeight: FontWeight.w600,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Presiona P (punto) para cancelar',
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.white54),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
       ),
     );
   }

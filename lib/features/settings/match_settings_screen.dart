@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:Puntazo/config/app_config.dart';
+import 'package:Puntazo/config/team_selection_service.dart';
 import 'package:Puntazo/features/ble/padel_ble_client.dart';
 import 'package:Puntazo/features/scoring/bloc/scoring_bloc.dart';
 import 'package:Puntazo/features/scoring/bloc/scoring_event.dart';
@@ -597,7 +599,7 @@ class _BleContentState extends State<_BleContent> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text('Remote 0x$hex', style: Theme.of(context).textTheme.titleMedium),
-                                Text('Equipo: ${p.team == 'blue' ? 'Azul' : 'Rojo'}'),
+                                Text('Equipo: ${p.team == 'blue' ? 'Verde' : 'Negro'}'),
                               ],
                             ),
                           ),
@@ -607,21 +609,21 @@ class _BleContentState extends State<_BleContent> {
                               p.team == 'blue'
                                   ? FilledButton(
                                       onPressed: () async => await widget.ble.pairAs(p.devId, 'blue'),
-                                      child: const Text('Azul'),
+                                      child: const Text('Verde'),
                                     )
                                   : OutlinedButton(
                                       onPressed: () async => await widget.ble.pairAs(p.devId, 'blue'),
-                                      child: const Text('Azul'),
+                                      child: const Text('Verde'),
                                     ),
                               const SizedBox(width: 8),
                               p.team == 'red'
                                   ? FilledButton(
                                       onPressed: () async => await widget.ble.pairAs(p.devId, 'red'),
-                                      child: const Text('Rojo'),
+                                      child: const Text('Negro'),
                                     )
                                   : OutlinedButton(
                                       onPressed: () async => await widget.ble.pairAs(p.devId, 'red'),
-                                      child: const Text('Rojo'),
+                                      child: const Text('Negro'),
                                     ),
                               const SizedBox(width: 8),
                               IconButton(
@@ -721,12 +723,12 @@ class _BleContentState extends State<_BleContent> {
                               children: [
                                 OutlinedButton(
                                   onPressed: () async => await widget.ble.pairAs(r.devId, 'blue'),
-                                  child: const Text('Azul'),
+                                  child: const Text('Verde'),
                                 ),
                                 const SizedBox(width: 8),
                                 OutlinedButton(
                                   onPressed: () async => await widget.ble.pairAs(r.devId, 'red'),
-                                  child: const Text('Rojo'),
+                                  child: const Text('Negro'),
                                 ),
                               ],
                             ),
@@ -771,6 +773,9 @@ class _AppearanceContentState extends State<_AppearanceContent> {
 
   @override
   Widget build(BuildContext context) {
+    final config = RepositoryProvider.of<AppConfig>(context);
+    final teamService = RepositoryProvider.of<TeamSelectionService>(context);
+    
     return SingleChildScrollView(
       controller: _scrollController,
       child: Column(
@@ -818,7 +823,233 @@ class _AppearanceContentState extends State<_AppearanceContent> {
         _InfoBox(
           text: 'El tema seleccionado se aplicará inmediatamente a toda la aplicación.',
         ),
+        
+        // =======================================================================
+        // NUEVA SECCIÓN: Colores de Equipos
+        // =======================================================================
+        const SizedBox(height: 32),
+        const Divider(),
+        const SizedBox(height: 32),
+        
+        Text('Colores de equipos', style: Theme.of(context).textTheme.headlineSmall),
+        const SizedBox(height: 12),
+        Text(
+          'Selecciona los colores que representarán a cada equipo en el marcador',
+          style: Theme.of(context).textTheme.bodyLarge,
+        ),
+        const SizedBox(height: 24),
+        
+        // Equipo 1 (Izquierda)
+        Text('Equipo 1 (Lado izquierdo)', style: Theme.of(context).textTheme.titleLarge),
+        const SizedBox(height: 12),
+        ValueListenableBuilder<String>(
+          valueListenable: teamService.team1Selection,
+          builder: (_, selectedId, __) {
+            return Wrap(
+              spacing: 12,
+              runSpacing: 12,
+              children: config.availableTeams.map((team) {
+                final isSelected = team.id == selectedId;
+                final color = _hexToColor(team.colorHex);
+                
+                return _ColorTile(
+                  team: team,
+                  color: color,
+                  isSelected: isSelected,
+                  onPressed: () async {
+                    await teamService.setTeam1(team.id);
+                    // El tema se reconstruirá automáticamente por el listener en main.dart
+                  },
+                  scrollController: _scrollController,
+                );
+              }).toList(),
+            );
+          },
+        ),
+        
+        const SizedBox(height: 32),
+        
+        // Equipo 2 (Derecha)
+        Text('Equipo 2 (Lado derecho)', style: Theme.of(context).textTheme.titleLarge),
+        const SizedBox(height: 12),
+        ValueListenableBuilder<String>(
+          valueListenable: teamService.team2Selection,
+          builder: (_, selectedId, __) {
+            return Wrap(
+              spacing: 12,
+              runSpacing: 12,
+              children: config.availableTeams.map((team) {
+                final isSelected = team.id == selectedId;
+                final color = _hexToColor(team.colorHex);
+                
+                return _ColorTile(
+                  team: team,
+                  color: color,
+                  isSelected: isSelected,
+                  onPressed: () async {
+                    await teamService.setTeam2(team.id);
+                    // El tema se reconstruirá automáticamente por el listener en main.dart
+                  },
+                  scrollController: _scrollController,
+                );
+              }).toList(),
+            );
+          },
+        ),
       ],
+      ),
+    );
+  }
+  
+  Color _hexToColor(String hex) {
+    var h = hex.replaceAll('#', '').trim();
+    if (h.length == 6) h = 'FF$h';
+    final v = int.tryParse(h, radix: 16) ?? 0xFF1976D2;
+    return Color(v);
+  }
+}
+
+// =======================================================================
+// Widget para cada opción de color de equipo
+// =======================================================================
+class _ColorTile extends StatefulWidget {
+  final TeamDef team;
+  final Color color;
+  final bool isSelected;
+  final VoidCallback onPressed;
+  final ScrollController? scrollController;
+  
+  const _ColorTile({
+    required this.team,
+    required this.color,
+    required this.isSelected,
+    required this.onPressed,
+    this.scrollController,
+  });
+  
+  @override
+  State<_ColorTile> createState() => _ColorTileState();
+}
+
+class _ColorTileState extends State<_ColorTile> {
+  final FocusNode _focusNode = FocusNode();
+  bool _hasFocus = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _focusNode.addListener(_onFocusChange);
+  }
+
+  @override
+  void dispose() {
+    _focusNode.removeListener(_onFocusChange);
+    _focusNode.dispose();
+    super.dispose();
+  }
+
+  void _onFocusChange() {
+    setState(() {
+      _hasFocus = _focusNode.hasFocus;
+    });
+    
+    if (_hasFocus && widget.scrollController != null && context.mounted) {
+      Future.microtask(() {
+        if (context.mounted) {
+          Scrollable.ensureVisible(
+            context,
+            alignment: 0.5,
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeInOut,
+          );
+        }
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedScale(
+      scale: _hasFocus ? 1.05 : 1.0,
+      duration: const Duration(milliseconds: 150),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(12),
+          border: _hasFocus
+              ? Border.all(
+                  color: Theme.of(context).colorScheme.primary,
+                  width: 4,
+                )
+              : widget.isSelected
+                  ? Border.all(color: widget.color, width: 3)
+                  : Border.all(color: Colors.grey.withOpacity(0.3), width: 1),
+          boxShadow: _hasFocus
+              ? [
+                  BoxShadow(
+                    color: Theme.of(context).colorScheme.primary.withOpacity(0.5),
+                    blurRadius: 20,
+                    spreadRadius: 2,
+                  ),
+                ]
+              : widget.isSelected
+                  ? [
+                      BoxShadow(
+                        color: widget.color.withOpacity(0.4),
+                        blurRadius: 12,
+                        spreadRadius: 1,
+                      ),
+                    ]
+                  : null,
+        ),
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            focusNode: _focusNode,
+            onTap: widget.onPressed,
+            borderRadius: BorderRadius.circular(12),
+            child: Container(
+              width: 140,
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Círculo de color
+                  Container(
+                    width: 60,
+                    height: 60,
+                    decoration: BoxDecoration(
+                      color: widget.color,
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: Colors.white.withOpacity(0.3),
+                        width: 2,
+                      ),
+                    ),
+                    child: widget.isSelected
+                        ? const Icon(Icons.check, color: Colors.white, size: 32)
+                        : null,
+                  ),
+                  const SizedBox(height: 12),
+                  // Nombre del equipo
+                  Text(
+                    widget.team.displayName,
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: widget.isSelected ? FontWeight.bold : FontWeight.normal,
+                      color: widget.isSelected 
+                          ? Theme.of(context).colorScheme.onSurface
+                          : Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
+                    ),
+                    textAlign: TextAlign.center,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
       ),
     );
   }

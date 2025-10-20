@@ -305,10 +305,10 @@ GamePoints _$GamePointsFromJson(Map<String, dynamic> json) {
 
 /// @nodoc
 mixin _$GamePoints {
-  /// Puntos del equipo azul en el juego actual
+  /// Puntos del equipo verde en el juego actual
   int get blue => throw _privateConstructorUsedError;
 
-  /// Puntos del equipo rojo en el juego actual
+  /// Puntos del equipo negro en el juego actual
   int get red => throw _privateConstructorUsedError;
 
   /// Indica si el juego actual es un tie-break
@@ -442,12 +442,12 @@ class _$GamePointsImpl implements _GamePoints {
   factory _$GamePointsImpl.fromJson(Map<String, dynamic> json) =>
       _$$GamePointsImplFromJson(json);
 
-  /// Puntos del equipo azul en el juego actual
+  /// Puntos del equipo verde en el juego actual
   @override
   @JsonKey()
   final int blue;
 
-  /// Puntos del equipo rojo en el juego actual
+  /// Puntos del equipo negro en el juego actual
   @override
   @JsonKey()
   final int red;
@@ -503,11 +503,11 @@ abstract class _GamePoints implements GamePoints {
   factory _GamePoints.fromJson(Map<String, dynamic> json) =
       _$GamePointsImpl.fromJson;
 
-  /// Puntos del equipo azul en el juego actual
+  /// Puntos del equipo verde en el juego actual
   @override
   int get blue;
 
-  /// Puntos del equipo rojo en el juego actual
+  /// Puntos del equipo negro en el juego actual
   @override
   int get red;
 
@@ -531,10 +531,10 @@ SetScore _$SetScoreFromJson(Map<String, dynamic> json) {
 
 /// @nodoc
 mixin _$SetScore {
-  /// Juegos ganados por el equipo azul en este set
+  /// Juegos ganados por el equipo verde en este set
   int get blueGames => throw _privateConstructorUsedError;
 
-  /// Juegos ganados por el equipo rojo en este set
+  /// Juegos ganados por el equipo negro en este set
   int get redGames => throw _privateConstructorUsedError;
 
   /// Puntos del juego actual dentro del set
@@ -726,12 +726,12 @@ class _$SetScoreImpl implements _SetScore {
   factory _$SetScoreImpl.fromJson(Map<String, dynamic> json) =>
       _$$SetScoreImplFromJson(json);
 
-  /// Juegos ganados por el equipo azul en este set
+  /// Juegos ganados por el equipo verde en este set
   @override
   @JsonKey()
   final int blueGames;
 
-  /// Juegos ganados por el equipo rojo en este set
+  /// Juegos ganados por el equipo negro en este set
   @override
   @JsonKey()
   final int redGames;
@@ -812,11 +812,11 @@ abstract class _SetScore implements SetScore {
   factory _SetScore.fromJson(Map<String, dynamic> json) =
       _$SetScoreImpl.fromJson;
 
-  /// Juegos ganados por el equipo azul en este set
+  /// Juegos ganados por el equipo verde en este set
   @override
   int get blueGames;
 
-  /// Juegos ganados por el equipo rojo en este set
+  /// Juegos ganados por el equipo negro en este set
   @override
   int get redGames;
 
@@ -861,10 +861,10 @@ mixin _$MatchScore {
   /// Equipo que recibe actualmente
   Team get receiver => throw _privateConstructorUsedError;
 
-  /// Nombre del equipo azul
+  /// Nombre del equipo verde
   String get blueName => throw _privateConstructorUsedError;
 
-  /// Nombre del equipo rojo
+  /// Nombre del equipo negro
   String get redName => throw _privateConstructorUsedError;
 
   /// Indica si el partido está en pausa
@@ -1089,8 +1089,8 @@ class _$MatchScoreImpl extends _MatchScore {
     this.currentSetIndex = 0,
     this.server = Team.blue,
     this.receiver = Team.red,
-    this.blueName = 'Azul',
-    this.redName = 'Rojo',
+    this.blueName = 'Verde',
+    this.redName = 'Negro',
     this.paused = false,
     this.settings = const MatchSettings(),
   }) : _sets = sets,
@@ -1126,12 +1126,12 @@ class _$MatchScoreImpl extends _MatchScore {
   @JsonKey()
   final Team receiver;
 
-  /// Nombre del equipo azul
+  /// Nombre del equipo verde
   @override
   @JsonKey()
   final String blueName;
 
-  /// Nombre del equipo rojo
+  /// Nombre del equipo negro
   @override
   @JsonKey()
   final String redName;
@@ -1230,11 +1230,11 @@ abstract class _MatchScore extends MatchScore {
   @override
   Team get receiver;
 
-  /// Nombre del equipo azul
+  /// Nombre del equipo verde
   @override
   String get blueName;
 
-  /// Nombre del equipo rojo
+  /// Nombre del equipo negro
   @override
   String get redName;
 
