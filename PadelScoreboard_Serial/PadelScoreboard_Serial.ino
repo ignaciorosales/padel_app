@@ -34,22 +34,26 @@ static const uint8_t PROTO_VER = 0x01;
 
 Adafruit_VL6180X TOF;   // TOF050C (VL6180)
 
-// === TOF tuning ===
-const uint16_t TOF_MIN_MM       = 10;    // ignora “casi pegado”
-const uint16_t TOF_THRESH_MM    = 200;   // ≤ 20 cm “dentro de zona”
-const uint16_t TOF_RELEASE_MM   = 220;   // ≥ 22 cm “fuera de zona” (histéresis)
-const uint16_t TOF_HOLD_MS      = 1000;  // 1 s quieto
-const uint16_t TOF_COOLDOWN_MS  = 1000;  // anti-doble
-const uint16_t TOF_SAMPLE_MS    = 60;    // ~16 Hz
-const uint16_t TOF_RELEASE_HOLD = 150;   // 150 ms lejos para rearmar (anti-serrucho)
-const uint16_t TOF_MAX_MOTION   = 15;    // máx. variación dentro del hold (mm)
+// === TOF tuning OPTIMIZADO ===
+const uint16_t TOF_MAX_MM       = 400;   // ≤ 40 cm "dentro de zona"
+const uint16_t TOF_THRESH_MM    = 400;   // umbral de detección
+const uint16_t TOF_RELEASE_MM   = 500;   // debe alejarse >50cm para rearmar
+const uint16_t TOF_HOLD_MS      = 600;   // 0.6s quieto antes de disparar
+const uint16_t TOF_RELEASE_HOLD = 300;   // 0.3s lejos antes de rearmar
+const uint16_t TOF_COOLDOWN_MS  = 2000;  // 2s anti-doble BULLET PROOF
+const uint16_t TOF_MAX_MOTION   = 15;    // máx 15mm de movimiento para considerar "quieto"
+const uint16_t TOF_SAMPLE_MS    = 40;    // 25 Hz para mejor respuesta
+
+// === ANTI-DOBLE PUNTO GLOBAL: 4 segundos entre puntos ===
+const uint32_t POINT_COOLDOWN_MS = 4000;  // 4s entre puntos (IMPOSIBLE marcar doble)
+static uint32_t lastPointMs = 0;           // Timestamp del último punto marcado
 
 struct {
   uint32_t enterMs      = 0;
   uint32_t lastFireMs   = 0;
   uint32_t lastSampleMs = 0;
+  uint16_t lastDist     = 0;
   bool     armed        = true;
-  uint16_t lastDist     = 999;
 } tofState;
 
 // ======= Estado del marcador =======
@@ -73,7 +77,7 @@ static void popHistory() { if (histSize > 0) score = history[--histSize]; }
 
 static int lastP = HIGH, lastU = HIGH, lastG = HIGH;
 static unsigned long tP = 0, tU = 0, tG = 0;
-static const unsigned long DEBOUNCE_MS = 40;
+static const unsigned long DEBOUNCE_MS = 80;  // Balance óptimo: respuesta rápida + anti-rebote
 
 static inline bool edgePressed(int pin, int &last, unsigned long &tMark) {
   const int st = digitalRead(pin);
@@ -186,7 +190,7 @@ static void applyAdvPayload(char cmd) {
   adv->start();
 }
 
-// Ráfaga de anuncios para aumentar probabilidad de captura
+// Ráfaga OPTIMIZADA: 4 paquetes con 40ms gap + STOP advertising para evitar flooding
 static void sendCmdBurst(char c, int n = 4, int gapMs = 40, bool debug = false) {
   for (int i = 0; i < n; ++i) {
     gSeq = (gSeq == 255) ? 1 : (uint8_t)(gSeq + 1);
@@ -194,8 +198,13 @@ static void sendCmdBurst(char c, int n = 4, int gapMs = 40, bool debug = false) 
     if (debug && i == 0) {
       Serial.printf("  [TX devId=0x%04X cmd='%c' seq=%u]\n", gDeviceId, c, gSeq);
     }
-    if (i < n - 1) delay(gapMs); // 40ms entre ráfagas
+    if (i < n - 1) delay(gapMs);
   }
+  
+  // ▲ ANTI-FLOODING: Detener advertising después de ráfaga
+  // Evita transmisión continua del mismo comando (ahorro energía + reduce ruido BLE)
+  delay(50); // Dar tiempo a que salgan los últimos paquetes
+  adv->stop();
 }
 
 // Inicializa BLE "beacon" con máxima potencia e intervalos agresivos
@@ -210,14 +219,17 @@ static void setupBroadcast() {
   // ▲ Sin scan response: menos overhead, captura más simple
   adv->setScanResponse(false);
 
-  // ▲ Intervalos cortos: 50-62.5 ms (unidades de 0.625ms)
-  //   80 = 50ms  /  100 = 62.5ms
-  adv->setMinInterval(80);
-  adv->setMaxInterval(100);
+  // ▲ Intervalos BLE 5.0 AGRESIVOS: 40-50 ms para máxima captura
+  //   64 = 40ms  /  80 = 50ms (unidades de 0.625ms)
+  adv->setMinInterval(64);
+  adv->setMaxInterval(80);
   
   // ▲ Advertising no-conectable: más eficiente (implícito en advertising beacon)
 
   applyAdvPayload('p'); // estado neutro
+  
+  // ▲ ANTI-FLOODING: Iniciar detenido, solo transmitir en ráfagas
+  adv->stop();
 }
 
 // ======= Serial helpers =======
@@ -276,7 +288,7 @@ void setup() {
   if (!TOF.begin()) {
     Serial.println(F("VL6180 (TOF050C) NO encontrado — revisa cableado (VIN, GND, SDA=2, SCL=3)."));
   } else {
-    Serial.println(F("VL6180 (TOF050C) OK — listo para medir a <20 cm con HOLD=1s."));
+    Serial.println(F("VL6180 (TOF050C) OK — <40cm + HOLD=0.6s + COOLDOWN=2s (anti-doble)"));
   }
 
   resetMatch(score);
@@ -294,20 +306,28 @@ void setup() {
 }
 
 void loop() {
-  // --- Botones físicos (con ráfaga de 4 paquetes) ---
+  // --- Botones físicos (ráfaga 4 paquetes para máxima confiabilidad) ---
   if (edgePressed(BTN_P, lastP, tP)) {
-    Serial.printf("BTN P → BURST 'p' (4 pkts)\n");
-    sendCmdBurst('p', 4, 40, true); // Debug activado
+    // ▲ ANTI-DOBLE: Verificar cooldown de 4s
+    const uint32_t now = millis();
+    if (now - lastPointMs >= POINT_COOLDOWN_MS) {
+      Serial.printf("BTN P → BURST 'p' (4 pkts)\n");
+      sendCmdBurst('p'); // usa defaults: 4 paquetes, 40ms gap
+      lastPointMs = now; // Actualizar timestamp
+    } else {
+      const uint32_t remaining = POINT_COOLDOWN_MS - (now - lastPointMs);
+      Serial.printf("❌ BTN P BLOQUEADO (cooldown: %ums restantes)\n", remaining);
+    }
   }
   if (edgePressed(BTN_U, lastU, tU)) {
     Serial.printf("BTN U → BURST 'u' (4 pkts)\n");
-    sendCmdBurst('u', 4, 40, true);
+    sendCmdBurst('u');
   }
   if (edgePressed(BTN_G, lastG, tG)) {
     pushHistory();
     resetGame(score);
     Serial.printf("BTN G → BURST 'g' (4 pkts)\n");
-    sendCmdBurst('g', 4, 40, true);
+    sendCmdBurst('g');
     printScoreboard(score);
   }
 
@@ -329,7 +349,7 @@ void loop() {
         }
         if (sendBurst) {
           Serial.printf("BURST '%c' (4 pkts)\n", c);
-          sendCmdBurst(c, 4, 40, true);
+          sendCmdBurst(c); // usa defaults: 4 paquetes, 40ms gap
         }
       }
     }
@@ -348,7 +368,7 @@ void loop() {
       static uint32_t farSinceMs = 0;
 
       bool valid  = (st == 0);
-      bool inZone = valid && (d >= TOF_MIN_MM) && (d <= TOF_THRESH_MM);
+      bool inZone = valid && (d <= TOF_THRESH_MM);  // Sin mínimo: detecta desde 0mm
       bool farZone = (!valid) || (d >= TOF_RELEASE_MM);
 
       if (tofState.armed) {
@@ -366,13 +386,21 @@ void loop() {
           if ((nowMs - tofState.enterMs) >= TOF_HOLD_MS &&
               (nowMs - tofState.lastFireMs) >= TOF_COOLDOWN_MS) {
 
-            // === DISPARO: AGREGAR PUNTO (con ráfaga) ===
-            Serial.printf("TOF → BURST 'p' (4 pkts)  (d=%umm)\n", d);
-            sendCmdBurst('p', 4, 40, true);
+            // ▲ ANTI-DOBLE: Verificar cooldown global de 4s
+            if (nowMs - lastPointMs >= POINT_COOLDOWN_MS) {
+              // === DISPARO: AGREGAR PUNTO (con ráfaga) ===
+              Serial.printf("TOF → BURST 'p' (4 pkts)  (d=%umm)\n", d);
+              sendCmdBurst('p', 4, 40, true);
 
-            tofState.lastFireMs = nowMs;
-            tofState.armed = false;     // desarmar hasta que se aleje
-            farSinceMs = 0;
+              tofState.lastFireMs = nowMs;
+              lastPointMs = nowMs;          // Actualizar timestamp global
+              tofState.armed = false;       // desarmar hasta que se aleje
+              farSinceMs = 0;
+            } else {
+              const uint32_t remaining = POINT_COOLDOWN_MS - (nowMs - lastPointMs);
+              Serial.printf("❌ TOF BLOQUEADO (cooldown global: %ums restantes)\n", remaining);
+              tofState.enterMs = nowMs;     // Reiniciar hold para reintentar después
+            }
           }
         } else {
           tofState.enterMs = 0;         // fuera de zona → cancela hold
