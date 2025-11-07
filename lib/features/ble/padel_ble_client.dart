@@ -9,6 +9,8 @@ import 'package:flutter_reactive_ble/flutter_reactive_ble.dart'
 import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'ble_telemetry.dart';
+
 /// Frame broadcast por el ESP32:
 /// 12B: [FF,FF,'P','S',ver,devLo,devHi,'C',cmd,seq,crcLo,crcHi]
 /// 10B: ['P','S',ver,devLo,devHi,'C',cmd,seq,crcLo,crcHi]
@@ -43,14 +45,48 @@ class PadelBleClient {
   final ValueNotifier<bool> restartArmed = ValueNotifier<bool>(false);
   final ValueNotifier<int?> restartDevId = ValueNotifier<int?>(null);
 
+  // ▲ TELEMETRÍA: Medir latencias en tiempo real
+  final telemetry = BleTelemetry();
+
+  /// ▲ TEST HELPER: Inyectar comandos simulados (pasan por stream → bloc → UI)
+  void emitTestCommand(String cmd) {
+    _commandsCtrl.add(cmd);
+  }
+
+  late final StreamSubscription<BleStatus> _statusSub;
+  bool _scanRestarting = false; // ▲ GUARD: Evitar carreras entre watchdog/lifecycle/status
+
   PadelBleClient({String targetName = "PadelScore-C3"}) : _targetName = targetName {
-    _ble.statusStream.listen((s) {
+    _statusSub = _ble.statusStream.listen((s) async {
       if (kDebugMode) print('[BLE] status=$s');
       bleStatus.value = s;
+      
+      // ▲ AUTO-RESTART: Si BLE vuelve a estar ready y no tenemos scan activo, reiniciar
+      if (s == BleStatus.ready && _scanSub == null) {
+        if (kDebugMode) debugPrint('[BLE] Status ready, restarting scan...');
+        await safeRestartScan();
+      }
+      // ▲ AUTO-STOP: Si BLE deja de estar ready, detener scan
+      if (s != BleStatus.ready && _scanSub != null) {
+        if (kDebugMode) debugPrint('[BLE] Status not ready, stopping scan...');
+        await stopListening();
+      }
     });
   }
 
   static const int _protoVer = 0x01;
+  
+  // ========== OPTIMIZACIÓN LATENCIA ==========
+  static const bool _verbose = false; // Solo para debugging extremo
+  static const int _minRssi = -95; // Filtrar ruido débil
+  
+  // ========== WATCHDOG ANTI-STALL ==========
+  DateTime _lastRx = DateTime.fromMillisecondsSinceEpoch(0);
+  Timer? _watchdog;
+  Timer? _periodicKick;
+  static const _stallThreshold = Duration(seconds: 20); // Considerar stalled si no hay frames en 20s
+  static const _watchdogInterval = Duration(seconds: 7); // Verificar cada 7s
+  static const _periodicRestart = Duration(minutes: 10); // Restart preventivo cada 10min
 
   final FlutterReactiveBle _ble = FlutterReactiveBle();
   final String _targetName;
@@ -88,13 +124,20 @@ class PadelBleClient {
   final _lastCmdByDev = <int, int>{}; // Último comando procesado
   static const _minCmdInterval = Duration(milliseconds: 300); // 300ms = permite rallies rápidos
   
-  // Set-based seq deduplication: IMPOSIBLE marcar dos veces con mismo seq
-  final _processedSeqs = <int, Set<int>>{}; // deviceId -> Set de seqs procesados
+  // ▲ FIFO queue-based seq deduplication: O(1) en lugar de O(n)
+  final _processedSeqs = <int, List<int>>{}; // deviceId -> Queue circular de seqs procesados
   static const _maxSeqHistory = 30; // Mantener últimos 30 seqs
+  final _seqHeadIndex = <int, int>{}; // deviceId -> índice circular del head
   
   // === ANTI-DOBLE PUNTO: 4 segundos entre puntos por dispositivo ===
   final _lastPointTimeByDev = <int, DateTime>{}; // Timestamp del último punto
   static const _pointCooldown = Duration(seconds: 4); // 4s entre puntos
+
+  // === TELEMETRY: Timestamps parciales para medir latencia total ===
+  final _telemetryPendingRx = <int, int>{}; // devId -> rxTimestamp (µs)
+  final _telemetryPendingParse = <int, int>{}; // devId -> parseLatency (µs)
+  final _telemetryPendingDedup = <int, int>{}; // devId -> dedupLatency (µs)
+  final _telemetryPendingCooldown = <int, int>{}; // devId -> cooldownLatency (µs)
 
   // Cache de descubrimiento
   final _discovered = <int, DiscoveredRemote>{};
@@ -111,22 +154,40 @@ class PadelBleClient {
   Timer? _restartTimer;
 
   Timer? _discoverTimer;
+  Timer? _discoverPushTimer; // ▲ Timer para actualizar UI de descubrimiento sin bloquear hot path
 
   // ===================== Persistencia =====================
 
   Future<void> _loadPersisted() async {
-    final p = await SharedPreferences.getInstance();
-    final teamMapStr = p.getString('teams_map') ?? '{}';
-    final map = Map<String, dynamic>.from(jsonDecode(teamMapStr));
-    _teamByDev
-      ..clear()
-      ..addAll(map.map((k, v) => MapEntry(int.parse(k, radix: 16), (v as String))));
+    try {
+      final p = await SharedPreferences.getInstance();
+      final teamMapStr = p.getString('teams_map') ?? '{}';
+      final map = Map<String, dynamic>.from(jsonDecode(teamMapStr));
+      _teamByDev
+        ..clear()
+        ..addAll(map.map((k, v) => MapEntry(int.parse(k, radix: 16), (v as String))));
+    } catch (e, st) {
+      // ▲ CRASH SAFETY: Si falla la carga, mantener vacío (no crashear la app)
+      if (kDebugMode) {
+        debugPrint('[BLE] ⚠️ Error loading persisted teams: $e');
+        debugPrint('[BLE] Stack trace: $st');
+        debugPrint('[BLE] Starting with empty team map...');
+      }
+      _teamByDev.clear();
+    }
   }
 
   Future<void> _saveTeams() async {
-    final p = await SharedPreferences.getInstance();
-    final map = _teamByDev.map((k, v) => MapEntry(k.toRadixString(16), v));
-    await p.setString('teams_map', jsonEncode(map));
+    try {
+      final p = await SharedPreferences.getInstance();
+      final map = _teamByDev.map((k, v) => MapEntry(k.toRadixString(16), v));
+      await p.setString('teams_map', jsonEncode(map));
+    } catch (e) {
+      // ▲ CRASH SAFETY: Si falla el guardado, loguear pero no crashear
+      if (kDebugMode) {
+        debugPrint('[BLE] ⚠️ Error saving teams: $e');
+      }
+    }
   }
 
   void _publishPaired() {
@@ -139,13 +200,59 @@ class PadelBleClient {
   }
 
   Future<void> init() async {
-    await _loadPersisted();
-    // Inicializar Sets de seq dedup para todos los dispositivos pareados
-    for (final devId in _teamByDev.keys) {
-      _processedSeqs[devId] = <int>{};
-      _lastPointTimeByDev[devId] = DateTime.fromMillisecondsSinceEpoch(0); // Epoch = permite primer punto
+    try {
+      await _loadPersisted();
+      // Inicializar queues circulares de seq dedup para todos los dispositivos pareados
+      for (final devId in _teamByDev.keys) {
+        _processedSeqs[devId] = List<int>.filled(_maxSeqHistory, -1); // -1 = slot vacío
+        _seqHeadIndex[devId] = 0;
+        _lastPointTimeByDev[devId] = DateTime.fromMillisecondsSinceEpoch(0); // Epoch = permite primer punto
+      }
+      _publishPaired();
+      _startWatchdog();
+    } catch (e, st) {
+      // ▲ CRASH SAFETY: Si falla init, continuar con estado vacío
+      if (kDebugMode) {
+        debugPrint('[BLE] ⚠️ Error during init: $e');
+        debugPrint('[BLE] Stack trace: $st');
+        debugPrint('[BLE] Continuing with empty state...');
+      }
+      _startWatchdog(); // Watchdog debe iniciarse siempre
     }
-    _publishPaired();
+  }
+
+  void _startWatchdog() {
+    _watchdog?.cancel();
+    _watchdog = Timer.periodic(_watchdogInterval, (_) {
+      // ▲ SYNC callback: No usar async/await para evitar contención con _onDevice
+      // Si BLE no está ready, no hacer nada
+      if (bleStatus.value != BleStatus.ready) return;
+
+      final idle = DateTime.now().difference(_lastRx);
+      if (idle > _stallThreshold) {
+        // Scan stalled: reiniciar (sin await, lanzar en microtask)
+        if (kDebugMode) {
+          debugPrint('[BLE WATCHDOG] 🚨 Scan stalled (${idle.inSeconds}s sin frames), reiniciando...');
+        }
+        Future.microtask(() => safeRestartScan());
+      }
+    });
+  }
+
+  /// ▲ SAFE RESTART: Evita carreras cuando múltiples cosas piden restart
+  Future<void> safeRestartScan() async {
+    if (_scanRestarting) {
+      if (kDebugMode) debugPrint('[BLE] Restart already in progress, skipping...');
+      return;
+    }
+    _scanRestarting = true;
+    try {
+      await stopListening();
+      await Future.delayed(const Duration(milliseconds: 300));
+      await startListening();
+    } finally {
+      _scanRestarting = false;
+    }
   }
 
   Future<void> refreshPaired() async {
@@ -158,6 +265,9 @@ class PadelBleClient {
   Future<void> startListening() async {
     if (_scanSub != null) return;
     await _ensurePermissions();
+    
+    // Marcar inicio de scan como última recepción
+    _lastRx = DateTime.now();
     
     // ▲ ESCANEO AGRESIVO: Máxima frecuencia para capturar todos los paquetes
     //   - ScanMode.lowLatency: escaneo continuo sin delays
@@ -172,22 +282,35 @@ class PadelBleClient {
       cancelOnError: false,
     );
     
-    if (kDebugMode) print('[BLE] 🚀 Escaneo agresivo activado (LOW_LATENCY)');
+    // ▲ PERIODIC RESTART: Reinicio preventivo cada 10 minutos (vendor quirks)
+    _periodicKick?.cancel();
+    _periodicKick = Timer.periodic(_periodicRestart, (_) async {
+      if (kDebugMode) debugPrint('[BLE] 🔄 Periodic scan restart (preventive)');
+      await safeRestartScan();
+    });
+    
+    if (kDebugMode) print('[BLE] 🚀 Escaneo agresivo activado (LOW_LATENCY + watchdog + periodic)');
   }
 
   Future<void> stopListening() async {
     await _scanSub?.cancel();
     _scanSub = null;
+    _periodicKick?.cancel();
+    _periodicKick = null;
     clearDiscovered();
   }
 
-  void dispose() {
-    stopListening();
-    _commandsCtrl.close();
-    _discoveredCtrl.close();
-    _pairedCtrl.close();
-    _advCtrl.close();
-    _rawFramesCtrl.close();
+  /// ▲ ASYNC DISPOSE: Espera a que cierre el scan correctamente
+  Future<void> dispose() async {
+    _watchdog?.cancel();
+    _watchdog = null;
+    await stopListening();
+    await _statusSub.cancel();
+    await _commandsCtrl.close();
+    await _discoveredCtrl.close();
+    await _pairedCtrl.close();
+    await _advCtrl.close();
+    await _rawFramesCtrl.close();
     restartArmed.dispose();
     restartDevId.dispose();
   }
@@ -196,7 +319,8 @@ class PadelBleClient {
 
   Future<void> pairAs(int devId, String team) async {
     _teamByDev[devId] = (team == 'blue') ? 'blue' : 'red';
-    _processedSeqs[devId] = <int>{}; // Inicializar Set para seq dedup
+    _processedSeqs[devId] = List<int>.filled(_maxSeqHistory, -1); // Queue circular
+    _seqHeadIndex[devId] = 0;
     _lastPointTimeByDev[devId] = DateTime.fromMillisecondsSinceEpoch(0); // Epoch = permite primer punto
     await _saveTeams();
     _publishPaired();
@@ -209,7 +333,8 @@ class PadelBleClient {
     _lastSeqByDev.remove(devId);
     _lastCmdTimeByDev.remove(devId);
     _lastCmdByDev.remove(devId);
-    _processedSeqs.remove(devId); // Limpiar Set de seq dedup
+    _processedSeqs.remove(devId); // Limpiar queue de seq dedup
+    _seqHeadIndex.remove(devId); // Limpiar índice circular
     _lastPointTimeByDev.remove(devId); // Limpiar timestamp de punto
     await _saveTeams();
     _publishPaired();
@@ -225,11 +350,19 @@ class PadelBleClient {
     clearDiscovered();
     _discoverTimer?.cancel();
     _discoverTimer = Timer(window, cancelDiscovery);
+    
+    // ▲ OPTIMIZACIÓN: Actualizar UI cada 500ms en lugar de en cada paquete BLE
+    _discoverPushTimer?.cancel();
+    _discoverPushTimer = Timer.periodic(const Duration(milliseconds: 500), (_) {
+      _pushDiscovered();
+    });
   }
 
   void cancelDiscovery() {
     _discoverTimer?.cancel();
     _discoverTimer = null;
+    _discoverPushTimer?.cancel();
+    _discoverPushTimer = null;
     discoveryArmed.value = false;
     clearDiscovered();
   }
@@ -300,59 +433,125 @@ class PadelBleClient {
            cmd == 'b'.codeUnitAt(0);   // legacy
   }
 
-  void _onDevice(DiscoveredDevice d) {
-    final t0 = DateTime.now(); // ⏱️ Timestamp de recepción BLE
-    final Uint8List md = d.manufacturerData;
-    if (md.isEmpty) return;
+  /// Helper para emitir comando y registrar telemetría
+  void _emitWithTelemetry(String cmd, int devId) {
+    final emitUs = DateTime.now().microsecondsSinceEpoch;
+    
+    // Emitir comando al stream
+    _commandsCtrl.add(cmd);
+    
+    // Registrar telemetría si hay datos pendientes
+    final rxUs = _telemetryPendingRx[devId];
+    if (rxUs != null && BleTelemetry.enabled) {
+      final measurement = LatencyMeasurement(
+        devId: devId,
+        cmd: cmd,
+        rxTimestampUs: rxUs,
+        emitTimestampUs: emitUs,
+        parseUs: _telemetryPendingParse[devId],
+        dedupUs: _telemetryPendingDedup[devId],
+        cooldownUs: _telemetryPendingCooldown[devId],
+      );
+      
+      telemetry.record(measurement);
+      
+      // Log si verbose está activo
+      if (kDebugMode && _verbose) {
+        telemetry.logLast();
+      }
+      
+      // Limpiar pending
+      _telemetryPendingRx.remove(devId);
+      _telemetryPendingParse.remove(devId);
+      _telemetryPendingDedup.remove(devId);
+      _telemetryPendingCooldown.remove(devId);
+    }
+  }
 
-    // ▲ OPTIMIZACIÓN: parsing rápido sin crear objetos innecesarios
-    final frame = _parse(md);
-    if (frame == null) return; // Silenciar logs de paquetes no coincidentes para reducir overhead
+  void _onDevice(DiscoveredDevice d) {
+    try {
+      // ▲ TELEMETRY: Timestamp inicial (microsegundos)
+      final int rxUs = DateTime.now().microsecondsSinceEpoch;
+      
+      // ▲ FILTRO RSSI: Descartar señales débiles (ruido) ANTES de parsear
+      if (d.rssi < _minRssi) return;
+      
+      // ▲ WATCHDOG: Un solo timestamp en millis (más barato que DateTime múltiples)
+      final int nowMs = rxUs ~/ 1000; // Reusar timestamp para watchdog
+      _lastRx = DateTime.fromMillisecondsSinceEpoch(nowMs);
+      
+      final Uint8List md = d.manufacturerData;
+      final int len = md.length;
+      if (len == 0) return;
+
+      // ▲ FAST-PATH PARSE: Tu FW emite EXACTO 12B o 10B (sin padding)
+      BleFrame? frame;
+      if (len == 12) {
+        // 0xFF,0xFF,'P','S',ver,devLo,devHi,'C',cmd,seq,crcLo,crcHi
+        if (md[0] == 0xFF && md[1] == 0xFF && md[2] == 0x50 && md[3] == 0x53 && 
+            md[4] == _protoVer && md[7] == 0x43) {
+          final calc = _crc16Ccitt(md.sublist(2, 10));
+          final rx = md[10] | (md[11] << 8);
+          if (calc == rx) {
+            final devId = md[5] | (md[6] << 8);
+            frame = BleFrame(devId: devId, seq: md[9], cmd: md[8]);
+          }
+        }
+      } else if (len == 10) {
+        // 'P','S',ver,devLo,devHi,'C',cmd,seq,crcLo,crcHi
+        if (md[0] == 0x50 && md[1] == 0x53 && md[2] == _protoVer && md[5] == 0x43) {
+          final calc = _crc16Ccitt(md.sublist(0, 8));
+          final rx = md[8] | (md[9] << 8);
+          if (calc == rx) {
+            final devId = md[3] | (md[4] << 8);
+            frame = BleFrame(devId: devId, seq: md[7], cmd: md[6]);
+          }
+        }
+      } else {
+        return; // ▲ Longitud inesperada = no es nuestro protocolo
+      }
+      
+      if (frame == null) return;
+    
+    // ▲ TELEMETRY: Tiempo de parse
+    final int parseEndUs = DateTime.now().microsecondsSinceEpoch;
+    final int parseUs = parseEndUs - rxUs;
     
     _rawFramesCtrl.add(frame);
     
-    // ▲ DEBUG SILENCIADO: Solo loguear en modo verbose (descomentar para activar)
-    // if (kDebugMode) {
-    //   final t1 = DateTime.now();
-    //   final parseLatency = t1.difference(t0).inMicroseconds;
-    //   debugPrint('[⏱️ RX] devId=0x${frame.devId.toRadixString(16).padLeft(4, '0')} '
-    //              'cmd=${String.fromCharCode(frame.cmd)} seq=${frame.seq} rssi=${d.rssi} | '
-    //              'parse=${parseLatency}µs');
-    // }
+    // ▲ VERBOSE LOG: Solo con flag explícito (comentar en producción)
+    if (kDebugMode && _verbose) {
+      print('[⚡ RX] dev=0x${frame.devId.toRadixString(16).padLeft(4, '0')} '
+            'cmd=${String.fromCharCode(frame.cmd)} seq=${frame.seq} rssi=${d.rssi}');
+    }
 
     final devId = frame.devId;
-    final now = DateTime.now();
     final paired = isPaired(devId);
 
     // ===== WARM-UP: primera vez que vemos al device
-    //   Guardamos la seq para futura deduplicación
     final seenBefore = _lastSeqByDev.containsKey(devId);
     if (!seenBefore) {
       _lastSeqByDev[devId] = frame.seq;
-      _lastCmdTimeByDev[devId] = DateTime.fromMillisecondsSinceEpoch(0); // Epoch = permite primera pulsación
-      _lastCmdByDev[devId] = 0; // Sin comando previo
-      if (kDebugMode) debugPrint('[WARM-UP] dev=0x${devId.toRadixString(16).padLeft(4, '0')} '
-                                 'seq=${frame.seq} - primera vez visto');
+      _lastCmdTimeByDev[devId] = DateTime.fromMillisecondsSinceEpoch(0);
+      _lastCmdByDev[devId] = 0;
 
       // Descubrimiento si está armado y es pulsación válida
       if (discoveryArmed.value && _isPressForDiscovery(frame.cmd)) {
-        _discovered[devId] = DiscoveredRemote(devId: devId, rssi: d.rssi, lastSeen: now);
-        _pushDiscovered();
+        _discovered[devId] = DiscoveredRemote(
+          devId: devId, 
+          rssi: d.rssi, 
+          lastSeen: DateTime.fromMillisecondsSinceEpoch(nowMs)
+        );
       }
 
-      // ▼ Si NO está paireado, ignorar comandos (solo permitir descubrimiento)
-      if (!paired) {
-        if (kDebugMode) debugPrint('[WARM-UP] dev not paired - ignoring command');
-        return;
-      }
+      // Si NO está paireado, ignorar comandos
+      if (!paired) return;
       
-      // ▼ Si SÍ está paireado y es 'g', arma restart
-      if (frame.cmd == 'g'.codeUnitAt(0)) {
+      // Si SÍ está paireado y es 'g', arma restart
+      if (frame.cmd == 0x67) { // 'g'
         _armRestart(devId);
         return;
       }
-      
-      // ▼ Continuar procesando comando normalmente (caerá en la lógica de scoring abajo)
     } else {
       // Ya visto antes: verificar si es nueva secuencia
       final lastSeq = _lastSeqByDev[devId]!;
@@ -362,192 +561,149 @@ class PadelBleClient {
       if (discoveryArmed.value && isNewSeq && _isPressForDiscovery(frame.cmd)) {
         final prev = _discovered[devId];
         if (prev == null) {
-          _discovered[devId] = DiscoveredRemote(devId: devId, rssi: d.rssi, lastSeen: now);
+          _discovered[devId] = DiscoveredRemote(
+            devId: devId, 
+            rssi: d.rssi, 
+            lastSeen: DateTime.fromMillisecondsSinceEpoch(nowMs)
+          );
         } else {
           prev.rssi = d.rssi;
-          prev.lastSeen = now;
+          prev.lastSeen = DateTime.fromMillisecondsSinceEpoch(nowMs);
         }
-        _pushDiscovered();
       }
       
-      _lastSeqByDev[devId] = frame.seq; // siempre avanzamos seq
+      _lastSeqByDev[devId] = frame.seq;
       
-      // ▲ SET-BASED DEDUP: Verificar si este seq ya fue procesado (BULLETPROOF)
-      final processedSet = _processedSeqs[devId];
-      if (processedSet != null && processedSet.contains(frame.seq)) {
-        // Silencioso: paquete duplicado de ráfaga (normal, esperado)
-        return; // ← IMPOSIBLE procesar mismo seq dos veces
+      // ▲ QUEUE-BASED DEDUP: Búsqueda lineal O(30) en queue circular
+      final int dedupStartUs = DateTime.now().microsecondsSinceEpoch;
+      final seqQueue = _processedSeqs[devId];
+      if (seqQueue != null) {
+        bool alreadyProcessed = false;
+        for (int i = 0; i < _maxSeqHistory; i++) {
+          if (seqQueue[i] == frame.seq) {
+            alreadyProcessed = true;
+            break;
+          }
+        }
+        if (alreadyProcessed) return;
       }
+      final int dedupUs = DateTime.now().microsecondsSinceEpoch - dedupStartUs;
       
-      if (!isNewSeq) {
-        // Silencioso: seq ya visto (normal con ráfagas)
-        return; // re-emisión: ignorar
-      }
+      if (!isNewSeq) return; // Ráfaga duplicada
       
-      // ▲ PROTECCIÓN ANTI-DOBLE: Cooldown de 300ms + validación de comando
-      final lastCmdTime = _lastCmdTimeByDev[devId]!;
+      // ▲ COOLDOWN: Aritmética de enteros (más rápido que DateTime.difference)
+      final int cooldownStartUs = DateTime.now().microsecondsSinceEpoch;
+      final lastCmdMs = _lastCmdTimeByDev[devId]!.millisecondsSinceEpoch;
       final lastCmd = _lastCmdByDev[devId]!;
-      final timeSinceLastCmd = now.difference(lastCmdTime);
+      final deltaMs = nowMs - lastCmdMs;
       
-      // Si es el MISMO comando en <300ms → BLOCK (claramente duplicado)
-      if (lastCmd == frame.cmd && timeSinceLastCmd < _minCmdInterval) {
-        // Silencioso: cooldown activo (normal)
-        return; // ← BLOCK: mismo comando muy rápido = duplicado
+      // Mismo comando en <300ms → BLOCK
+      if (lastCmd == frame.cmd && deltaMs < _minCmdInterval.inMilliseconds) {
+        return;
       }
+      final int cooldownUs = DateTime.now().microsecondsSinceEpoch - cooldownStartUs;
       
-      // Actualizar tracking (ANTES de procesar, para que sea atómico)
-      _lastCmdTimeByDev[devId] = now;
+      // Actualizar tracking
+      _lastCmdTimeByDev[devId] = DateTime.fromMillisecondsSinceEpoch(nowMs);
       _lastCmdByDev[devId] = frame.cmd;
+      
+      // ▲ TELEMETRY: Guardar timestamps parciales para medición final
+      // (usamos variable temporal para evitar conflictos con otros comandos)
+      _telemetryPendingParse[devId] = parseUs;
+      _telemetryPendingDedup[devId] = dedupUs;
+      _telemetryPendingCooldown[devId] = cooldownUs;
+      _telemetryPendingRx[devId] = rxUs;
     }
 
     // ===== Restart simplificado: G (armar) + U (confirmar) =====
-    if (frame.cmd == 'g'.codeUnitAt(0)) {
+    if (frame.cmd == 0x67) { // 'g'
       if (!paired) return;
       _armRestart(devId);
       return;
     }
 
     // U (UNDO/RED button) confirma restart si está armado, sino hace UNDO normal
-    if (frame.cmd == 'u'.codeUnitAt(0)) {
+    if (frame.cmd == 0x75) { // 'u'
       if (!paired) return;
       
       if (_restartPendingDev == devId) {
-        // Confirmar restart
         _confirmRestart();
         return;
       }
       
-      // ✅ UNDO normal: procesar comando
-      _commandsCtrl.add('u');
+      _emitWithTelemetry('u', devId);
       
-      // ✅ Marcar seq como procesada DESPUÉS de emitir comando exitosamente
-      final processedSet = _processedSeqs[devId]!;
-      processedSet.add(frame.seq);
-      if (processedSet.length > _maxSeqHistory) {
-        final oldest = processedSet.first;
-        processedSet.remove(oldest);
-      }
-      
-      if (kDebugMode) {
-        debugPrint('↩️ UNDO | dev=0x${devId.toRadixString(16).padLeft(4, '0')} seq=${frame.seq}');
+      // Marcar seq como procesada en queue circular
+      final seqQueue = _processedSeqs[devId];
+      if (seqQueue != null) {
+        final headIdx = _seqHeadIndex[devId]!;
+        seqQueue[headIdx] = frame.seq;
+        _seqHeadIndex[devId] = (headIdx + 1) % _maxSeqHistory;
       }
       return;
     }
 
     // Cualquier comando 'p' del mismo mando cancela restart armado
-    if (frame.cmd == 'p'.codeUnitAt(0) && _restartPendingDev == devId) {
+    if (frame.cmd == 0x70 && _restartPendingDev == devId) { // 'p'
       _cancelRestart();
-      return; // ✅ Cancelar restart SIN sumar punto
+      return;
     }
 
     // ===== Scoring solo si pareado =====
-    if (!paired) {
-      // Silencioso: dispositivo no pareado (normal)
-      return;
-    }
+    if (!paired) return;
 
-    final team = _teamByDev[devId]; // 'blue' | 'red'
+    final team = _teamByDev[devId];
 
     // Preferido: 'p' => punto (mapeado por pairing)
-    if (frame.cmd == 'p'.codeUnitAt(0)) {
-      // ▲ ANTI-DOBLE PUNTO: Verificar cooldown de 4s
-      final lastPointTime = _lastPointTimeByDev[devId];
-      if (lastPointTime != null) {
-        final timeSinceLastPoint = now.difference(lastPointTime);
-        if (timeSinceLastPoint < _pointCooldown) {
-          final remainingMs = (_pointCooldown - timeSinceLastPoint).inMilliseconds;
-          if (kDebugMode) {
-            debugPrint('❌ [ANTI-DOBLE] Punto BLOQUEADO dev=0x${devId.toRadixString(16).padLeft(4, '0')} '
-                       '(cooldown: ${remainingMs}ms restantes)');
-          }
-          return; // Bloquear punto
+    if (frame.cmd == 0x70) { // 'p'
+      // ▲ ANTI-DOBLE PUNTO: Cooldown de 4s (aritmética de enteros)
+      final lastPointMs = _lastPointTimeByDev[devId]?.millisecondsSinceEpoch ?? 0;
+      final sincePointMs = nowMs - lastPointMs;
+      
+      if (sincePointMs < _pointCooldown.inMilliseconds) {
+        if (kDebugMode && _verbose) {
+          print('❌ [ANTI-DOBLE] Bloqueado dev=0x${devId.toRadixString(16)} '
+                '(cooldown: ${_pointCooldown.inMilliseconds - sincePointMs}ms)');
         }
+        return;
       }
       
-      if (team == 'blue') _commandsCtrl.add('a');
-      else if (team == 'red') _commandsCtrl.add('b');
+      if (team == 'blue') _emitWithTelemetry('a', devId);
+      else if (team == 'red') _emitWithTelemetry('b', devId);
       
-      // ✅ Actualizar timestamp del último punto
-      _lastPointTimeByDev[devId] = now;
+      _lastPointTimeByDev[devId] = DateTime.fromMillisecondsSinceEpoch(nowMs);
       
-      // ✅ Marcar seq como procesada DESPUÉS de emitir comando exitosamente
-      final processedSet = _processedSeqs[devId]!;
-      processedSet.add(frame.seq);
-      if (processedSet.length > _maxSeqHistory) {
-        final oldest = processedSet.first;
-        processedSet.remove(oldest);
+      // Marcar seq como procesada en queue circular
+      final seqQueue = _processedSeqs[devId];
+      if (seqQueue != null) {
+        final headIdx = _seqHeadIndex[devId]!;
+        seqQueue[headIdx] = frame.seq;
+        _seqHeadIndex[devId] = (headIdx + 1) % _maxSeqHistory;
       }
+      return;
+    }
+
+    // Legacy 'a'/'b': mapeamos por pairing
+    if (frame.cmd == 0x61 || frame.cmd == 0x62) { // 'a' o 'b'
+      if (team == 'blue') _emitWithTelemetry('a', devId);
+      else if (team == 'red') _emitWithTelemetry('b', devId);
       
+      // Marcar seq como procesada en queue circular
+      final seqQueue = _processedSeqs[devId];
+      if (seqQueue != null) {
+        final headIdx = _seqHeadIndex[devId]!;
+        seqQueue[headIdx] = frame.seq;
+        _seqHeadIndex[devId] = (headIdx + 1) % _maxSeqHistory;
+      }
+      return;
+    }
+    } catch (e, st) {
+      // ▲ CRASH SAFETY: Un error de parsing no debe matar el listener
       if (kDebugMode) {
-        final latency = DateTime.now().difference(t0).inMicroseconds;
-        debugPrint('✅ PUNTO $team | dev=0x${devId.toRadixString(16).padLeft(4, '0')} '
-                   'seq=${frame.seq} | ${latency}µs');
-      }
-      return;
-    }
-
-    // Legacy 'a'/'b': ignoramos la letra y mapeamos por pairing
-    if (frame.cmd == 'a'.codeUnitAt(0) || frame.cmd == 'b'.codeUnitAt(0)) {
-      if (team == 'blue') _commandsCtrl.add('a');
-      else if (team == 'red') _commandsCtrl.add('b');
-      
-      // Marcar seq como procesada
-      final processedSet = _processedSeqs[devId]!;
-      processedSet.add(frame.seq);
-      if (processedSet.length > _maxSeqHistory) {
-        final oldest = processedSet.first;
-        processedSet.remove(oldest);
-      }
-      return;
-    }
-  }
-
-  /// Parse 12B (con 0xFFFF) o 10B (sin company ID)
-  BleFrame? _parse(Uint8List raw) {
-    if (raw.length >= 12) {
-      for (int off = 0; off <= raw.length - 12; off++) {
-        if (raw[off] == 0xFF &&
-            raw[off + 1] == 0xFF &&
-            raw[off + 2] == 0x50 && // 'P'
-            raw[off + 3] == 0x53 && // 'S'
-            raw[off + 4] == _protoVer &&
-            raw[off + 7] == 0x43) { // 'C'
-          final calc = _crc16Ccitt(raw.sublist(off + 2, off + 10));
-          final rx   = raw[off + 10] | (raw[off + 11] << 8);
-          if (calc != rx) {
-            if (kDebugMode) debugPrint('[PARSE] CRC fail: calc=0x${calc.toRadixString(16)} rx=0x${rx.toRadixString(16)}');
-            continue;
-          }
-          final devId = raw[off + 5] | (raw[off + 6] << 8);
-          final cmd   = raw[off + 8];
-          final seq   = raw[off + 9];
-          if (kDebugMode) {
-            debugPrint('[PARSE] ✓ 12B: devId=0x${devId.toRadixString(16).padLeft(4, '0')} '
-                       '(byte5=0x${raw[off + 5].toRadixString(16).padLeft(2, '0')} '
-                       'byte6=0x${raw[off + 6].toRadixString(16).padLeft(2, '0')}) '
-                       'cmd=${String.fromCharCode(cmd)} seq=$seq');
-          }
-          return BleFrame(devId: devId, seq: seq, cmd: cmd);
-        }
+        debugPrint('[BLE] ⚠️ Error en _onDevice: $e');
+        debugPrint('[BLE] Stack trace: $st');
       }
     }
-    if (raw.length >= 10) {
-      for (int off = 0; off <= raw.length - 10; off++) {
-        if (raw[off] == 0x50 && // 'P'
-            raw[off + 1] == 0x53 && // 'S'
-            raw[off + 2] == _protoVer &&
-            raw[off + 5] == 0x43) { // 'C'
-          final calc = _crc16Ccitt(raw.sublist(off + 0, off + 8));
-          final rx   = raw[off + 8] | (raw[off + 9] << 8);
-          if (calc != rx) continue;
-          final devId = raw[off + 3] | (raw[off + 4] << 8);
-          final cmd   = raw[off + 6];
-          final seq   = raw[off + 7];
-          return BleFrame(devId: devId, seq: seq, cmd: cmd);
-        }
-      }
-    }
-    return null;
   }
 
   int _crc16Ccitt(Uint8List data) {

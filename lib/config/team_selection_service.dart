@@ -18,18 +18,34 @@ class TeamSelectionService {
   
   /// Inicializar servicio (debe llamarse al inicio de la app)
   static Future<TeamSelectionService> init(AppConfig config) async {
-    final prefs = await SharedPreferences.getInstance();
-    
-    // Leer selecciones guardadas o usar defaults
-    final team1Id = prefs.getString(_keyTeam1) ?? _getDefaultTeam1Id(config);
-    final team2Id = prefs.getString(_keyTeam2) ?? _getDefaultTeam2Id(config);
-    
-    return TeamSelectionService._(
-      config,
-      prefs,
-      ValueNotifier(team1Id),
-      ValueNotifier(team2Id),
-    );
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      
+      // Leer selecciones guardadas o usar defaults
+      final team1Id = prefs.getString(_keyTeam1) ?? _getDefaultTeam1Id(config);
+      final team2Id = prefs.getString(_keyTeam2) ?? _getDefaultTeam2Id(config);
+      
+      return TeamSelectionService._(
+        config,
+        prefs,
+        ValueNotifier(team1Id),
+        ValueNotifier(team2Id),
+      );
+    } catch (e, st) {
+      // ▲ CRASH SAFETY: Si falla SharedPreferences, crear servicio con defaults
+      print('[TEAM_SERVICE] ⚠️ Error initializing: $e');
+      print('[TEAM_SERVICE] Stack trace: $st');
+      print('[TEAM_SERVICE] Using in-memory defaults...');
+      
+      // Crear servicio sin persistencia (solo en memoria)
+      final prefs = await SharedPreferences.getInstance();
+      return TeamSelectionService._(
+        config,
+        prefs,
+        ValueNotifier(_getDefaultTeam1Id(config)),
+        ValueNotifier(_getDefaultTeam2Id(config)),
+      );
+    }
   }
   
   /// Obtener ID por defecto para equipo 1 (verde si existe, sino el primero)
@@ -81,16 +97,28 @@ class TeamSelectionService {
   
   /// Cambiar selección de equipo 1
   Future<void> setTeam1(String teamId) async {
-    if (_config.teamById(teamId) == null) return; // Validar que exista
-    team1Selection.value = teamId;
-    await _prefs.setString(_keyTeam1, teamId);
+    try {
+      if (_config.teamById(teamId) == null) return; // Validar que exista
+      team1Selection.value = teamId;
+      await _prefs.setString(_keyTeam1, teamId);
+    } catch (e) {
+      // ▲ CRASH SAFETY: Si falla la persistencia, al menos actualizar en memoria
+      print('[TEAM_SERVICE] ⚠️ Error saving team1: $e');
+      team1Selection.value = teamId; // Actualizar en memoria aunque falle el guardado
+    }
   }
   
   /// Cambiar selección de equipo 2
   Future<void> setTeam2(String teamId) async {
-    if (_config.teamById(teamId) == null) return; // Validar que exista
-    team2Selection.value = teamId;
-    await _prefs.setString(_keyTeam2, teamId);
+    try {
+      if (_config.teamById(teamId) == null) return; // Validar que exista
+      team2Selection.value = teamId;
+      await _prefs.setString(_keyTeam2, teamId);
+    } catch (e) {
+      // ▲ CRASH SAFETY: Si falla la persistencia, al menos actualizar en memoria
+      print('[TEAM_SERVICE] ⚠️ Error saving team2: $e');
+      team2Selection.value = teamId; // Actualizar en memoria aunque falle el guardado
+    }
   }
   
   /// Helper para convertir hex a Color
