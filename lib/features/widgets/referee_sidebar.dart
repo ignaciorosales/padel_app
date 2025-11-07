@@ -6,6 +6,7 @@ import 'package:Puntazo/features/models/scoring_models.dart';
 import 'package:Puntazo/features/scoring/bloc/scoring_bloc.dart';
 import 'package:Puntazo/features/scoring/bloc/scoring_event.dart';
 import 'package:Puntazo/features/scoring/bloc/scoring_state.dart';
+import 'package:Puntazo/features/widgets/scoreboard.dart'; // ▲ Para telemetría UI
 
 /// Panel lateral minimalista para el árbitro.
 /// Ocupa aproximadamente el 10% del ancho de la pantalla.
@@ -199,6 +200,17 @@ class _SidebarContent extends StatelessWidget {
                 ],
                 
                 const SizedBox(height: 16), // Espaciado antes del botón de peligro
+                
+                // ▲ NUEVO: Botón de TEST UI para medir performance sin BLE
+                const Divider(height: 1, indent: 8, endIndent: 8),
+                _SidebarIconButton(
+                  icon: Icons.speed,
+                  tooltip: 'Test de rendimiento UI',
+                  label: 'TEST UI',
+                  onPressed: () => _runUIPerformanceTest(context),
+                ),
+                
+                const SizedBox(height: 8),
                 
                 // Botón de nuevo partido
                 _SidebarDangerButton(
@@ -426,7 +438,226 @@ class _SidebarDangerButton extends StatelessWidget {
   }
 }
 
-/// Diálogo de confirmación para nuevo partido
+/// ========== TEST DE RENDIMIENTO UI ==========
+/// Ejecuta múltiples puntos y muestra estadísticas de rebuilds
+Future<void> _runUIPerformanceTest(BuildContext context) async {
+  final bloc = context.read<ScoringBloc>();
+  
+  // Resetear telemetría UI
+  Scoreboard.resetUIStats();
+  
+  // Mostrar diálogo de inicio
+  final confirmed = await showDialog<bool>(
+    context: context,
+    builder: (_) => AlertDialog(
+      title: const Row(
+        children: [
+          Icon(Icons.speed, color: Colors.purple),
+          SizedBox(width: 8),
+          Text('Test de Rendimiento UI'),
+        ],
+      ),
+      content: const Text(
+        'Este test ejecutará 10 puntos alternados (azul/rojo) '
+        'y medirá cuántas veces se redibuja cada widget.\n\n'
+        '✅ Objetivo: Solo 1-2 rebuilds por punto\n'
+        '⚠️ Problema: 50+ rebuilds por punto',
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context, false),
+          child: const Text('Cancelar'),
+        ),
+        FilledButton(
+          onPressed: () => Navigator.pop(context, true),
+          style: FilledButton.styleFrom(backgroundColor: Colors.purple),
+          child: const Text('Iniciar Test'),
+        ),
+      ],
+    ),
+  );
+  
+  if (confirmed != true) return;
+  
+  // Ejecutar test: 10 puntos alternados
+  for (int i = 0; i < 10; i++) {
+    final team = i.isEven ? Team.blue : Team.red;
+    bloc.add(ScoringEvent.pointFor(team));
+    
+    // Pequeño delay para simular comportamiento real
+    await Future.delayed(const Duration(milliseconds: 50));
+  }
+  
+  // Esperar a que se completen todos los rebuilds
+  await Future.delayed(const Duration(milliseconds: 200));
+  
+  // Obtener estadísticas
+  final stats = Scoreboard.getUIStats();
+  final total = stats.values.fold<int>(0, (sum, val) => sum + val);
+  final bluePoints = stats['blue_points'] ?? 0;
+  final redPoints = stats['red_points'] ?? 0;
+  final setGames = stats['set_games'] ?? 0;
+  final header = stats['header'] ?? 0;
+  final status = stats['status'] ?? 0;
+  final background = stats['background'] ?? 0;
+  
+  // Determinar veredicto
+  final String veredicto;
+  final Color verdictColor;
+  final IconData verdictIcon;
+  
+  if (total <= 20) {
+    veredicto = '🎉 EXCELENTE';
+    verdictColor = Colors.green;
+    verdictIcon = Icons.check_circle;
+  } else if (total <= 50) {
+    veredicto = '✅ BUENO';
+    verdictColor = Colors.lightGreen;
+    verdictIcon = Icons.thumb_up;
+  } else if (total <= 100) {
+    veredicto = '⚠️ MEJORABLE';
+    verdictColor = Colors.orange;
+    verdictIcon = Icons.warning;
+  } else {
+    veredicto = '❌ PROBLEMÁTICO';
+    verdictColor = Colors.red;
+    verdictIcon = Icons.error;
+  }
+  
+  // Mostrar resultados
+  if (!context.mounted) return;
+  
+  await showDialog(
+    context: context,
+    builder: (_) => AlertDialog(
+      title: Row(
+        children: [
+          Icon(verdictIcon, color: verdictColor),
+          const SizedBox(width: 8),
+          Text(veredicto, style: TextStyle(color: verdictColor)),
+        ],
+      ),
+      content: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              '10 puntos ejecutados',
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+            ),
+            const SizedBox(height: 16),
+            const Text('REBUILDS POR WIDGET:', style: TextStyle(fontWeight: FontWeight.bold)),
+            const SizedBox(height: 8),
+            _buildStatRow('Puntos Azules', bluePoints, 5, 10),
+            _buildStatRow('Puntos Rojos', redPoints, 5, 10),
+            _buildStatRow('Set Actual', setGames, 0, 5),
+            _buildStatRow('Header', header, 0, 5),
+            _buildStatRow('Status', status, 0, 5),
+            _buildStatRow('Fondo', background, 0, 0, shouldBeZero: true),
+            const Divider(height: 24),
+            _buildStatRow('TOTAL', total, 20, 50, isTotal: true),
+            const SizedBox(height: 16),
+            if (total <= 20)
+              const Text(
+                '✨ Optimización perfecta! Solo se redibujan los widgets que cambian.',
+                style: TextStyle(color: Colors.green, fontSize: 12),
+              )
+            else if (total <= 50)
+              const Text(
+                '👍 Buen rendimiento. Hay algunos rebuilds extra pero aceptable.',
+                style: TextStyle(color: Colors.lightGreen, fontSize: 12),
+              )
+            else
+              const Text(
+                '⚠️ Demasiados rebuilds. Revisar BlocSelector y RepaintBoundary.',
+                style: TextStyle(color: Colors.orange, fontSize: 12),
+              ),
+            if (background > 1)
+              const Padding(
+                padding: EdgeInsets.only(top: 8),
+                child: Text(
+                  '🚨 CRÍTICO: El fondo se redibujó múltiples veces! '
+                  'Verificar RepaintBoundary.',
+                  style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold, fontSize: 12),
+                ),
+              ),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () {
+            Scoreboard.resetUIStats();
+            Navigator.pop(context);
+          },
+          child: const Text('Resetear'),
+        ),
+        FilledButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Cerrar'),
+        ),
+      ],
+    ),
+  );
+}
+
+Widget _buildStatRow(String label, int value, int goodThreshold, int badThreshold, {bool isTotal = false, bool shouldBeZero = false}) {
+  final Color color;
+  
+  if (shouldBeZero) {
+    color = value <= 1 ? Colors.green : Colors.red;
+  } else if (isTotal) {
+    if (value <= goodThreshold) {
+      color = Colors.green;
+    } else if (value <= badThreshold) {
+      color = Colors.orange;
+    } else {
+      color = Colors.red;
+    }
+  } else {
+    if (value <= goodThreshold) {
+      color = Colors.green;
+    } else if (value <= badThreshold) {
+      color = Colors.orange;
+    } else {
+      color = Colors.red;
+    }
+  }
+  
+  return Padding(
+    padding: const EdgeInsets.symmetric(vertical: 4),
+    child: Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(
+          label,
+          style: TextStyle(
+            fontWeight: isTotal ? FontWeight.bold : FontWeight.normal,
+            fontSize: isTotal ? 16 : 14,
+          ),
+        ),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+          decoration: BoxDecoration(
+            color: color.withOpacity(0.2),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: color, width: 1.5),
+          ),
+          child: Text(
+            '$value',
+            style: TextStyle(
+              color: color,
+              fontWeight: FontWeight.bold,
+              fontSize: isTotal ? 18 : 14,
+            ),
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
 Future<void> _confirmNewMatch(BuildContext context) async {
   final bloc = context.read<ScoringBloc>();
   final ok = await showDialog<bool>(

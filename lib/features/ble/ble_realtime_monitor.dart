@@ -7,6 +7,8 @@ import 'package:Puntazo/features/ble/padel_ble_client.dart';
 import 'package:Puntazo/features/ble/ble_telemetry.dart';
 import 'package:Puntazo/features/scoring/bloc/scoring_bloc.dart';
 import 'package:Puntazo/features/scoring/bloc/scoring_state.dart';
+import 'package:Puntazo/features/scoring/bloc/bloc_telemetry.dart';
+import 'package:Puntazo/features/widgets/scoreboard.dart'; // ▲ Para telemetría UI
 
 /// Monitor en tiempo real de comandos BLE REALES (sin botones de prueba)
 /// Mide TODO el pipeline: BLE recepción → Stream → Bloc → UI actualizada
@@ -29,10 +31,17 @@ class _BleRealtimeMonitorState extends State<BleRealtimeMonitor> {
   final _scrollController = ScrollController();
   
   // ▲ MEDICIÓN END-TO-END: Capturar timestamp de cada comando BLE recibido
-  final Map<String, int> _bleCommandTimestamps = {}; // key = "cmd-devId-rxUs" → rxTimestamp
+  // MEJORA: Usar seq como key para correlación exacta (no timestamps arbitrarios)
+  final Map<int, int> _bleCommandTimestamps = {}; // key = seq → rxTimestamp (µs)
   final List<E2EMeasurement> _e2eMeasurements = [];
   static const int _maxE2EMeasurements = 50;
   StreamSubscription<BleFrame>? _bleFrameSub;
+  
+  // ▲ TELEMETRÍA DEL BLOC
+  BlocTelemetryStats? _blocStats;
+  
+  // ▲ TRACKING: Mapeo seq → cmd para correlación
+  final Map<int, String> _seqToCmd = {}; // seq → 'a'/'b'/'u'/'g'
   
   @override
   void initState() {
@@ -41,6 +50,9 @@ class _BleRealtimeMonitorState extends State<BleRealtimeMonitor> {
       if (mounted && _isExpanded) {
         setState(() {
           _stats = widget.bleClient.telemetry.getStats();
+          // Obtener stats del Bloc via context
+          final bloc = context.read<ScoringBloc>();
+          _blocStats = bloc.blocTelemetry.getStats();
         });
       }
     });
@@ -49,17 +61,27 @@ class _BleRealtimeMonitorState extends State<BleRealtimeMonitor> {
     _bleFrameSub = widget.bleClient.rawFrames.listen((frame) {
       final rxUs = DateTime.now().microsecondsSinceEpoch;
       final cmd = String.fromCharCode(frame.cmd);
-      final key = '$cmd-${frame.devId}-$rxUs';
-      _bleCommandTimestamps[key] = rxUs;
       
-      // ▼ DEBUG: Ver que estamos capturando comandos BLE
-      debugPrint('[📊 MONITOR] 🔵 BLE recibido: $cmd (dev: ${frame.devId}) - Pendientes: ${_bleCommandTimestamps.length}');
+      // ▲ MEJORA: Usar seq como key para correlación exacta
+      _bleCommandTimestamps[frame.seq] = rxUs;
+      _seqToCmd[frame.seq] = cmd; // Guardar mapeo seq → cmd
       
-      // Limpiar timestamps antiguos (más de 10 segundos)
-      _bleCommandTimestamps.removeWhere((k, v) {
-        final elapsed = rxUs - v;
-        return elapsed > 10000000; // 10s timeout
+      // ▼ DEBUG: Ver que estamos capturando comandos BLE con seq
+      debugPrint('[📊 MONITOR] 🔵 BLE recibido: $cmd (seq: ${frame.seq}, dev: ${frame.devId}) - Pendientes: ${_bleCommandTimestamps.length}');
+      
+      // Limpiar timestamps antiguos (más de 2 segundos - timeout reducido)
+      final seqsToRemove = <int>[];
+      _bleCommandTimestamps.forEach((seq, timestamp) {
+        final elapsed = rxUs - timestamp;
+        if (elapsed > 2000000) { // 2s timeout
+          seqsToRemove.add(seq);
+        }
       });
+      
+      for (final seq in seqsToRemove) {
+        _bleCommandTimestamps.remove(seq);
+        _seqToCmd.remove(seq);
+      }
     });
   }
 
@@ -77,6 +99,11 @@ class _BleRealtimeMonitorState extends State<BleRealtimeMonitor> {
       _stats = null;
       _e2eMeasurements.clear();
       _bleCommandTimestamps.clear();
+      _blocStats = null;
+      // Reset telemetría del Bloc
+      context.read<ScoringBloc>().blocTelemetry.reset();
+      // ▲ Reset telemetría de UI
+      Scoreboard.resetUIStats();
     });
   }
 
@@ -86,26 +113,28 @@ class _BleRealtimeMonitorState extends State<BleRealtimeMonitor> {
       listener: (context, state) {
         final nowUs = DateTime.now().microsecondsSinceEpoch;
         
-        // ▼ DEBUG: Ver que estamos capturando actualizaciones de state
-        debugPrint('[📊 MONITOR] 🎯 State actualizado - Pendientes: ${_bleCommandTimestamps.length}');
-        
-        // Procesar el comando BLE más antiguo pendiente
+        // ▲ ESTRATEGIA SIMPLIFICADA: Procesar el seq más reciente que tengamos pendiente
+        //   Asumimos que cada state update corresponde al último comando BLE recibido
         if (_bleCommandTimestamps.isNotEmpty) {
-          final oldest = _bleCommandTimestamps.entries.first;
-          final key = oldest.key;
-          final rxUs = oldest.value;
-          final parts = key.split('-');
-          final cmd = parts[0];
+          // Ordenar por timestamp descendente (más reciente primero)
+          final entries = _bleCommandTimestamps.entries.toList()
+            ..sort((a, b) => b.value.compareTo(a.value));
+          
+          final latestEntry = entries.first;
+          final seq = latestEntry.key;
+          final rxUs = latestEntry.value;
+          final cmd = _seqToCmd[seq] ?? '?';
           
           // Calcular latencia end-to-end
           final e2eUs = nowUs - rxUs;
           final e2eMs = (e2eUs / 1000).toStringAsFixed(2);
           
-          // ▼ DEBUG: Ver la medición E2E
-          debugPrint('[📊 MONITOR] ✅ E2E medido: $cmd → $e2eMs ms');
+          // ▼ DEBUG: Ver la medición E2E con seq
+          debugPrint('[📊 MONITOR] ✅ E2E medido: seq=$seq cmd=$cmd → $e2eMs ms');
           
           final measurement = E2EMeasurement(
             cmd: cmd,
+            seq: seq,
             rxTimestampUs: rxUs,
             uiUpdateTimestampUs: nowUs,
             totalUs: e2eUs,
@@ -120,7 +149,9 @@ class _BleRealtimeMonitorState extends State<BleRealtimeMonitor> {
             });
           }
           
-          _bleCommandTimestamps.remove(key);
+          // Remover el seq procesado
+          _bleCommandTimestamps.remove(seq);
+          _seqToCmd.remove(seq);
         }
       },
       child: Stack(
@@ -275,77 +306,95 @@ class _BleRealtimeMonitorState extends State<BleRealtimeMonitor> {
                               const SizedBox(height: 16),
                             ],
                             
-                            // ========== HISTORIAL DE MEDICIONES END-TO-END ==========
-                            if (_e2eMeasurements.isNotEmpty) ...[
+                            // ========== TABLA UNIFICADA DE LATENCIAS ==========
+                            if (_e2eMeasurements.isNotEmpty || (_stats != null && _stats!.totalMeasurements > 0)) ...[
                               const SizedBox(height: 20),
                               const Divider(color: Colors.white24),
                               const SizedBox(height: 16),
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                children: [
-                                  const Row(
-                                    children: [
-                                      Icon(Icons.timeline, color: Colors.blue, size: 20),
-                                      SizedBox(width: 8),
-                                      Text(
-                                        '⚡ LATENCIAS COMPLETAS (BLE → UI)',
-                                        style: TextStyle(
-                                          color: Colors.blue,
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.bold,
+                              
+                              // ▼ TABLA UNIFICADA: Pipeline completo con todas las etapas
+                              Container(
+                                padding: const EdgeInsets.all(16),
+                                decoration: BoxDecoration(
+                                  gradient: LinearGradient(
+                                    colors: [Colors.blue.withOpacity(0.15), Colors.purple.withOpacity(0.15)],
+                                    begin: Alignment.topLeft,
+                                    end: Alignment.bottomRight,
+                                  ),
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(color: Colors.blue.withOpacity(0.4), width: 2),
+                                ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                                  children: [
+                                    // ========== HEADER ==========
+                                    Row(
+                                      children: [
+                                        Icon(Icons.timeline, color: Colors.blue.shade300, size: 28),
+                                        const SizedBox(width: 12),
+                                        const Expanded(
+                                          child: Column(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            children: [
+                                              Text(
+                                                '⚡ PIPELINE COMPLETO: BLE → UI',
+                                                style: TextStyle(
+                                                  color: Colors.blue,
+                                                  fontSize: 18,
+                                                  fontWeight: FontWeight.bold,
+                                                ),
+                                              ),
+                                              SizedBox(height: 4),
+                                              Text(
+                                                'Todas las etapas medidas en milisegundos (ms)',
+                                                style: TextStyle(color: Colors.white54, fontSize: 11, fontStyle: FontStyle.italic),
+                                              ),
+                                            ],
+                                          ),
                                         ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 20),
+                                    
+                                    // ========== TABLA DE ETAPAS ==========
+                                    _buildPipelineTable(),
+                                    
+                                    const SizedBox(height: 16),
+                                    
+                                    // ========== ÚLTIMAS MEDICIONES ==========
+                                    if (_e2eMeasurements.isNotEmpty) ...[
+                                      const Divider(color: Colors.white24),
+                                      const SizedBox(height: 16),
+                                      Row(
+                                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                        children: [
+                                          const Text(
+                                            '📋 ÚLTIMAS MEDICIONES COMPLETAS',
+                                            style: TextStyle(
+                                              color: Colors.white70,
+                                              fontSize: 14,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                            decoration: BoxDecoration(
+                                              color: Colors.blue.withOpacity(0.2),
+                                              borderRadius: BorderRadius.circular(12),
+                                            ),
+                                            child: Text(
+                                              '${_e2eMeasurements.length} registros',
+                                              style: const TextStyle(color: Colors.blue, fontSize: 11),
+                                            ),
+                                          ),
+                                        ],
                                       ),
+                                      const SizedBox(height: 12),
+                                      ..._e2eMeasurements.take(10).map((m) => _buildCompactMeasurementRow(m)),
                                     ],
-                                  ),
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                    decoration: BoxDecoration(
-                                      color: Colors.blue.withOpacity(0.2),
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    child: Text(
-                                      '${_e2eMeasurements.length} mediciones',
-                                      style: const TextStyle(color: Colors.blue, fontSize: 11, fontWeight: FontWeight.bold),
-                                    ),
-                                  ),
-                                ],
+                                  ],
+                                ),
                               ),
-                              const SizedBox(height: 8),
-                              const Text(
-                                'Tiempo desde recepción BLE hasta UI actualizada',
-                                style: TextStyle(color: Colors.white38, fontSize: 11, fontStyle: FontStyle.italic),
-                              ),
-                              const SizedBox(height: 12),
-                              // Estadísticas E2E
-                              _buildE2EStats(),
-                              const SizedBox(height: 16),
-                              const Text(
-                                'ÚLTIMAS MEDICIONES:',
-                                style: TextStyle(color: Colors.white54, fontSize: 12, fontWeight: FontWeight.bold),
-                              ),
-                              const SizedBox(height: 8),
-                              ..._e2eMeasurements.take(20).map((m) => _buildE2EMeasurementRow(m)),
-                            ] else if (_stats != null && _stats!.recentMeasurements.isNotEmpty) ...[
-                              // Fallback: mostrar solo latencias BLE si no hay E2E aún
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                children: [
-                                  const Text(
-                                    '📜 HISTORIAL BLE',
-                                    style: TextStyle(
-                                      color: Colors.blue,
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                  Text(
-                                    'Últimas ${_stats!.recentMeasurements.length} mediciones',
-                                    style: const TextStyle(color: Colors.white54, fontSize: 12),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 12),
-                              ..._stats!.recentMeasurements.reversed.take(15).map((m) => _buildMeasurementRow(m)),
                             ],
                           ],
                         ),
@@ -553,69 +602,260 @@ class _BleRealtimeMonitorState extends State<BleRealtimeMonitor> {
     );
   }
 
-  Widget _buildMeasurementRow(LatencyMeasurement m) {
-    final ms = (m.totalLatencyUs / 1000).toStringAsFixed(2);
-    final timestamp = DateTime.fromMicrosecondsSinceEpoch(m.rxTimestampUs);
-    final timeStr = '${timestamp.hour.toString().padLeft(2, '0')}:${timestamp.minute.toString().padLeft(2, '0')}:${timestamp.second.toString().padLeft(2, '0')}';
+  
+  /// ▼ TABLA UNIFICADA: Muestra TODO el pipeline con tiempos correctos
+  Widget _buildPipelineTable() {
+    // Calcular promedios de cada etapa
+    final bleAvgUs = _stats?.avgLatencyUs ?? 0;
+    final blocAvgUs = _blocStats?.avgTotalUs ?? 0;
+    final e2eAvgUs = _e2eMeasurements.isEmpty 
+        ? 0 
+        : (_e2eMeasurements.map((m) => m.totalUs).reduce((a, b) => a + b) / _e2eMeasurements.length).round();
     
-    Color color = Colors.green;
-    if (m.totalLatencyUs > 10000) {
-      color = Colors.red;
-    } else if (m.totalLatencyUs > 5000) {
-      color = Colors.orange;
+    // Calcular el "gap" (tiempo no contabilizado)
+    final accountedUs = bleAvgUs + blocAvgUs;
+    final gapUs = e2eAvgUs - accountedUs;
+    
+    return Column(
+      children: [
+        // Header de la tabla
+        Container(
+          padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.05),
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(8)),
+          ),
+          child: const Row(
+            children: [
+              Expanded(
+                flex: 3,
+                child: Text(
+                  'ETAPA DEL PIPELINE',
+                  style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
+                ),
+              ),
+              Expanded(
+                flex: 2,
+                child: Text(
+                  'PROMEDIO',
+                  textAlign: TextAlign.right,
+                  style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
+                ),
+              ),
+              SizedBox(width: 12),
+              Expanded(
+                flex: 2,
+                child: Text(
+                  '% TOTAL',
+                  textAlign: TextAlign.right,
+                  style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
+                ),
+              ),
+            ],
+          ),
+        ),
+        
+        // Fila 1: BLE (recepción + parseo)
+        _buildPipelineRow(
+          '1️⃣ BLE (RX + Parse)',
+          bleAvgUs,
+          e2eAvgUs,
+          Colors.green,
+          'ESP32 → Android BLE stack',
+        ),
+        
+        // Fila 2: Bloc (procesamiento interno)
+        _buildPipelineRow(
+          '2️⃣ Bloc (Lógica scoring)',
+          blocAvgUs,
+          e2eAvgUs,
+          Colors.purple,
+          'onBleCommand + dispatch + onPointFor',
+        ),
+        
+        // Fila 3: Gap (Flutter rendering + otras operaciones)
+        _buildPipelineRow(
+          '3️⃣ Flutter UI (Render)',
+          gapUs > 0 ? gapUs : 0,
+          e2eAvgUs,
+          gapUs > 500000 ? Colors.red : gapUs > 100000 ? Colors.orange : Colors.blue,
+          'Widget rebuild + repaint + frame',
+        ),
+        
+        // Divisor
+        Container(
+          height: 2,
+          color: Colors.white24,
+          margin: const EdgeInsets.symmetric(vertical: 4),
+        ),
+        
+        // Fila TOTAL
+        Container(
+          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
+          decoration: BoxDecoration(
+            color: Colors.blue.withOpacity(0.2),
+            borderRadius: const BorderRadius.vertical(bottom: Radius.circular(8)),
+          ),
+          child: Row(
+            children: [
+              const Expanded(
+                flex: 3,
+                child: Text(
+                  '⚡ TOTAL E2E',
+                  style: TextStyle(color: Colors.blue, fontSize: 13, fontWeight: FontWeight.bold),
+                ),
+              ),
+              Expanded(
+                flex: 2,
+                child: Text(
+                  '${(e2eAvgUs / 1000).toStringAsFixed(2)} ms',
+                  textAlign: TextAlign.right,
+                  style: TextStyle(
+                    color: e2eAvgUs > 100000 ? Colors.red : e2eAvgUs > 50000 ? Colors.orange : Colors.green,
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              const Expanded(
+                flex: 2,
+                child: Text(
+                  '100%',
+                  textAlign: TextAlign.right,
+                  style: TextStyle(color: Colors.blue, fontSize: 13, fontWeight: FontWeight.bold),
+                ),
+              ),
+            ],
+          ),
+        ),
+        
+        // Nota explicativa
+        const SizedBox(height: 12),
+        Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: Colors.amber.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(6),
+            border: Border.all(color: Colors.amber.withOpacity(0.3)),
+          ),
+          child: Row(
+            children: [
+              const Icon(Icons.info_outline, color: Colors.amber, size: 16),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  gapUs > 500000
+                      ? '⚠️ El 3️⃣ Flutter UI está tomando ${(gapUs / 1000).toStringAsFixed(1)} ms. Problema: widget rebuilds o animaciones pesadas.'
+                      : e2eAvgUs > 50000
+                          ? '⚠️ Latencia total > 50ms. Revisar animaciones y rebuilds.'
+                          : '✅ Latencia total < 50ms. Rendimiento excelente.',
+                  style: TextStyle(
+                    color: gapUs > 500000 ? Colors.amber : Colors.green.shade300,
+                    fontSize: 10,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        
+        // ▲ TELEMETRÍA UI: Mostrar contadores de rebuilds
+        const SizedBox(height: 16),
+        _buildUIRebuildStats(),
+      ],
+    );
+  }
+  
+  /// ▲ TELEMETRÍA UI: Visualización de rebuilds del scoreboard
+  Widget _buildUIRebuildStats() {
+    final uiStats = Scoreboard.getUIStats();
+    final totalRebuilds = uiStats['total'] ?? 0;
+    
+    if (totalRebuilds == 0) {
+      return const SizedBox.shrink(); // No mostrar si no hay datos
     }
-
-    String emoji = '?';
-    String cmdName = m.cmd.toUpperCase();
-    if (m.cmd == 'a') {
-      emoji = '🔵';
-      cmdName = 'Azul';
-    } else if (m.cmd == 'b') {
-      emoji = '🔴';
-      cmdName = 'Rojo';
-    } else if (m.cmd == 'u') {
-      emoji = '↩️';
-      cmdName = 'Undo';
-    } else if (m.cmd == 'g') {
-      emoji = '🔄';
-      cmdName = 'Restart';
-    }
-
+    
     return Container(
-      margin: const EdgeInsets.only(bottom: 6),
-      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.03),
-        borderRadius: BorderRadius.circular(6),
-        border: Border.all(color: color.withOpacity(0.2)),
+        color: Colors.purple.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.purple.withOpacity(0.3)),
       ),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            emoji,
-            style: const TextStyle(fontSize: 16),
+          Row(
+            children: [
+              const Icon(Icons.widgets, color: Colors.purple, size: 16),
+              const SizedBox(width: 8),
+              const Text(
+                '🎨 REBUILDS DE UI (Scoreboard Optimizado)',
+                style: TextStyle(color: Colors.purple, fontSize: 12, fontWeight: FontWeight.bold),
+              ),
+            ],
           ),
-          const SizedBox(width: 8),
-          Expanded(
-            flex: 2,
-            child: Text(
-              cmdName,
-              style: const TextStyle(color: Colors.white70, fontSize: 12),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Expanded(
+                child: _buildRebuildStat('Dígito Azul', uiStats['blue_digit'] ?? 0, Colors.blue),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _buildRebuildStat('Dígito Rojo', uiStats['red_digit'] ?? 0, Colors.red),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Expanded(
+                child: _buildRebuildStat('Juegos Set', uiStats['games'] ?? 0, Colors.orange),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _buildRebuildStat('Header', uiStats['header'] ?? 0, Colors.cyan),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.05),
+              borderRadius: BorderRadius.circular(4),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  'TOTAL REBUILDS:',
+                  style: TextStyle(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.bold),
+                ),
+                Text(
+                  '$totalRebuilds',
+                  style: TextStyle(
+                    color: totalRebuilds > 100 ? Colors.red : totalRebuilds > 50 ? Colors.orange : Colors.green,
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
             ),
           ),
-          Expanded(
-            flex: 2,
-            child: Text(
-              timeStr,
-              style: const TextStyle(color: Colors.white38, fontSize: 10),
-            ),
-          ),
+          const SizedBox(height: 8),
           Text(
-            '$ms ms',
+            totalRebuilds > 100
+                ? '⚠️ Demasiados rebuilds. El scoreboard se está reconstruyendo más de lo necesario.'
+                : totalRebuilds > 50
+                    ? '⚠️ Rebuilds moderados. Considerar optimizaciones adicionales.'
+                    : '✅ Rebuilds mínimos. Solo se actualiza lo necesario.',
             style: TextStyle(
-              color: color,
-              fontSize: 13,
-              fontWeight: FontWeight.bold,
+              color: totalRebuilds > 100 ? Colors.red : totalRebuilds > 50 ? Colors.orange : Colors.green,
+              fontSize: 9,
+              fontStyle: FontStyle.italic,
             ),
           ),
         ],
@@ -623,42 +863,78 @@ class _BleRealtimeMonitorState extends State<BleRealtimeMonitor> {
     );
   }
   
-  Widget _buildE2EStats() {
-    if (_e2eMeasurements.isEmpty) return const SizedBox.shrink();
-    
-    final totalUs = _e2eMeasurements.map((m) => m.totalUs).reduce((a, b) => a + b);
-    final avgUs = totalUs ~/ _e2eMeasurements.length;
-    final minUs = _e2eMeasurements.map((m) => m.totalUs).reduce((a, b) => a < b ? a : b);
-    final maxUs = _e2eMeasurements.map((m) => m.totalUs).reduce((a, b) => a > b ? a : b);
-    
-    // P95
-    final sorted = _e2eMeasurements.map((m) => m.totalUs).toList()..sort();
-    final p95Index = (sorted.length * 0.95).floor();
-    final p95Us = sorted.isNotEmpty && p95Index < sorted.length ? sorted[p95Index] : maxUs;
+  Widget _buildRebuildStat(String label, int count, Color color) {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 8),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(4),
+        border: Border.all(color: color.withOpacity(0.3)),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            label,
+            style: TextStyle(color: color, fontSize: 10),
+          ),
+          Text(
+            '$count',
+            style: TextStyle(color: color, fontSize: 12, fontWeight: FontWeight.bold),
+          ),
+        ],
+      ),
+    );
+  }
+  
+  Widget _buildPipelineRow(String label, int valueUs, int totalUs, Color color, String description) {
+    final ms = (valueUs / 1000).toStringAsFixed(2);
+    final percentage = totalUs > 0 ? ((valueUs / totalUs) * 100).toStringAsFixed(1) : '0.0';
     
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [Colors.blue.withOpacity(0.2), Colors.blue.withOpacity(0.05)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.blue.withOpacity(0.5), width: 2),
+        color: Colors.white.withOpacity(0.02),
+        border: Border(bottom: BorderSide(color: Colors.white.withOpacity(0.1))),
       ),
       child: Column(
         children: [
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
-              _buildE2EStatItem('Promedio', avgUs, Icons.trending_flat),
-              Container(width: 1, height: 50, color: Colors.white24),
-              _buildE2EStatItem('Mínimo', minUs, Icons.south),
-              Container(width: 1, height: 50, color: Colors.white24),
-              _buildE2EStatItem('Máximo', maxUs, Icons.north),
-              Container(width: 1, height: 50, color: Colors.white24),
-              _buildE2EStatItem('P95', p95Us, Icons.analytics),
+              Expanded(
+                flex: 3,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      label,
+                      style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      description,
+                      style: const TextStyle(color: Colors.white38, fontSize: 9),
+                    ),
+                  ],
+                ),
+              ),
+              Expanded(
+                flex: 2,
+                child: Text(
+                  '$ms ms',
+                  textAlign: TextAlign.right,
+                  style: TextStyle(color: color, fontSize: 14, fontWeight: FontWeight.bold),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                flex: 2,
+                child: Text(
+                  '$percentage%',
+                  textAlign: TextAlign.right,
+                  style: TextStyle(color: color.withOpacity(0.7), fontSize: 12),
+                ),
+              ),
             ],
           ),
         ],
@@ -666,111 +942,51 @@ class _BleRealtimeMonitorState extends State<BleRealtimeMonitor> {
     );
   }
   
-  Widget _buildE2EStatItem(String label, int valueUs, IconData icon) {
-    final ms = (valueUs / 1000).toStringAsFixed(2);
-    
-    Color color = Colors.green;
-    if (valueUs > 20000) {
-      color = Colors.red;
-    } else if (valueUs > 10000) {
-      color = Colors.orange;
-    } else if (valueUs > 5000) {
-      color = Colors.yellow.shade700;
-    }
-    
-    return Column(
-      children: [
-        Icon(icon, color: color, size: 18),
-        const SizedBox(height: 4),
-        Text(
-          '$ms ms',
-          style: TextStyle(
-            color: color,
-            fontSize: 16,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        const SizedBox(height: 2),
-        Text(
-          label,
-          style: const TextStyle(color: Colors.white54, fontSize: 10),
-        ),
-      ],
-    );
-  }
-  
-  Widget _buildE2EMeasurementRow(E2EMeasurement m) {
+  Widget _buildCompactMeasurementRow(E2EMeasurement m) {
     final ms = (m.totalUs / 1000).toStringAsFixed(2);
     final timestamp = DateTime.fromMicrosecondsSinceEpoch(m.rxTimestampUs);
     final timeStr = '${timestamp.hour.toString().padLeft(2, '0')}:${timestamp.minute.toString().padLeft(2, '0')}:${timestamp.second.toString().padLeft(2, '0')}';
     
     Color color = Colors.green;
-    if (m.totalUs > 20000) {
+    if (m.totalUs > 100000) { // > 100ms
       color = Colors.red;
-    } else if (m.totalUs > 10000) {
+    } else if (m.totalUs > 50000) { // > 50ms
       color = Colors.orange;
     }
 
     String emoji = '?';
-    String cmdName = m.cmd.toUpperCase();
-    if (m.cmd == 'a') {
-      emoji = '🔵';
-      cmdName = 'Azul';
-    } else if (m.cmd == 'b') {
-      emoji = '🔴';
-      cmdName = 'Rojo';
-    } else if (m.cmd == 'u') {
-      emoji = '↩️';
-      cmdName = 'Undo';
-    } else if (m.cmd == 'g') {
-      emoji = '🔄';
-      cmdName = 'Restart';
-    }
+    if (m.cmd == 'a') emoji = '🔵';
+    else if (m.cmd == 'b') emoji = '🔴';
+    else if (m.cmd == 'u') emoji = '↩️';
+    else if (m.cmd == 'g') emoji = '🔄';
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 6),
-      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+      margin: const EdgeInsets.only(bottom: 4),
+      padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 10),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.05),
-        borderRadius: BorderRadius.circular(6),
-        border: Border.all(color: color.withOpacity(0.3), width: 2),
+        color: Colors.white.withOpacity(0.03),
+        borderRadius: BorderRadius.circular(4),
+        border: Border.all(color: color.withOpacity(0.2)),
       ),
       child: Row(
         children: [
-          Text(
-            emoji,
-            style: const TextStyle(fontSize: 18),
-          ),
-          const SizedBox(width: 12),
+          Text(emoji, style: const TextStyle(fontSize: 14)),
+          const SizedBox(width: 8),
           Expanded(
-            flex: 2,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  cmdName,
-                  style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
-                ),
-                Text(
-                  timeStr,
-                  style: const TextStyle(color: Colors.white38, fontSize: 9),
-                ),
-              ],
+            child: Text(
+              timeStr,
+              style: const TextStyle(color: Colors.white54, fontSize: 10),
             ),
           ),
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
             decoration: BoxDecoration(
               color: color.withOpacity(0.2),
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(8),
             ),
             child: Text(
               '$ms ms',
-              style: TextStyle(
-                color: color,
-                fontSize: 15,
-                fontWeight: FontWeight.bold,
-              ),
+              style: TextStyle(color: color, fontSize: 11, fontWeight: FontWeight.bold),
             ),
           ),
         ],
@@ -783,12 +999,14 @@ class _BleRealtimeMonitorState extends State<BleRealtimeMonitor> {
 /// Desde recepción BLE hasta actualización de UI
 class E2EMeasurement {
   final String cmd;
+  final int seq; // ▲ MEJORA: Incluir seq para correlación exacta
   final int rxTimestampUs; // Microsegundos cuando se recibió por BLE
   final int uiUpdateTimestampUs; // Microsegundos cuando se actualizó la UI
   final int totalUs; // Latencia total (µs)
 
   E2EMeasurement({
     required this.cmd,
+    required this.seq,
     required this.rxTimestampUs,
     required this.uiUpdateTimestampUs,
     required this.totalUs,

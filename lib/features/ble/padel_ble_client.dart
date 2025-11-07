@@ -434,11 +434,13 @@ class PadelBleClient {
   }
 
   /// Helper para emitir comando y registrar telemetría
-  void _emitWithTelemetry(String cmd, int devId) {
+  /// ACTUALIZACIÓN: Ahora incluye seq para correlación E2E precisa
+  void _emitWithTelemetry(String cmd, int devId, int seq) {
     final emitUs = DateTime.now().microsecondsSinceEpoch;
     
-    // Emitir comando al stream
-    _commandsCtrl.add(cmd);
+    // ▲ MEJORA: Emitir comando con seq embebido para correlación
+    // Formato: "cmd:seq" (ej: "a:42" = punto azul, secuencia 42)
+    _commandsCtrl.add('$cmd:$seq');
     
     // Registrar telemetría si hay datos pendientes
     final rxUs = _telemetryPendingRx[devId];
@@ -631,7 +633,7 @@ class PadelBleClient {
         return;
       }
       
-      _emitWithTelemetry('u', devId);
+      _emitWithTelemetry('u', devId, frame.seq);
       
       // Marcar seq como procesada en queue circular
       final seqQueue = _processedSeqs[devId];
@@ -668,8 +670,8 @@ class PadelBleClient {
         return;
       }
       
-      if (team == 'blue') _emitWithTelemetry('a', devId);
-      else if (team == 'red') _emitWithTelemetry('b', devId);
+      if (team == 'blue') _emitWithTelemetry('a', devId, frame.seq);
+      else if (team == 'red') _emitWithTelemetry('b', devId, frame.seq);
       
       _lastPointTimeByDev[devId] = DateTime.fromMillisecondsSinceEpoch(nowMs);
       
@@ -685,8 +687,8 @@ class PadelBleClient {
 
     // Legacy 'a'/'b': mapeamos por pairing
     if (frame.cmd == 0x61 || frame.cmd == 0x62) { // 'a' o 'b'
-      if (team == 'blue') _emitWithTelemetry('a', devId);
-      else if (team == 'red') _emitWithTelemetry('b', devId);
+      if (team == 'blue') _emitWithTelemetry('a', devId, frame.seq);
+      else if (team == 'red') _emitWithTelemetry('b', devId, frame.seq);
       
       // Marcar seq como procesada en queue circular
       final seqQueue = _processedSeqs[devId];

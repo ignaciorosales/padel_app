@@ -4,6 +4,7 @@ import 'dart:math' as math;
 import 'package:Puntazo/features/models/scoring_models.dart';
 import 'package:Puntazo/features/scoring/bloc/scoring_event.dart';
 import 'package:Puntazo/features/scoring/bloc/scoring_state.dart';
+import 'package:Puntazo/features/scoring/bloc/bloc_telemetry.dart';
 
 /// --- Compatibility layer ----------------------------------------------------
 /// Lets the bloc run whether MatchSettings already has the new fields or not.
@@ -77,6 +78,9 @@ extension MatchSettingsCompat on MatchSettings {
 /// ---------------------------------------------------------------------------
 
 class ScoringBloc extends Bloc<ScoringEvent, ScoringState> {
+  // Telemetría del Bloc
+  final blocTelemetry = BlocTelemetry();
+  
   ScoringBloc()
       : super(
           ScoringState(
@@ -315,6 +319,8 @@ class ScoringBloc extends Bloc<ScoringEvent, ScoringState> {
   }
 
   void _onPointFor(PointForEvent e, Emitter<ScoringState> emit) {
+    final t0 = DateTime.now().microsecondsSinceEpoch;
+    
     var m = _clone(state.match);
     final idx   = m.currentSetIndex;
     final before= m.sets[idx];
@@ -421,6 +427,28 @@ class ScoringBloc extends Bloc<ScoringEvent, ScoringState> {
 
     final teamName = e.team == Team.blue ? state.match.blueName : state.match.redName;
     _pushHistory(emit, m, 'Punto $teamName', actorTeam: e.team, actionType: 'point');
+    
+    final t1 = DateTime.now().microsecondsSinceEpoch;
+    final latency = t1 - t0;
+    
+    // Registrar telemetría completa del Bloc
+    if (_currentBleCommandLatency > 0 || _currentDispatchLatency > 0) {
+      blocTelemetry.record(BlocLatencyMeasurement(
+        cmd: _currentCommand,
+        timestampUs: t1,
+        onBleCommandUs: _currentBleCommandLatency,
+        dispatchUs: _currentDispatchLatency,
+        onPointForUs: latency,
+      ));
+      // Reset
+      _currentBleCommandLatency = 0;
+      _currentDispatchLatency = 0;
+      _currentCommand = '';
+    }
+    
+    if (kDebugMode) {
+      debugPrint('[⏱️ BLOC] _onPointFor processing: ${(latency / 1000).toStringAsFixed(2)} ms');
+    }
   }
 
   SetScore _advanceStandardPoint(SetScore set, Team team, bool goldenPoint) {
@@ -902,20 +930,50 @@ class ScoringBloc extends Bloc<ScoringEvent, ScoringState> {
 
   // ========== BLE bridge ==========
   void _onBleCommand(BleCommandEvent e, Emitter<ScoringState> emit) {
+    final t0 = DateTime.now().microsecondsSinceEpoch;
     final cmd = e.cmd.trim().toLowerCase();
 
+    // ▲ MEJORA: Parsear formato "cmd:seq" para correlación E2E
+    String actualCmd = cmd;
+    int? seq;
+    
+    if (cmd.contains(':')) {
+      final parts = cmd.split(':');
+      actualCmd = parts[0];
+      if (parts.length > 1) {
+        seq = int.tryParse(parts[1]);
+      }
+    }
+
     // Procesar comando directamente
-    if (cmd.startsWith('cmd:')) {
-      final ch = cmd.substring(4);
+    if (actualCmd.startsWith('cmd:')) {
+      final ch = actualCmd.substring(4);
       if (ch.isEmpty) return;
-      _dispatchCmd(ch[0]);
-    } else if (cmd.isNotEmpty) {
-      _dispatchCmd(cmd[0]);
+      _dispatchCmdWithTelemetry(ch[0], seq);
+    } else if (actualCmd.isNotEmpty) {
+      _dispatchCmdWithTelemetry(actualCmd[0], seq);
+    }
+    
+    final t1 = DateTime.now().microsecondsSinceEpoch;
+    final latency = t1 - t0;
+    
+    // Guardar telemetría (se actualizará cuando _onPointFor termine)
+    _currentBleCommandLatency = latency;
+    _currentSeq = seq; // ← Guardar seq para correlación
+    
+    if (kDebugMode) {
+      debugPrint('[⏱️ BLOC] _onBleCommand processing: ${(latency / 1000).toStringAsFixed(2)} ms (seq: $seq)');
     }
   }
 
-  void _dispatchCmd(String ch) {
-    final t0 = DateTime.now();
+  int _currentBleCommandLatency = 0;
+  int _currentDispatchLatency = 0;
+  String _currentCommand = '';
+  int? _currentSeq; // ← Nuevo: para correlación E2E
+
+  void _dispatchCmdWithTelemetry(String ch, int? seq) {
+    _currentCommand = ch;
+    final t0 = DateTime.now().microsecondsSinceEpoch;
     switch (ch) {
       case 'a': add(PointForEvent(Team.blue)); break;
       case 'b': add(PointForEvent(Team.red));  break;
@@ -923,9 +981,11 @@ class ScoringBloc extends Bloc<ScoringEvent, ScoringState> {
       case 'g': add(const NewGameEvent());     break;
       default:  break;
     }
+    final t1 = DateTime.now().microsecondsSinceEpoch;
+    _currentDispatchLatency = t1 - t0;
+    
     if (kDebugMode) {
-      final latency = DateTime.now().difference(t0).inMicroseconds;
-      debugPrint('[⏱️ BLOC] cmd=$ch dispatched | ${latency}µs');
+      debugPrint('[⏱️ BLOC] _dispatchCmd (add event): ${(_currentDispatchLatency / 1000).toStringAsFixed(2)} ms (seq: $seq)');
     }
   }
 

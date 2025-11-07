@@ -19,7 +19,7 @@ import 'package:Puntazo/features/ble/ble_realtime_monitor.dart';
 import 'package:Puntazo/features/models/scoring_models.dart';
 import 'package:Puntazo/features/scoring/bloc/scoring_bloc.dart';
 import 'package:Puntazo/features/scoring/bloc/scoring_event.dart';
-import 'package:Puntazo/features/widgets/scoreboard.dart';
+import 'package:Puntazo/features/widgets/scoreboard.dart'; // ▲ OPTIMIZADO
 import 'package:Puntazo/features/widgets/referee_sidebar.dart';
 import 'package:Puntazo/features/widgets/winner_overlay.dart';
 import 'package:Puntazo/features/settings/match_settings_screen.dart';
@@ -406,7 +406,7 @@ class _ScoreOnlyScreenState extends State<_ScoreOnlyScreen> with WidgetsBindingO
                             child: Center(
                               child: Padding(
                                 padding: const EdgeInsets.all(18),
-                                child: const Scoreboard(),
+                                child:                 const Scoreboard(), // ▲ Versión optimizada con BlocSelector
                               ),
                             ),
                           ),
