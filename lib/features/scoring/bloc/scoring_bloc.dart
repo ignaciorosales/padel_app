@@ -321,7 +321,9 @@ class ScoringBloc extends Bloc<ScoringEvent, ScoringState> {
   void _onPointFor(PointForEvent e, Emitter<ScoringState> emit) {
     final t0 = DateTime.now().microsecondsSinceEpoch;
     
-    var m = _clone(state.match);
+    // ▲ OPTIMIZACIÓN CRÍTICA: NO clonar innecesariamente
+    //   Freezed ya provee inmutabilidad - solo usar copyWith() cuando sea necesario
+    var m = state.match; // ← SIN _clone()
     final idx   = m.currentSetIndex;
     final before= m.sets[idx];
     var set     = before;
@@ -931,27 +933,29 @@ class ScoringBloc extends Bloc<ScoringEvent, ScoringState> {
   // ========== BLE bridge ==========
   void _onBleCommand(BleCommandEvent e, Emitter<ScoringState> emit) {
     final t0 = DateTime.now().microsecondsSinceEpoch;
-    final cmd = e.cmd.trim().toLowerCase();
+    final cmd = e.cmd; // String: "a:123", "b:456", "u", "g"
 
-    // ▲ MEJORA: Parsear formato "cmd:seq" para correlación E2E
+    // ▲ OPTIMIZACIÓN: Parsing ultra-rápido sin allocaciones innecesarias
     String actualCmd = cmd;
     int? seq;
     
-    if (cmd.contains(':')) {
-      final parts = cmd.split(':');
-      actualCmd = parts[0];
-      if (parts.length > 1) {
-        seq = int.tryParse(parts[1]);
+    // Buscar ':' manualmente (más rápido que split)
+    final colonIdx = cmd.indexOf(':');
+    if (colonIdx > 0) {
+      actualCmd = cmd.substring(0, colonIdx);
+      if (colonIdx < cmd.length - 1) {
+        seq = int.tryParse(cmd.substring(colonIdx + 1));
       }
     }
 
-    // Procesar comando directamente
-    if (actualCmd.startsWith('cmd:')) {
+    // Switch directo
+    if (actualCmd.length == 1) {
+      _dispatchCmdWithTelemetry(actualCmd, seq);
+    } else if (actualCmd.startsWith('cmd:')) {
       final ch = actualCmd.substring(4);
-      if (ch.isEmpty) return;
-      _dispatchCmdWithTelemetry(ch[0], seq);
-    } else if (actualCmd.isNotEmpty) {
-      _dispatchCmdWithTelemetry(actualCmd[0], seq);
+      if (ch.isNotEmpty) {
+        _dispatchCmdWithTelemetry(ch, seq);
+      }
     }
     
     final t1 = DateTime.now().microsecondsSinceEpoch;
@@ -959,7 +963,7 @@ class ScoringBloc extends Bloc<ScoringEvent, ScoringState> {
     
     // Guardar telemetría (se actualizará cuando _onPointFor termine)
     _currentBleCommandLatency = latency;
-    _currentSeq = seq; // ← Guardar seq para correlación
+    _currentSeq = seq; // Guardar seq para correlación
     
     if (kDebugMode) {
       debugPrint('[⏱️ BLOC] _onBleCommand processing: ${(latency / 1000).toStringAsFixed(2)} ms (seq: $seq)');
@@ -973,14 +977,35 @@ class ScoringBloc extends Bloc<ScoringEvent, ScoringState> {
 
   void _dispatchCmdWithTelemetry(String ch, int? seq) {
     _currentCommand = ch;
+    _currentSeq = seq; // Guardar para telemetría
+    
     final t0 = DateTime.now().microsecondsSinceEpoch;
-    switch (ch) {
-      case 'a': add(PointForEvent(Team.blue)); break;
-      case 'b': add(PointForEvent(Team.red));  break;
-      case 'u': add(const UndoEvent());        break;
-      case 'g': add(const NewGameEvent());     break;
-      default:  break;
+    
+    // ▲ OPTIMIZACIÓN: Switch directo sobre primer caracter
+    //   Evita múltiples comparaciones de strings
+    if (ch.isEmpty) return;
+    
+    final firstChar = ch.codeUnitAt(0); // ← Comparar código ASCII (más rápido)
+    switch (firstChar) {
+      case 97:  // 'a'
+        add(PointForEvent(Team.blue));
+        break;
+      case 98:  // 'b'
+        add(PointForEvent(Team.red));
+        break;
+      case 117: // 'u'
+        add(const UndoEvent());
+        break;
+      case 103: // 'g'
+        add(const NewGameEvent());
+        break;
+      default:
+        if (kDebugMode) {
+          debugPrint('[⚠️ BLOC] Unknown BLE command: $ch (code: $firstChar)');
+        }
+        return;
     }
+    
     final t1 = DateTime.now().microsecondsSinceEpoch;
     _currentDispatchLatency = t1 - t0;
     

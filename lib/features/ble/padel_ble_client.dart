@@ -23,6 +23,24 @@ class BleFrame {
   BleFrame({required this.devId, required this.seq, required this.cmd});
 }
 
+/// ▲ OPTIMIZACIÓN: Estado consolidado por dispositivo (1 lookup vs 4-6)
+/// Reduce overhead de múltiples hash table lookups en hot path
+class _DeviceState {
+  String? team;           // 'blue' | 'red' | null
+  int lastSeq;            // Última secuencia vista
+  int lastCmdTimeUs;      // Microsegundos del último comando (cualquiera)
+  int lastCmd;            // ASCII del último comando
+  int lastPointTimeUs;    // Microsegundos del último punto (cooldown 4s)
+  Set<int> seqsSeen;      // Set para O(1) deduplication
+  
+  _DeviceState()
+    : lastSeq = -1,
+      lastCmdTimeUs = 0,
+      lastCmd = 0,
+      lastPointTimeUs = 0,
+      seqsSeen = {};
+}
+
 class DiscoveredRemote {
   final int devId;
   int rssi;
@@ -94,7 +112,7 @@ class PadelBleClient {
   StreamSubscription<DiscoveredDevice>? _scanSub;
 
   // === Streams públicos ===
-  /// Emite: 'a','b','u','g' y comandos especiales tipo 'cmd:toggle-server'
+  /// Emite: 'a:123','b:456','u','g' con formato "cmd:seq"
   /// sync: true = procesamiento inmediato sin microtask queue (latencia crítica)
   final _commandsCtrl = StreamController<String>.broadcast(sync: true);
   Stream<String> get commands => _commandsCtrl.stream;
@@ -115,23 +133,13 @@ class PadelBleClient {
   final ValueNotifier<BleStatus?> bleStatus = ValueNotifier<BleStatus?>(null);
   final ValueNotifier<bool> discoveryArmed = ValueNotifier<bool>(false);
 
-  // deviceId -> 'blue' | 'red'
-  final Map<int, String> _teamByDev = <int, String>{};
-
-  // Dedup + warm-up por dispositivo
-  final _lastSeqByDev = <int, int>{};
-  final _lastCmdTimeByDev = <int, DateTime>{}; // Anti-duplicación inteligente
-  final _lastCmdByDev = <int, int>{}; // Último comando procesado
-  static const _minCmdInterval = Duration(milliseconds: 300); // 300ms = permite rallies rápidos
+  // ▲ OPTIMIZACIÓN: Struct unificado (1 lookup vs 4-6 Maps)
+  final _devices = <int, _DeviceState>{}; // deviceId -> estado completo
   
-  // ▲ FIFO queue-based seq deduplication: O(1) en lugar de O(n)
-  final _processedSeqs = <int, List<int>>{}; // deviceId -> Queue circular de seqs procesados
-  static const _maxSeqHistory = 30; // Mantener últimos 30 seqs
-  final _seqHeadIndex = <int, int>{}; // deviceId -> índice circular del head
-  
-  // === ANTI-DOBLE PUNTO: 4 segundos entre puntos por dispositivo ===
-  final _lastPointTimeByDev = <int, DateTime>{}; // Timestamp del último punto
-  static const _pointCooldown = Duration(seconds: 4); // 4s entre puntos
+  // Constantes de timing (microsegundos para evitar DateTime objects)
+  static const _minCmdIntervalUs = 300000; // 300ms = permite rallies rápidos
+  static const _pointCooldownUs = 4000000; // 4s entre puntos
+  static const _maxSeqHistory = 30; // Limpiar Set cada 30 seqs
 
   // === TELEMETRY: Timestamps parciales para medir latencia total ===
   final _telemetryPendingRx = <int, int>{}; // devId -> rxTimestamp (µs)
@@ -163,9 +171,15 @@ class PadelBleClient {
       final p = await SharedPreferences.getInstance();
       final teamMapStr = p.getString('teams_map') ?? '{}';
       final map = Map<String, dynamic>.from(jsonDecode(teamMapStr));
-      _teamByDev
-        ..clear()
-        ..addAll(map.map((k, v) => MapEntry(int.parse(k, radix: 16), (v as String))));
+      _devices.clear();
+      for (final e in map.entries) {
+        final id = int.tryParse(e.key, radix: 16);
+        if (id != null && e.value is String) {
+          final state = _DeviceState();
+          state.team = e.value as String;
+          _devices[id] = state;
+        }
+      }
     } catch (e, st) {
       // ▲ CRASH SAFETY: Si falla la carga, mantener vacío (no crashear la app)
       if (kDebugMode) {
@@ -173,14 +187,17 @@ class PadelBleClient {
         debugPrint('[BLE] Stack trace: $st');
         debugPrint('[BLE] Starting with empty team map...');
       }
-      _teamByDev.clear();
+      _devices.clear();
     }
   }
 
   Future<void> _saveTeams() async {
     try {
       final p = await SharedPreferences.getInstance();
-      final map = _teamByDev.map((k, v) => MapEntry(k.toRadixString(16), v));
+      final map = <String, String>{};
+      _devices.forEach((id, state) {
+        if (state.team != null) map[id.toRadixString(16)] = state.team!;
+      });
       await p.setString('teams_map', jsonEncode(map));
     } catch (e) {
       // ▲ CRASH SAFETY: Si falla el guardado, loguear pero no crashear
@@ -191,8 +208,9 @@ class PadelBleClient {
   }
 
   void _publishPaired() {
-    final list = _teamByDev.entries
-        .map((e) => PairedRemote(devId: e.key, team: e.value))
+    final list = _devices.entries
+        .where((e) => e.value.team != null)
+        .map((e) => PairedRemote(devId: e.key, team: e.value.team!))
         .toList()
       ..sort((a, b) => a.devId.compareTo(b.devId));
     _pairedCache = list;
@@ -202,12 +220,8 @@ class PadelBleClient {
   Future<void> init() async {
     try {
       await _loadPersisted();
-      // Inicializar queues circulares de seq dedup para todos los dispositivos pareados
-      for (final devId in _teamByDev.keys) {
-        _processedSeqs[devId] = List<int>.filled(_maxSeqHistory, -1); // -1 = slot vacío
-        _seqHeadIndex[devId] = 0;
-        _lastPointTimeByDev[devId] = DateTime.fromMillisecondsSinceEpoch(0); // Epoch = permite primer punto
-      }
+      // ▲ OPTIMIZACIÓN: _DeviceState ya inicializa todo en constructor
+      // No necesitamos inicializar queues/timestamps aquí
       _publishPaired();
       _startWatchdog();
     } catch (e, st) {
@@ -318,10 +332,10 @@ class PadelBleClient {
   // ===================== Pairing / equipos =====================
 
   Future<void> pairAs(int devId, String team) async {
-    _teamByDev[devId] = (team == 'blue') ? 'blue' : 'red';
-    _processedSeqs[devId] = List<int>.filled(_maxSeqHistory, -1); // Queue circular
-    _seqHeadIndex[devId] = 0;
-    _lastPointTimeByDev[devId] = DateTime.fromMillisecondsSinceEpoch(0); // Epoch = permite primer punto
+    final state = _devices.putIfAbsent(devId, () => _DeviceState());
+    state.team = (team == 'blue') ? 'blue' : 'red';
+    state.seqsSeen.clear(); // Reset dedup set
+    state.lastPointTimeUs = 0; // Epoch = permite primer punto
     await _saveTeams();
     _publishPaired();
     _discovered.remove(devId);
@@ -329,19 +343,13 @@ class PadelBleClient {
   }
 
   Future<void> unpair(int devId) async {
-    _teamByDev.remove(devId);
-    _lastSeqByDev.remove(devId);
-    _lastCmdTimeByDev.remove(devId);
-    _lastCmdByDev.remove(devId);
-    _processedSeqs.remove(devId); // Limpiar queue de seq dedup
-    _seqHeadIndex.remove(devId); // Limpiar índice circular
-    _lastPointTimeByDev.remove(devId); // Limpiar timestamp de punto
+    _devices.remove(devId);
     await _saveTeams();
     _publishPaired();
   }
 
-  bool isPaired(int devId) => _teamByDev.containsKey(devId);
-  String? teamOf(int devId) => _teamByDev[devId];
+  bool isPaired(int devId) => _devices[devId]?.team != null;
+  String? teamOf(int devId) => _devices[devId]?.team;
 
   // ===================== UI de descubrimiento =====================
 
@@ -434,12 +442,11 @@ class PadelBleClient {
   }
 
   /// Helper para emitir comando y registrar telemetría
-  /// ACTUALIZACIÓN: Ahora incluye seq para correlación E2E precisa
+  /// ▲ OPTIMIZACIÓN: Mantiene String para compatibilidad, pero usa struct interno
   void _emitWithTelemetry(String cmd, int devId, int seq) {
     final emitUs = DateTime.now().microsecondsSinceEpoch;
     
-    // ▲ MEJORA: Emitir comando con seq embebido para correlación
-    // Formato: "cmd:seq" (ej: "a:42" = punto azul, secuencia 42)
+    // Emitir comando con seq embebido para correlación E2E
     _commandsCtrl.add('$cmd:$seq');
     
     // Registrar telemetría si hay datos pendientes
@@ -530,92 +537,78 @@ class PadelBleClient {
     final devId = frame.devId;
     final paired = isPaired(devId);
 
+    // ▲ OPTIMIZACIÓN: Obtener/crear estado del dispositivo (1 lookup)
+    final state = _devices.putIfAbsent(devId, () => _DeviceState());
+    final nowUs = DateTime.now().microsecondsSinceEpoch;
+    
     // ===== WARM-UP: primera vez que vemos al device
-    final seenBefore = _lastSeqByDev.containsKey(devId);
+    final seenBefore = state.lastSeq != -1;
     if (!seenBefore) {
-      _lastSeqByDev[devId] = frame.seq;
-      _lastCmdTimeByDev[devId] = DateTime.fromMillisecondsSinceEpoch(0);
-      _lastCmdByDev[devId] = 0;
-
-      // Descubrimiento si está armado y es pulsación válida
+      state.lastSeq = frame.seq;
+      state.lastCmdTimeUs = nowUs;
+      state.lastCmd = frame.cmd;
+      
+      // Descubrimiento solo si está armado
       if (discoveryArmed.value && _isPressForDiscovery(frame.cmd)) {
         _discovered[devId] = DiscoveredRemote(
           devId: devId, 
           rssi: d.rssi, 
-          lastSeen: DateTime.fromMillisecondsSinceEpoch(nowMs)
+          lastSeen: DateTime.now()
         );
       }
-
-      // Si NO está paireado, ignorar comandos
-      if (!paired) return;
       
-      // Si SÍ está paireado y es 'g', arma restart
-      if (frame.cmd == 0x67) { // 'g'
-        _armRestart(devId);
-        return;
-      }
-    } else {
-      // Ya visto antes: verificar si es nueva secuencia
-      final lastSeq = _lastSeqByDev[devId]!;
-      final isNewSeq = (lastSeq != frame.seq);
-      
-      // Descubrimiento (solo con nueva pulsación)
-      if (discoveryArmed.value && isNewSeq && _isPressForDiscovery(frame.cmd)) {
-        final prev = _discovered[devId];
-        if (prev == null) {
-          _discovered[devId] = DiscoveredRemote(
-            devId: devId, 
-            rssi: d.rssi, 
-            lastSeen: DateTime.fromMillisecondsSinceEpoch(nowMs)
-          );
-        } else {
-          prev.rssi = d.rssi;
-          prev.lastSeen = DateTime.fromMillisecondsSinceEpoch(nowMs);
-        }
-      }
-      
-      _lastSeqByDev[devId] = frame.seq;
-      
-      // ▲ QUEUE-BASED DEDUP: Búsqueda lineal O(30) en queue circular
-      final int dedupStartUs = DateTime.now().microsecondsSinceEpoch;
-      final seqQueue = _processedSeqs[devId];
-      if (seqQueue != null) {
-        bool alreadyProcessed = false;
-        for (int i = 0; i < _maxSeqHistory; i++) {
-          if (seqQueue[i] == frame.seq) {
-            alreadyProcessed = true;
-            break;
-          }
-        }
-        if (alreadyProcessed) return;
-      }
-      final int dedupUs = DateTime.now().microsecondsSinceEpoch - dedupStartUs;
-      
-      if (!isNewSeq) return; // Ráfaga duplicada
-      
-      // ▲ COOLDOWN: Aritmética de enteros (más rápido que DateTime.difference)
-      final int cooldownStartUs = DateTime.now().microsecondsSinceEpoch;
-      final lastCmdMs = _lastCmdTimeByDev[devId]!.millisecondsSinceEpoch;
-      final lastCmd = _lastCmdByDev[devId]!;
-      final deltaMs = nowMs - lastCmdMs;
-      
-      // Mismo comando en <300ms → BLOCK
-      if (lastCmd == frame.cmd && deltaMs < _minCmdInterval.inMilliseconds) {
-        return;
-      }
-      final int cooldownUs = DateTime.now().microsecondsSinceEpoch - cooldownStartUs;
-      
-      // Actualizar tracking
-      _lastCmdTimeByDev[devId] = DateTime.fromMillisecondsSinceEpoch(nowMs);
-      _lastCmdByDev[devId] = frame.cmd;
-      
-      // ▲ TELEMETRY: Guardar timestamps parciales para medición final
-      // (usamos variable temporal para evitar conflictos con otros comandos)
-      _telemetryPendingParse[devId] = parseUs;
-      _telemetryPendingDedup[devId] = dedupUs;
-      _telemetryPendingCooldown[devId] = cooldownUs;
-      _telemetryPendingRx[devId] = rxUs;
+      // Primera vez, no procesar comando (evitar puntos fantasma en pairing)
+      return;
     }
+    
+    // Ya visto antes: verificar si es nueva secuencia
+    final isNewSeq = (state.lastSeq != frame.seq);
+    
+    // Descubrimiento (solo con nueva pulsación)
+    if (discoveryArmed.value && isNewSeq && _isPressForDiscovery(frame.cmd)) {
+      final prev = _discovered[devId];
+      if (prev == null) {
+        _discovered[devId] = DiscoveredRemote(
+          devId: devId, 
+          rssi: d.rssi, 
+          lastSeen: DateTime.now()
+        );
+      } else {
+        prev.rssi = d.rssi;
+        prev.lastSeen = DateTime.now();
+      }
+    }
+    
+    state.lastSeq = frame.seq;
+    
+    // ▲ OPTIMIZACIÓN: Set-based dedup O(1) en lugar de O(30)
+    final int dedupStartUs = DateTime.now().microsecondsSinceEpoch;
+    if (state.seqsSeen.contains(frame.seq)) {
+      return; // Ya procesado
+    }
+    final int dedupUs = DateTime.now().microsecondsSinceEpoch - dedupStartUs;
+    
+    if (!isNewSeq) return; // Ráfaga duplicada (lastSeq match pero no en Set)
+    
+    // ▲ OPTIMIZACIÓN: Cooldown con microsegundos puros (sin DateTime objects)
+    final int cooldownStartUs = DateTime.now().microsecondsSinceEpoch;
+    final deltaUs = nowUs - state.lastCmdTimeUs;
+    
+    // Mismo comando en <300ms → BLOCK
+    if (state.lastCmd == frame.cmd && deltaUs < _minCmdIntervalUs) {
+      return;
+    }
+    final int cooldownUs = DateTime.now().microsecondsSinceEpoch - cooldownStartUs;
+    
+    // Actualizar tracking
+    state.lastCmdTimeUs = nowUs;
+    state.lastCmd = frame.cmd;
+    
+    // ▲ TELEMETRY: Guardar timestamps parciales para medición final
+    _telemetryPendingParse[devId] = parseUs;
+    _telemetryPendingDedup[devId] = dedupUs;
+    _telemetryPendingCooldown[devId] = cooldownUs;
+    _telemetryPendingRx[devId] = rxUs;
 
     // ===== Restart simplificado: G (armar) + U (confirmar) =====
     if (frame.cmd == 0x67) { // 'g'
@@ -635,12 +628,10 @@ class PadelBleClient {
       
       _emitWithTelemetry('u', devId, frame.seq);
       
-      // Marcar seq como procesada en queue circular
-      final seqQueue = _processedSeqs[devId];
-      if (seqQueue != null) {
-        final headIdx = _seqHeadIndex[devId]!;
-        seqQueue[headIdx] = frame.seq;
-        _seqHeadIndex[devId] = (headIdx + 1) % _maxSeqHistory;
+      // Marcar seq como vista + limpiar Set si crece mucho
+      state.seqsSeen.add(frame.seq);
+      if (state.seqsSeen.length > _maxSeqHistory) {
+        state.seqsSeen.clear();
       }
       return;
     }
@@ -654,48 +645,45 @@ class PadelBleClient {
     // ===== Scoring solo si pareado =====
     if (!paired) return;
 
-    final team = _teamByDev[devId];
+    final team = state.team!; // Ya verificamos paired arriba
 
     // Preferido: 'p' => punto (mapeado por pairing)
     if (frame.cmd == 0x70) { // 'p'
-      // ▲ ANTI-DOBLE PUNTO: Cooldown de 4s (aritmética de enteros)
-      final lastPointMs = _lastPointTimeByDev[devId]?.millisecondsSinceEpoch ?? 0;
-      final sincePointMs = nowMs - lastPointMs;
+      // ▲ ANTI-DOBLE PUNTO: Cooldown de 4s con microsegundos puros
+      final sincePointUs = nowUs - state.lastPointTimeUs;
       
-      if (sincePointMs < _pointCooldown.inMilliseconds) {
+      if (sincePointUs < _pointCooldownUs) {
         if (kDebugMode && _verbose) {
+          final remainingMs = (_pointCooldownUs - sincePointUs) ~/ 1000;
           print('❌ [ANTI-DOBLE] Bloqueado dev=0x${devId.toRadixString(16)} '
-                '(cooldown: ${_pointCooldown.inMilliseconds - sincePointMs}ms)');
+                '(cooldown: ${remainingMs}ms)');
         }
         return;
       }
       
-      if (team == 'blue') _emitWithTelemetry('a', devId, frame.seq);
-      else if (team == 'red') _emitWithTelemetry('b', devId, frame.seq);
+      // Emitir comando: 'a' (blue) o 'b' (red)
+      final cmd = team == 'blue' ? 'a' : 'b';
+      _emitWithTelemetry(cmd, devId, frame.seq);
       
-      _lastPointTimeByDev[devId] = DateTime.fromMillisecondsSinceEpoch(nowMs);
+      state.lastPointTimeUs = nowUs;
       
-      // Marcar seq como procesada en queue circular
-      final seqQueue = _processedSeqs[devId];
-      if (seqQueue != null) {
-        final headIdx = _seqHeadIndex[devId]!;
-        seqQueue[headIdx] = frame.seq;
-        _seqHeadIndex[devId] = (headIdx + 1) % _maxSeqHistory;
+      // Marcar seq como vista + limpiar Set si crece mucho
+      state.seqsSeen.add(frame.seq);
+      if (state.seqsSeen.length > _maxSeqHistory) {
+        state.seqsSeen.clear();
       }
       return;
     }
 
     // Legacy 'a'/'b': mapeamos por pairing
     if (frame.cmd == 0x61 || frame.cmd == 0x62) { // 'a' o 'b'
-      if (team == 'blue') _emitWithTelemetry('a', devId, frame.seq);
-      else if (team == 'red') _emitWithTelemetry('b', devId, frame.seq);
+      final cmd = team == 'blue' ? 'a' : 'b';
+      _emitWithTelemetry(cmd, devId, frame.seq);
       
-      // Marcar seq como procesada en queue circular
-      final seqQueue = _processedSeqs[devId];
-      if (seqQueue != null) {
-        final headIdx = _seqHeadIndex[devId]!;
-        seqQueue[headIdx] = frame.seq;
-        _seqHeadIndex[devId] = (headIdx + 1) % _maxSeqHistory;
+      // Marcar seq como vista + limpiar Set si crece mucho
+      state.seqsSeen.add(frame.seq);
+      if (state.seqsSeen.length > _maxSeqHistory) {
+        state.seqsSeen.clear();
       }
       return;
     }

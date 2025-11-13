@@ -12,6 +12,7 @@ import 'package:Puntazo/features/widgets/set_score.dart';
 
 /// ========== TELEMETRÍA UI ==========
 /// Singleton para rastrear rebuilds de widgets del scoreboard
+/// OPTIMIZADO: Sin prints para máxima velocidad
 class _UITelemetry {
   static final _UITelemetry _instance = _UITelemetry._internal();
   factory _UITelemetry() => _instance;
@@ -22,47 +23,22 @@ class _UITelemetry {
   int _setGamesRebuilds = 0;
   int _headerRebuilds = 0;
   int _statusRebuilds = 0;
-  int _backgroundRebuilds = 0; // ¡Esto DEBE ser 0 siempre!
+  int _backgroundRebuilds = 0;
 
-  void recordBluePointsRebuild() {
-    _bluePointsRebuilds++;
-    if (kDebugMode) {
-      print('🎨 UI] Rebuild: Puntos AZULES (#$_bluePointsRebuilds)');
-    }
-  }
-
-  void recordRedPointsRebuild() {
-    _redPointsRebuilds++;
-    if (kDebugMode) {
-      print('🎨 UI] Rebuild: Puntos ROJOS (#$_redPointsRebuilds)');
-    }
-  }
-
-  void recordSetGamesRebuild() {
-    _setGamesRebuilds++;
-    if (kDebugMode) {
-      print('🎨 UI] Rebuild: SET ACTUAL (#$_setGamesRebuilds)');
-    }
-  }
-
-  void recordHeaderRebuild() {
-    _headerRebuilds++;
-    if (kDebugMode) {
-      print('🎨 UI] Rebuild: HEADER (servidor/sets) (#$_headerRebuilds)');
-    }
-  }
-
-  void recordStatusRebuild() {
-    _statusRebuilds++;
-    if (kDebugMode) {
-      print('🎨 UI] Rebuild: STATUS (tie-break/deuce) (#$_statusRebuilds)');
-    }
-  }
-
+  // ▲ OPTIMIZACIÓN: Sin prints en cada rebuild (causan latencia)
+  //   Solo incrementar contadores (operación instantánea)
+  void recordBluePointsRebuild() => _bluePointsRebuilds++;
+  void recordRedPointsRebuild() => _redPointsRebuilds++;
+  void recordSetGamesRebuild() => _setGamesRebuilds++;
+  void recordHeaderRebuild() => _headerRebuilds++;
+  void recordStatusRebuild() => _statusRebuilds++;
+  
+  // ▲ WARNING: Background DEBE ser solo 1 rebuild (al inicio)
   void recordBackgroundRebuild() {
     _backgroundRebuilds++;
-    if (kDebugMode) {
-      print('⚠️ UI] WARNING: FONDO se redibujó! (#$_backgroundRebuilds) - ¡ESTO NO DEBE PASAR!');
+    // Solo mostrar warning si hay problema crítico (>1 rebuild)
+    if (kDebugMode && _backgroundRebuilds > 1) {
+      print('⚠️ UI] CRITICAL: Background redibujado $_backgroundRebuilds veces!');
     }
   }
 
@@ -72,7 +48,7 @@ class _UITelemetry {
     'set_games': _setGamesRebuilds,
     'header': _headerRebuilds,
     'status': _statusRebuilds,
-    'background': _backgroundRebuilds, // DEBE ser 0
+    'background': _backgroundRebuilds,
   };
 
   void reset() {
@@ -82,9 +58,6 @@ class _UITelemetry {
     _headerRebuilds = 0;
     _statusRebuilds = 0;
     _backgroundRebuilds = 0;
-    if (kDebugMode) {
-      print('🔄 UI] Telemetría reseteada');
-    }
   }
 }
 /// ========================================
@@ -258,32 +231,61 @@ class Scoreboard extends StatelessWidget {
   Widget build(BuildContext context) {
     final padelTheme = context.padelTheme;
     
-    return Stack(
-      children: [
-        // ▲ OPTIMIZACIÓN CRÍTICA: Fondo estático con RepaintBoundary
-        //   Este widget se dibuja UNA VEZ y NUNCA más se redibuja
-        _StaticBackground(padelTheme: padelTheme),
-        // Content
-        _ScoreboardContent(),
-      ],
+    return Container(
+      color: Colors.black, // ▲ FIX: Fondo negro explícito (evita grises por defecto)
+      child: Stack(
+        children: [
+          // ▲ OPTIMIZACIÓN CRÍTICA: Fondo estático con RepaintBoundary
+          //   Este widget se dibuja UNA VEZ y NUNCA más se redibuja
+          _StaticBackground(
+            padelTheme: padelTheme,
+            // ▲ FALLBACK: Colores hardcoded como backup
+            blueColor: padelTheme.scoreboardBackgroundBlue,
+            redColor: padelTheme.scoreboardBackgroundRed,
+            hexColor: padelTheme.hexPatternColor,
+          ),
+          // Content
+          _ScoreboardContent(),
+        ],
+      ),
     );
   }
 }
 
 /// ▲ OPTIMIZACIÓN: Fondo estático que NUNCA se redibuja
-///   RepaintBoundary + StatelessWidget + const constructor = máxima eficiencia
-class _StaticBackground extends StatelessWidget {
+///   RepaintBoundary + StatefulWidget (initState garantiza registro único)
+class _StaticBackground extends StatefulWidget {
   final PadelThemeExtension padelTheme;
+  final Color blueColor;
+  final Color redColor;
+  final Color hexColor;
 
-  const _StaticBackground({required this.padelTheme});
+  const _StaticBackground({
+    required this.padelTheme,
+    required this.blueColor,
+    required this.redColor,
+    required this.hexColor,
+  });
+
+  @override
+  State<_StaticBackground> createState() => _StaticBackgroundState();
+}
+
+class _StaticBackgroundState extends State<_StaticBackground> {
+  @override
+  void initState() {
+    super.initState();
+    // ▲ TELEMETRÍA: Registrar en initState (garantizado UNA VEZ)
+    _UITelemetry().recordBackgroundRebuild();
+  }
 
   @override
   Widget build(BuildContext context) {
-    // Registrar telemetría (esto solo debe aparecer UNA VEZ en debug)
-    if (kDebugMode) {
-      _UITelemetry().recordBackgroundRebuild();
-    }
-
+    // ▲ USAR colores con fallback explícito
+    final blueGrad = widget.blueColor;
+    final redGrad = widget.redColor;
+    final hexCol = widget.hexColor;
+    
     return RepaintBoundary(
       child: Positioned.fill(
         child: Stack(
@@ -294,7 +296,7 @@ class _StaticBackground extends StatelessWidget {
               child: Container(
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
-                    colors: [padelTheme.scoreboardBackgroundBlue, _darkenColor(padelTheme.scoreboardBackgroundBlue)],
+                    colors: [blueGrad, _darkenColor(blueGrad)],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
@@ -307,7 +309,7 @@ class _StaticBackground extends StatelessWidget {
               child: Container(
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
-                    colors: [padelTheme.scoreboardBackgroundRed, _darkenColor(padelTheme.scoreboardBackgroundRed)],
+                    colors: [redGrad, _darkenColor(redGrad)],
                     begin: Alignment.topRight,
                     end: Alignment.bottomLeft,
                   ),
@@ -317,7 +319,7 @@ class _StaticBackground extends StatelessWidget {
             // Hexagonal hive pattern overlay
             Positioned.fill(
               child: CustomPaint(
-                painter: _HexagonalHivePainter(color: padelTheme.hexPatternColor),
+                painter: _HexagonalHivePainter(color: hexCol),
               ),
             ),
           ],

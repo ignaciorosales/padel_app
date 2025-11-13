@@ -422,6 +422,27 @@ class PadelThemeExtension extends ThemeExtension<PadelThemeExtension> {
 /// Helper extension para acceder fácilmente a los colores personalizados
 extension PadelThemeContext on BuildContext {
   PadelThemeExtension get padelTheme {
-    return Theme.of(this).extension<PadelThemeExtension>()!;
+    final theme = Theme.of(this).extension<PadelThemeExtension>();
+    
+    // ▲ FALLBACK SEGURO: Si el tema no existe, usar colores por defecto
+    if (theme == null) {
+      return const PadelThemeExtension(
+        teamBlueColor: Color(0xFF2196F3),
+        teamRedColor: Color(0xFFE53935),
+        scoreboardBackgroundBlue: Color(0xFF1565C0),
+        scoreboardBackgroundRed: Color(0xFFC62828),
+        sidebarBackground: Color(0xFF263238),
+        sidebarDivider: Color(0xFF455A64),
+        digitalFontColor: Colors.white,
+        hexPatternColor: Color(0x1AFFFFFF),
+        brandBackgroundColor: Color(0xFF37474F),
+        tieBreakColor: Color(0xFFFF6F00),
+        deuceColor: Color(0xFFFFCA28),
+        goldenPointColor: Color(0xFFFFD700),
+        winnerOverlayBackground: Color(0xCC000000),
+      );
+    }
+    
+    return theme;
   }
 }
