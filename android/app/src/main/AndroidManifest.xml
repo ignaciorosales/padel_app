@@ -30,6 +30,14 @@
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <!-- Red para Flutter -->
     <uses-permission android:name="android.permission.INTERNET" />
+    
+    <!-- ===== CRITICAL: Prevenir sleep/throttling ===== -->
+    <!-- WAKE_LOCK: Prevenir que la CPU se suspenda durante el partido -->
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <!-- REQUEST_IGNORE_BATTERY_OPTIMIZATIONS: Evitar Doze Mode -->
+    <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
+    <!-- FOREGROUND_SERVICE: Permitir servicio en primer plano (opcional pero ayuda) -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
 
     <!-- ===== Application ===== -->
     <application
@@ -45,6 +53,8 @@
             android:theme="@style/LaunchTheme"
             android:hardwareAccelerated="true"
             android:windowSoftInputMode="adjustResize"
+            android:screenOrientation="sensorLandscape"
+            android:keepScreenOn="true"
             android:configChanges="orientation|keyboardHidden|keyboard|screenSize|smallestScreenSize|locale|layoutDirection|fontScale|screenLayout|density|uiMode">
 
             <!-- Tema mientras inicializa Flutter -->

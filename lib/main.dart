@@ -1,82 +1,52 @@
 // lib/main.dart
+// ============================================================================
+// ⚡ MODO DEBUG: UI MÍNIMA PARA DETECTAR DELAYS
+// Este main.dart está ULTRA-SIMPLIFICADO para medir latencia pura
+// ============================================================================
 
 import 'dart:async';
+// ignore: unused_import
 import 'dart:io' show Platform;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+// ignore: unused_import
 import 'package:flutter_bloc/flutter_bloc.dart';
+// ignore: unused_import
 import 'package:wakelock_plus/wakelock_plus.dart';
 
+// ignore: unused_import
 import 'package:Puntazo/config/app_config.dart';
+// ignore: unused_import
 import 'package:Puntazo/config/app_theme.dart';
+// ignore: unused_import
 import 'package:Puntazo/config/config_loader.dart';
+// ignore: unused_import
 import 'package:Puntazo/config/team_selection_service.dart';
 import 'package:Puntazo/features/ble/padel_ble_client.dart';
+// ignore: unused_import
 import 'package:Puntazo/features/ble/ble_full_telemetry_overlay.dart';
+// ignore: unused_import
 import 'package:Puntazo/features/ble/ble_realtime_monitor.dart';
+// ignore: unused_import
 import 'package:Puntazo/features/models/scoring_models.dart';
+// ignore: unused_import
 import 'package:Puntazo/features/scoring/bloc/scoring_bloc.dart';
+// ignore: unused_import
 import 'package:Puntazo/features/scoring/bloc/scoring_event.dart';
-import 'package:Puntazo/features/widgets/scoreboard.dart'; // ▲ OPTIMIZADO
+// ignore: unused_import
+import 'package:Puntazo/features/widgets/scoreboard.dart';
+// ignore: unused_import
 import 'package:Puntazo/features/widgets/referee_sidebar.dart';
+// ignore: unused_import
 import 'package:Puntazo/features/widgets/winner_overlay.dart';
+// ignore: unused_import
 import 'package:Puntazo/features/settings/match_settings_screen.dart';
 
-// == BLE CAPS (DART + METHOD CHANNEL) ==========================
-class BleCaps {
-  final bool? leCodedPhySupported;
-  final bool? le2MPhySupported;
-  final bool? leExtendedAdvSupported;
-  final bool? lePeriodicAdvSupported;
-  final bool? offloadedFilteringSupported;
-  final bool? offloadedBatchingSupported;
-
-  BleCaps({
-    required this.leCodedPhySupported,
-    required this.le2MPhySupported,
-    required this.leExtendedAdvSupported,
-    required this.lePeriodicAdvSupported,
-    required this.offloadedFilteringSupported,
-    required this.offloadedBatchingSupported,
-  });
-
-  bool get supportsLongRange => leCodedPhySupported == true;
-  bool get supportsExtendedAdv => leExtendedAdvSupported == true;
-
-  static const _ch = MethodChannel('ble_caps');
-
-  static Future<BleCaps> query() async {
-    if (!Platform.isAndroid) {
-      return BleCaps(
-        leCodedPhySupported: null,
-        le2MPhySupported: null,
-        leExtendedAdvSupported: null,
-        lePeriodicAdvSupported: null,
-        offloadedFilteringSupported: null,
-        offloadedBatchingSupported: null,
-      );
-    }
-    final m = Map<dynamic, dynamic>.from(await _ch.invokeMethod('queryCaps'));
-    bool? b(dynamic v) => v is bool ? v : null;
-    return BleCaps(
-      leCodedPhySupported: b(m['isLeCodedPhySupported']),
-      le2MPhySupported: b(m['isLe2MPhySupported']),
-      leExtendedAdvSupported: b(m['isLeExtendedAdvertisingSupported']),
-      lePeriodicAdvSupported: b(m['isLePeriodicAdvertisingSupported']),
-      offloadedFilteringSupported: b(m['isOffloadedFilteringSupported']),
-      offloadedBatchingSupported: b(m['isOffloadedBatchingSupported']),
-    );
-  }
-
-  @override
-  String toString() =>
-      'LE Coded: $leCodedPhySupported | LE 2M: $le2MPhySupported | '
-      'Extended Adv: $leExtendedAdvSupported | Periodic Adv: $lePeriodicAdvSupported | '
-      'Offloaded Filtering: $offloadedFilteringSupported | Offloaded Batching: $offloadedBatchingSupported';
-}
-// ==============================================================
+// ============================================================================
+// CLASES AUXILIARES NECESARIAS PARA OTRAS PARTES DEL CÓDIGO
+// ============================================================================
 
 /// Simple app-wide theme controller
 class ThemeController {
@@ -91,62 +61,67 @@ class ThemeController {
   void dispose() => mode.dispose();
 }
 
+/// BLE capabilities helper (Android)
+class BleCaps {
+  final bool leCodedPhySupported;
+  final bool le2MPhySupported;
+  final bool leExtendedAdvSupported;
+  final bool lePeriodicAdvSupported;
+  final bool offloadedFilteringSupported;
+  final bool offloadedBatchingSupported;
+
+  const BleCaps({
+    required this.leCodedPhySupported,
+    required this.le2MPhySupported,
+    required this.leExtendedAdvSupported,
+    required this.lePeriodicAdvSupported,
+    required this.offloadedFilteringSupported,
+    required this.offloadedBatchingSupported,
+  });
+
+  static Future<BleCaps> query() async {
+    // Stub implementation - real implementation would use platform channels
+    return const BleCaps(
+      leCodedPhySupported: false,
+      le2MPhySupported: false,
+      leExtendedAdvSupported: false,
+      lePeriodicAdvSupported: false,
+      offloadedFilteringSupported: false,
+      offloadedBatchingSupported: false,
+    );
+  }
+
+  bool get supportsLongRange => leCodedPhySupported;
+  bool get supportsExtendedAdv => leExtendedAdvSupported;
+
+  @override
+  String toString() => 'BleCaps(LE Coded: $leCodedPhySupported, Extended Adv: $leExtendedAdvSupported)';
+}
+
+/// ============================================================================
+/// ⚡ MAIN EN MODO DEBUG - UI MÍNIMA
+/// ============================================================================
+
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
-  try {
-    await SystemChrome.setPreferredOrientations([
-      DeviceOrientation.landscapeLeft,
-      DeviceOrientation.landscapeRight,
-    ]);
-    await SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+  await SystemChrome.setPreferredOrientations([
+    DeviceOrientation.landscapeLeft,
+    DeviceOrientation.landscapeRight,
+  ]);
+  await SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
 
-    final config = await ConfigLoader.load();
-    final teamSelection = await TeamSelectionService.init(config);
-    runApp(PadelApp(config: config, teamSelection: teamSelection));
-  } catch (e, st) {
-    // ▲ CRASH SAFETY: Si falla la carga inicial, mostrar error en pantalla
-    print('[❌ FATAL] Error during app initialization: $e');
-    print('[❌ FATAL] Stack trace: $st');
-    
-    // Intentar mostrar un error visual (MaterialApp mínimo)
-    runApp(
-      MaterialApp(
-        home: Scaffold(
-          body: Center(
-            child: Padding(
-              padding: const EdgeInsets.all(24.0),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(Icons.error_outline, size: 64, color: Colors.red),
-                  const SizedBox(height: 24),
-                  const Text(
-                    'Error al inicializar la aplicación',
-                    style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    e.toString(),
-                    style: const TextStyle(fontSize: 14),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 24),
-                  const Text(
-                    'Por favor, reinicia la aplicación.',
-                    style: TextStyle(fontSize: 16),
-                    textAlign: TextAlign.center,
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
+  // ▼ CAMBIAR AQUÍ PARA VOLVER A UI COMPLETA:
+  runApp(const MinimalDebugApp()); // ← UI mínima
+  
+  // Para volver a la UI completa, descomentar esto y comentar lo de arriba:
+  // final config = await ConfigLoader.load();
+  // final teamSelection = await TeamSelectionService.init(config);
+  // runApp(PadelApp(config: config, teamSelection: teamSelection));
 }
+/// ============================================================================
+/// CLASES AUXILIARES (necesarias para otras partes del código)
+/// ============================================================================
 
 class PadelApp extends StatefulWidget {
   const PadelApp({super.key, required this.config, required this.teamSelection});
@@ -617,6 +592,373 @@ class _RestartDialog extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// ============================================================================
+/// ⚡ MINIMAL DEBUG APP - UI ULTRA-SIMPLE PARA DETECTAR DELAYS
+/// ============================================================================
+
+class MinimalDebugApp extends StatelessWidget {
+  const MinimalDebugApp({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      debugShowCheckedModeBanner: false,
+      theme: ThemeData.dark(),
+      home: const MinimalDebugScreen(),
+    );
+  }
+}
+
+class MinimalDebugScreen extends StatefulWidget {
+  const MinimalDebugScreen({super.key});
+
+  @override
+  State<MinimalDebugScreen> createState() => _MinimalDebugScreenState();
+}
+
+class _MinimalDebugScreenState extends State<MinimalDebugScreen> {
+  final PadelBleClient _ble = PadelBleClient();
+  StreamSubscription<String>? _cmdSub;
+  StreamSubscription<BleFrame>? _rawSub;
+  bool _bleReady = false; // ⚡ Flag para saber si BLE está inicializado
+  
+  // Para cada comando: nombre y su latencia individual (microsegundos)
+  final List<MapEntry<String, int>> _commandsWithLatency = [];
+  final Map<int, int> _rawArrivalTimes = {}; // ⚡ Clave = seq (int), no "cmd:seq"
+  int _maxLatencyUs = 0;
+  
+  // Contador de secuencia para comandos de test
+  int _testSeqCounter = 1;
+  
+  final ScrollController _processedScrollCtrl = ScrollController();
+  
+  // ⚡ NUEVO: Campo de comando manual
+  final TextEditingController _manualCtrl = TextEditingController();
+
+  @override
+  void dispose() {
+    _cmdSub?.cancel();
+    _rawSub?.cancel();
+    _processedScrollCtrl.dispose();
+    _manualCtrl.dispose();
+    _ble.dispose();
+    super.dispose();
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    
+    () async {
+      try {
+        await _ble.init();
+        await _ble.startListening();
+        
+        // ⚡ Capturar timestamp de llegada para cálculo E2E
+        _rawSub = _ble.rawFrames.listen((frame) {
+          // ⚡ FIX: Usar seq como clave (independiente del mapeo p→a/b)
+          if (kDebugMode) print('[DEBUG RAW] seq=${frame.seq} timestampUs=${frame.timestampUs}');
+          _rawArrivalTimes[frame.seq] = frame.timestampUs;
+          if (kDebugMode) print('[DEBUG RAW] Stored in map. Map size: ${_rawArrivalTimes.length}');
+        });
+        
+        // ⚡ PROCESADO: Comandos listos para actualizar UI
+        _cmdSub = _ble.commands.listen((cmd) {
+          if (kDebugMode) print('[DEBUG LISTENER] Received command: $cmd');
+          
+          // ⚡ TIMESTAMP FINAL: Capturar AQUÍ cuando llega a la UI (fin del pipeline)
+          final int finalTimestamp = DateTime.now().microsecondsSinceEpoch;
+          
+          // Extraer displayCmd (formato puede ser "cmd:seq@timestamp" o "cmd:seq")
+          String displayCmd;
+          if (cmd.contains('@')) {
+            final parts = cmd.split('@');
+            displayCmd = parts[0];
+          } else {
+            displayCmd = cmd;
+          }
+          
+          // ⚡ FIX: Extraer seq del comando y buscar por seq (no por "cmd:seq")
+          int latencyUs = 0;
+          if (displayCmd.contains(':')) {
+            final seq = int.tryParse(displayCmd.split(':')[1]);
+            if (kDebugMode) print('[DEBUG LATENCY] Extracted seq: $seq from displayCmd: $displayCmd');
+            if (seq != null) {
+              final rawTime = _rawArrivalTimes[seq];
+              if (kDebugMode) print('[DEBUG LATENCY] Lookup seq=$seq → rawTime=$rawTime, finalTimestamp=$finalTimestamp');
+              if (rawTime != null) {
+                latencyUs = finalTimestamp - rawTime; // T_final - T_inicial
+                if (kDebugMode) print('[DEBUG LATENCY] Calculated latencyUs: $latencyUs (${latencyUs/1000}ms)');
+                _rawArrivalTimes.remove(seq);
+              } else {
+                if (kDebugMode) print('[DEBUG LATENCY] No rawTime found for seq=$seq. Map contents: $_rawArrivalTimes');
+              }
+            }
+          }
+          
+          setState(() {
+            _commandsWithLatency.add(MapEntry(displayCmd, latencyUs));
+            if (latencyUs > _maxLatencyUs) _maxLatencyUs = latencyUs;
+            
+            // Auto-scroll
+            Future.microtask(() {
+              if (_processedScrollCtrl.hasClients) {
+                _processedScrollCtrl.animateTo(
+                  _processedScrollCtrl.position.maxScrollExtent,
+                  duration: const Duration(milliseconds: 100),
+                  curve: Curves.easeOut,
+                );
+              }
+            });
+          });
+        });
+        
+        // ⚡ Marcar como listo DESPUÉS de suscribir listeners
+        setState(() {
+          _bleReady = true;
+        });
+        if (kDebugMode) print('[DEBUG] BLE listeners ready');
+      } catch (e) {
+        if (kDebugMode) print('[ERROR] BLE init failed: $e');
+      }
+    }();
+  }
+  
+  // ⚡ NUEVO: Limpiar logs y resetear métricas
+  void _clearLogs() {
+    _commandsWithLatency.clear();
+    _rawArrivalTimes.clear();
+    _maxLatencyUs = 0;
+    _testSeqCounter = 1; // Resetear contador
+  }
+  
+  // ⚡ TEST BLE: Enviar un comando que pasa por todo el pipeline BLE (_onDevice)
+  void _sendBluetoothCommand() {
+    if (!_bleReady) {
+      if (kDebugMode) print('[DEBUG] BLE not ready yet, ignoring...');
+      return;
+    }
+    // Incrementar secuencia para evitar dedup
+    final seq = _testSeqCounter++;
+    if (kDebugMode) print('[DEBUG] Sending test command: a:$seq');
+    _ble.emitBluetoothCommand('a:$seq');
+  }
+  
+  // ⚡ NUEVO: Enviar comando manual (simula BLE completo)
+  void _sendManualCommand() {
+    if (!_bleReady) {
+      if (kDebugMode) print('[DEBUG] BLE not ready yet, ignoring...');
+      return;
+    }
+    final text = _manualCtrl.text.trim();
+    if (text.isEmpty) return;
+    if (!text.contains(':')) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Formato: "c:nnn" (ej: "a:5")'),
+          duration: Duration(seconds: 3),
+        ),
+      );
+      return;
+    }
+    _ble.emitBluetoothCommand(text);
+    _manualCtrl.clear();
+  }
+  
+
+
+  @override
+  Widget build(BuildContext context) {
+    final double maxLatencyMs = _maxLatencyUs / 1000.0;
+    
+    return Scaffold(
+      backgroundColor: Colors.black,
+      body: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          children: [
+            // Header compacto
+            const Text(
+              '🔬 DEBUG BLE - Latencia de Procesamiento',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white70),
+            ),
+            const SizedBox(height: 8),
+            
+            // ⚡ CONTROLES: Test BLE + Limpiar + Manual
+            Row(
+              children: [
+                ElevatedButton.icon(
+                  onPressed: _sendBluetoothCommand,
+                  icon: const Icon(Icons.bluetooth, size: 16),
+                  label: const Text('Test BLE', style: TextStyle(fontSize: 13)),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.purple,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  ),
+                ),
+                const SizedBox(width: 6),
+                ElevatedButton.icon(
+                  onPressed: () => setState(_clearLogs),
+                  icon: const Icon(Icons.delete, size: 16),
+                  label: const Text('Limpiar', style: TextStyle(fontSize: 13)),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.red,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  ),
+                ),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: TextField(
+                    controller: _manualCtrl,
+                    style: const TextStyle(color: Colors.white, fontSize: 13),
+                    decoration: InputDecoration(
+                      hintText: 'Manual (ej: a:5)',
+                      hintStyle: const TextStyle(color: Colors.white38, fontSize: 12),
+                      filled: true,
+                      fillColor: Colors.white10,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(6),
+                        borderSide: BorderSide.none,
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                      isDense: true,
+                    ),
+                    onSubmitted: (_) => _sendManualCommand(),
+                  ),
+                ),
+                const SizedBox(width: 6),
+                ElevatedButton.icon(
+                  onPressed: _sendManualCommand,
+                  icon: const Icon(Icons.send, size: 16),
+                  label: const Text('Enviar', style: TextStyle(fontSize: 13)),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.green,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  ),
+                ),
+              ],
+            ),
+            
+            const SizedBox(height: 8),
+            
+            // ⚡ MÉTRICA: Latencia máxima observada
+            _MetricChip(
+              label: 'Latencia máxima',
+              valueMs: maxLatencyMs,
+            ),
+            
+            const SizedBox(height: 12),
+            
+            // Lista de comandos con su latencia individual
+            Expanded(
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Colors.green.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.green.withOpacity(0.3)),
+                ),
+                child: Column(
+                  children: [
+                    // Header
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: Colors.green.withOpacity(0.2),
+                        borderRadius: const BorderRadius.vertical(top: Radius.circular(8)),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text(
+                            '⚡ COMANDOS (con latencia individual)',
+                            style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.green),
+                          ),
+                          Text(
+                            '${_commandsWithLatency.length}',
+                            style: const TextStyle(fontSize: 13, color: Colors.white70),
+                          ),
+                        ],
+                      ),
+                    ),
+                    // Lista scrollable
+                    Expanded(
+                      child: ListView.builder(
+                        controller: _processedScrollCtrl,
+                        padding: const EdgeInsets.all(6),
+                        itemCount: _commandsWithLatency.length,
+                        itemBuilder: (_, i) {
+                          final entry = _commandsWithLatency[i];
+                          final cmd = entry.key;
+                          final latencyUs = entry.value;
+                          final latencyMs = latencyUs / 1000.0;
+                          
+                          return Container(
+                            margin: const EdgeInsets.only(bottom: 2),
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: Colors.green.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(4),
+                              border: Border.all(color: Colors.green.withOpacity(0.3), width: 0.5),
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(
+                                  '${i + 1}. $cmd',
+                                  style: const TextStyle(color: Colors.green, fontSize: 12, fontWeight: FontWeight.bold),
+                                ),
+                                Text(
+                                  '${latencyMs.toStringAsFixed(2)}ms',
+                                  style: TextStyle(
+                                    color: latencyUs > 10000 ? Colors.red : latencyUs > 5000 ? Colors.yellow : Colors.green,
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// ⚡ Widget para mostrar métricas de latencia
+class _MetricChip extends StatelessWidget {
+  final String label;
+  final double valueMs;
+
+  const _MetricChip({required this.label, required this.valueMs});
+
+  @override
+  Widget build(BuildContext context) {
+    final bool high = valueMs > 100.0;
+    final bool medium = valueMs > 50.0 && valueMs <= 100.0;
+    final Color color = high ? Colors.red : medium ? Colors.yellow : Colors.green;
+    return Chip(
+      backgroundColor: color.withOpacity(0.2),
+      padding: EdgeInsets.zero,
+      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+      label: Text(
+        '$label: ${valueMs.toStringAsFixed(1)}ms',
+        style: TextStyle(color: color, fontWeight: FontWeight.bold, fontSize: 11),
       ),
     );
   }

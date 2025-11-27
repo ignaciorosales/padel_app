@@ -20,7 +20,8 @@ class BleFrame {
   final int devId; // 0..65535
   final int seq;   // 1..255
   final int cmd;
-  BleFrame({required this.devId, required this.seq, required this.cmd});
+  final int timestampUs; // ⚡ NUEVO: Timestamp de captura (microsegundos)
+  BleFrame({required this.devId, required this.seq, required this.cmd, required this.timestampUs});
 }
 
 /// ▲ OPTIMIZACIÓN: Estado consolidado por dispositivo (1 lookup vs 4-6)
@@ -66,9 +67,180 @@ class PadelBleClient {
   // ▲ TELEMETRÍA: Medir latencias en tiempo real
   final telemetry = BleTelemetry();
 
-  /// ▲ TEST HELPER: Inyectar comandos simulados (pasan por stream → bloc → UI)
+  /// ▲ TEST HELPER: Simula un comando BLE completo (incluyendo _onDevice)
+  /// Esto mide la latencia real del pipeline BLE completo
+  Future<void> emitBluetoothCommand(String cmd) async {
+    if (kDebugMode) print('[TEST BLE] Iniciando emitBluetoothCommand: $cmd');
+    
+    final parts = cmd.split(':');
+    if (parts.length != 2) {
+      if (kDebugMode) print('[TEST BLE] ERROR: Formato inválido');
+      return;
+    }
+    
+    final cmdChar = parts[0];
+    final seq = int.tryParse(parts[1]);
+    if (seq == null || cmdChar.isEmpty) {
+      if (kDebugMode) print('[TEST BLE] ERROR: No se pudo parsear seq o cmd vacío');
+      return;
+    }
+    
+    if (kDebugMode) print('[TEST BLE] Parseado: cmd=$cmdChar seq=$seq');
+    
+    // Device de test (0xFFFE para diferenciarlo)
+    const testDevId = 0xFFFE;
+    
+    // Asegurar que está pareado como blue
+    if (_devices[testDevId] == null) {
+      if (kDebugMode) print('[TEST BLE] Inicializando device 0xFFFE');
+      final state = _DeviceState()
+        ..team = 'blue'
+        ..lastSeq = 998  // Inicializar con seq != -1 para que seenBefore = true
+        ..lastCmdTimeUs = 0
+        ..lastPointTimeUs = 0;
+      _devices[testDevId] = state;
+    }
+    
+    // Simular manufacturerData como lo enviaría un dispositivo real (formato 10B)
+    // 'P','S',ver,devLo,devHi,'C',cmd,seq,crcLo,crcHi
+    final payload = <int>[
+      0x50, // 'P'
+      0x53, // 'S'
+      _protoVer,
+      testDevId & 0xFF,        // devLo
+      (testDevId >> 8) & 0xFF, // devHi
+      0x43, // 'C'
+      cmdChar.codeUnitAt(0),   // cmd
+      seq & 0xFF,              // seq (solo lower byte, seq < 256)
+    ];
+    
+    // Calcular CRC16-CCITT
+    final crc = _crc16Ccitt(Uint8List.fromList(payload));
+    final mfgData = <int>[
+      ...payload,
+      crc & 0xFF,        // crcLo
+      (crc >> 8) & 0xFF, // crcHi
+    ];
+    
+    if (kDebugMode) print('[TEST BLE] MfgData (10B): $mfgData CRC=0x${crc.toRadixString(16)}');
+    
+    // Crear DiscoveredDevice simulado
+    final fakeDevice = DiscoveredDevice(
+      id: 'TEST_${testDevId.toRadixString(16)}',
+      name: 'Padel Remote Test',
+      manufacturerData: Uint8List.fromList(mfgData),
+      rssi: -50,
+      serviceData: const {},
+      serviceUuids: const [],
+    );
+    
+    if (kDebugMode) print('[TEST BLE] Llamando _onDevice()...');
+    
+    // ⚡ CRITICAL: Dar tiempo a que los listeners estén listos
+    await Future.delayed(const Duration(milliseconds: 10));
+    
+    // Procesar como si viniera del scan BLE real
+    _onDevice(fakeDevice);
+    
+    if (kDebugMode) print('[TEST BLE] _onDevice() completado');
+  }
+  
+  /// ▲ TEST HELPER: Inyectar comandos simulados (pasan por rawFrames → validación → commands)
+  /// 
+  /// Medimos solo la latencia de procesamiento interno de la app,
+  /// sin simular delays de radio/scan BLE.
   void emitTestCommand(String cmd) {
-    _commandsCtrl.add(cmd);
+    // Parsear el comando para extraer cmd y seq
+    final parts = cmd.split(':');
+    if (parts.length != 2) return;
+    
+    final cmdChar = parts[0];
+    final seq = int.tryParse(parts[1]);
+    if (seq == null || cmdChar.isEmpty) return;
+    
+    // Asegurar que el device de test (0xFFFF) está "pareado" como blue
+    const testDevId = 0xFFFF;
+    if (_devices[testDevId] == null) {
+      final state = _DeviceState()
+        ..team = 'blue'
+        ..lastSeq = 0  // Inicializar para que seenBefore = true
+        ..lastCmdTimeUs = 0
+        ..lastPointTimeUs = 0;
+      _devices[testDevId] = state;
+    }
+    
+    // Crear un BleFrame simulado
+    final frame = BleFrame(
+      devId: testDevId,
+      seq: seq,
+      cmd: cmdChar.codeUnitAt(0),
+      timestampUs: DateTime.now().microsecondsSinceEpoch, // ⚡ Timestamp de creación
+    );
+    
+    // Emitir inmediatamente sin delays artificiales
+    // Medimos solo la latencia de procesamiento dentro de la app
+    _rawFramesCtrl.add(frame);
+    _processTestFrame(frame);
+  }
+  
+  /// ▲ PIPELINE SIMPLIFICADO: Procesa frames de test sin pasar por _onDevice
+  /// (que espera DiscoveredDevice del scan BLE real)
+  void _processTestFrame(BleFrame frame) {
+    final devId = frame.devId;
+    final state = _devices[devId];
+    if (state == null || state.team == null) return; // Device no pareado
+    
+    final nowUs = DateTime.now().microsecondsSinceEpoch;
+    
+    // Check dedup
+    if (state.seqsSeen.contains(frame.seq)) {
+      if (kDebugMode && _verbose) {
+        print('[⚡ TEST BLOCKED] DEDUP: seq=${frame.seq}');
+      }
+      return;
+    }
+    
+    // Check cooldown (ya tiene bypass para 0xFFFF en producción, pero por si acaso)
+    const testDevId = 0xFFFF;
+    final deltaUs = nowUs - state.lastCmdTimeUs;
+    if (devId != testDevId && state.lastCmd == frame.cmd && deltaUs < _minCmdIntervalUs) {
+      if (kDebugMode && _verbose) {
+        print('[⚡ TEST BLOCKED] COOLDOWN: ${deltaUs / 1000}ms');
+      }
+      return;
+    }
+    
+    // Actualizar estado
+    state.lastSeq = frame.seq;
+    state.lastCmdTimeUs = nowUs;
+    state.lastCmd = frame.cmd;
+    state.seqsSeen.add(frame.seq);
+    if (state.seqsSeen.length > _maxSeqHistory) {
+      state.seqsSeen.clear();
+    }
+    
+    // ⚡ IMPORTANTE: Agregar microtask delay para que el timestamp PROCESSED sea diferente al RAW
+    // Esto simula la latencia real del pipeline (parsing, validación, etc.)
+    Future.microtask(() {
+      // ⚡ CRÍTICO: Tomar timestamp AQUÍ (después del microtask) para garantizar que sea posterior a RAW
+      final processedTimestamp = DateTime.now().microsecondsSinceEpoch;
+      
+      // Emitir comando procesado con timestamp embebido
+      final team = state.team!;
+      if (frame.cmd == 0x70 || frame.cmd == 0x61 || frame.cmd == 0x62) { // 'p', 'a', 'b'
+        final cmd = team == 'blue' ? 'a' : 'b';
+        if (kDebugMode && _verbose) {
+          print('[⚡ TEST PROCESSED] $cmd:${frame.seq} (ts: $processedTimestamp)');
+        }
+        // Emitir con formato especial que incluye timestamp: "cmd:seq@timestamp"
+        _commandsCtrl.add('$cmd:${frame.seq}@$processedTimestamp');
+      } else if (frame.cmd == 0x75) { // 'u'
+        if (kDebugMode && _verbose) {
+          print('[⚡ TEST PROCESSED] u:${frame.seq} (ts: $processedTimestamp)');
+        }
+        _commandsCtrl.add('u:${frame.seq}@$processedTimestamp');
+      }
+    });
   }
 
   late final StreamSubscription<BleStatus> _statusSub;
@@ -95,7 +267,7 @@ class PadelBleClient {
   static const int _protoVer = 0x01;
   
   // ========== OPTIMIZACIÓN LATENCIA ==========
-  static const bool _verbose = false; // Solo para debugging extremo
+  static const bool _verbose = true; // ← ACTIVADO TEMPORALMENTE PARA DEBUG
   static const int _minRssi = -95; // Filtrar ruido débil
   
   // ========== WATCHDOG ANTI-STALL ==========
@@ -113,8 +285,8 @@ class PadelBleClient {
 
   // === Streams públicos ===
   /// Emite: 'a:123','b:456','u','g' con formato "cmd:seq"
-  /// sync: true = procesamiento inmediato sin microtask queue (latencia crítica)
-  final _commandsCtrl = StreamController<String>.broadcast(sync: true);
+  /// sync: false = usa microtask queue para garantizar orden de ejecución con rawFrames
+  final _commandsCtrl = StreamController<String>.broadcast(sync: false);
   Stream<String> get commands => _commandsCtrl.stream;
 
   final _discoveredCtrl = StreamController<List<DiscoveredRemote>>.broadcast();
@@ -446,8 +618,8 @@ class PadelBleClient {
   void _emitWithTelemetry(String cmd, int devId, int seq) {
     final emitUs = DateTime.now().microsecondsSinceEpoch;
     
-    // Emitir comando con seq embebido para correlación E2E
-    _commandsCtrl.add('$cmd:$seq');
+    // Emitir comando con seq y timestamp embebidos para correlación E2E
+    _commandsCtrl.add('$cmd:$seq@$emitUs');
     
     // Registrar telemetría si hay datos pendientes
     final rxUs = _telemetryPendingRx[devId];
@@ -503,7 +675,7 @@ class PadelBleClient {
           final rx = md[10] | (md[11] << 8);
           if (calc == rx) {
             final devId = md[5] | (md[6] << 8);
-            frame = BleFrame(devId: devId, seq: md[9], cmd: md[8]);
+            frame = BleFrame(devId: devId, seq: md[9], cmd: md[8], timestampUs: rxUs);
           }
         }
       } else if (len == 10) {
@@ -513,7 +685,7 @@ class PadelBleClient {
           final rx = md[8] | (md[9] << 8);
           if (calc == rx) {
             final devId = md[3] | (md[4] << 8);
-            frame = BleFrame(devId: devId, seq: md[7], cmd: md[6]);
+            frame = BleFrame(devId: devId, seq: md[7], cmd: md[6], timestampUs: rxUs);
           }
         }
       } else {
@@ -526,6 +698,7 @@ class PadelBleClient {
     final int parseEndUs = DateTime.now().microsecondsSinceEpoch;
     final int parseUs = parseEndUs - rxUs;
     
+    // ⚡ IMPORTANTE: El frame ya tiene timestampUs asignado en su constructor
     _rawFramesCtrl.add(frame);
     
     // ▲ VERBOSE LOG: Solo con flag explícito (comentar en producción)
@@ -537,6 +710,10 @@ class PadelBleClient {
     final devId = frame.devId;
     final paired = isPaired(devId);
 
+    if (kDebugMode && _verbose) {
+      print('[⚡ PIPELINE] dev=0x${devId.toRadixString(16)} cmd=${String.fromCharCode(frame.cmd)} seq=${frame.seq} paired=$paired');
+    }
+
     // ▲ OPTIMIZACIÓN: Obtener/crear estado del dispositivo (1 lookup)
     final state = _devices.putIfAbsent(devId, () => _DeviceState());
     final nowUs = DateTime.now().microsecondsSinceEpoch;
@@ -544,6 +721,9 @@ class PadelBleClient {
     // ===== WARM-UP: primera vez que vemos al device
     final seenBefore = state.lastSeq != -1;
     if (!seenBefore) {
+      if (kDebugMode && _verbose) {
+        print('[⚡ PIPELINE] Primera vez viendo device 0x${devId.toRadixString(16)}, inicializando...');
+      }
       state.lastSeq = frame.seq;
       state.lastCmdTimeUs = nowUs;
       state.lastCmd = frame.cmd;
@@ -557,8 +737,14 @@ class PadelBleClient {
         );
       }
       
-      // Primera vez, no procesar comando (evitar puntos fantasma en pairing)
-      return;
+      // BYPASS WARM-UP para devices de test (0xFFFF y 0xFFFE)
+      const testDevId = 0xFFFF;
+      const testBleDevId = 0xFFFE;
+      if (devId != testDevId && devId != testBleDevId) {
+        // Primera vez, no procesar comando (evitar puntos fantasma en pairing)
+        return;
+      }
+      // Si es device de test, continuar procesando...
     }
     
     // Ya visto antes: verificar si es nueva secuencia
@@ -584,18 +770,31 @@ class PadelBleClient {
     // ▲ OPTIMIZACIÓN: Set-based dedup O(1) en lugar de O(30)
     final int dedupStartUs = DateTime.now().microsecondsSinceEpoch;
     if (state.seqsSeen.contains(frame.seq)) {
+      if (kDebugMode && _verbose) {
+        print('[⚡ BLOCKED] DEDUP: seq=${frame.seq} ya vista');
+      }
       return; // Ya procesado
     }
     final int dedupUs = DateTime.now().microsecondsSinceEpoch - dedupStartUs;
     
-    if (!isNewSeq) return; // Ráfaga duplicada (lastSeq match pero no en Set)
+    if (!isNewSeq) {
+      if (kDebugMode && _verbose) {
+        print('[⚡ BLOCKED] RÁFAGA: lastSeq=${state.lastSeq} == frame.seq=${frame.seq}');
+      }
+      return; // Ráfaga duplicada (lastSeq match pero no en Set)
+    }
     
     // ▲ OPTIMIZACIÓN: Cooldown con microsegundos puros (sin DateTime objects)
     final int cooldownStartUs = DateTime.now().microsecondsSinceEpoch;
     final deltaUs = nowUs - state.lastCmdTimeUs;
     
-    // Mismo comando en <300ms → BLOCK
-    if (state.lastCmd == frame.cmd && deltaUs < _minCmdIntervalUs) {
+    // Mismo comando en <300ms → BLOCK (excepto para devices de test)
+    const testDevId = 0xFFFF;
+    const testBleDevId = 0xFFFE;
+    if (devId != testDevId && devId != testBleDevId && state.lastCmd == frame.cmd && deltaUs < _minCmdIntervalUs) {
+      if (kDebugMode && _verbose) {
+        print('[⚡ BLOCKED] COOLDOWN: mismo cmd en ${deltaUs / 1000}ms (min ${_minCmdIntervalUs / 1000}ms)');
+      }
       return;
     }
     final int cooldownUs = DateTime.now().microsecondsSinceEpoch - cooldownStartUs;
@@ -643,16 +842,26 @@ class PadelBleClient {
     }
 
     // ===== Scoring solo si pareado =====
-    if (!paired) return;
+    if (!paired) {
+      if (kDebugMode && _verbose) {
+        print('[⚡ BLOCKED] NOT PAIRED: dev=0x${devId.toRadixString(16)}');
+      }
+      return;
+    }
 
     final team = state.team!; // Ya verificamos paired arriba
+    
+    if (kDebugMode && _verbose) {
+      print('[⚡ PROCESSING] dev=0x${devId.toRadixString(16)} cmd=${String.fromCharCode(frame.cmd)} team=$team');
+    }
 
     // Preferido: 'p' => punto (mapeado por pairing)
     if (frame.cmd == 0x70) { // 'p'
-      // ▲ ANTI-DOBLE PUNTO: Cooldown de 4s con microsegundos puros
+      // ▲ ANTI-DOBLE PUNTO: Cooldown de 4s con microsegundos puros (excepto para test)
+      const testDevId = 0xFFFF;
       final sincePointUs = nowUs - state.lastPointTimeUs;
       
-      if (sincePointUs < _pointCooldownUs) {
+      if (devId != testDevId && sincePointUs < _pointCooldownUs) {
         if (kDebugMode && _verbose) {
           final remainingMs = (_pointCooldownUs - sincePointUs) ~/ 1000;
           print('❌ [ANTI-DOBLE] Bloqueado dev=0x${devId.toRadixString(16)} '
@@ -686,6 +895,11 @@ class PadelBleClient {
         state.seqsSeen.clear();
       }
       return;
+    }
+    
+    // Si llegamos aquí y el device está pareado, es un comando desconocido
+    if (kDebugMode && _verbose) {
+      print('[BLE] ⚠️ Comando desconocido: 0x${frame.cmd.toRadixString(16)} (${String.fromCharCode(frame.cmd)}) dev=0x${devId.toRadixString(16)}');
     }
     } catch (e, st) {
       // ▲ CRASH SAFETY: Un error de parsing no debe matar el listener

@@ -2,15 +2,78 @@ package com.example.Puntazo
 
 import android.os.Build
 import android.os.Bundle
+import android.os.PowerManager
+import android.content.Intent
+import android.content.Context
+import android.net.Uri
+import android.provider.Settings
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothManager
-import android.content.Context
 
 class MainActivity: FlutterActivity() {
     private val CHANNEL = "ble_caps"
+    private var wakeLock: PowerManager.WakeLock? = null
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        
+        // ===== CRITICAL: Prevenir sleep/throttling =====
+        requestBatteryOptimizationExemption()
+        acquireWakeLock()
+    }
+
+    override fun onDestroy() {
+        releaseWakeLock()
+        super.onDestroy()
+    }
+
+    private fun requestBatteryOptimizationExemption() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            val pm = getSystemService(Context.POWER_SERVICE) as PowerManager
+            val packageName = packageName
+            
+            // Verificar si ya está exento
+            if (!pm.isIgnoringBatteryOptimizations(packageName)) {
+                try {
+                    // Solicitar exención de optimizaciones de batería
+                    val intent = Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS).apply {
+                        data = Uri.parse("package:$packageName")
+                    }
+                    startActivity(intent)
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+            }
+        }
+    }
+
+    private fun acquireWakeLock() {
+        try {
+            val pm = getSystemService(Context.POWER_SERVICE) as PowerManager
+            // PARTIAL_WAKE_LOCK: Mantiene CPU activa pero permite que pantalla se apague
+            wakeLock = pm.newWakeLock(
+                PowerManager.PARTIAL_WAKE_LOCK or PowerManager.ON_AFTER_RELEASE,
+                "Puntazo::BleWakeLock"
+            ).apply {
+                setReferenceCounted(false)
+                acquire()
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+
+    private fun releaseWakeLock() {
+        wakeLock?.let {
+            if (it.isHeld) {
+                it.release()
+            }
+        }
+        wakeLock = null
+    }
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
