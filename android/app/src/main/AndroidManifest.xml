@@ -1,8 +1,8 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <!-- ===== Features ===== -->
-    <!-- BLE: no lo marcamos como requerido para no excluir dispositivos sin BLE -->
-    <uses-feature android:name="android.hardware.bluetooth_le" android:required="false" />
+    <!-- USB Serial support -->
+    <uses-feature android:name="android.hardware.usb.host" android:required="true" />
     <!-- Android TV no tiene pantalla táctil; evita el filtro por requerirla -->
     <uses-feature android:name="android.hardware.touchscreen" android:required="false" />
     <!-- Leanback: si tu app es multi-plataforma, mantenlo en false -->
@@ -11,12 +11,7 @@
     <uses-feature android:name="android.hardware.microphone" android:required="false" />
 
     <!-- ===== Permissions ===== -->
-    <!-- Android 12+ BLE -->
-    <uses-permission android:name="android.permission.BLUETOOTH_SCAN"
-        android:usesPermissionFlags="neverForLocation" />
-    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
-    <!-- Si haces advertising en 12+ -->
-    <!-- <uses-permission android:name="android.permission.BLUETOOTH_ADVERTISE" /> -->
+    <!-- USB Serial (no requiere permisos peligrosos) -->
 
     <!-- Pre-Android 12 BLE -->
     <uses-permission android:name="android.permission.BLUETOOTH" android:maxSdkVersion="30" />
@@ -73,6 +68,15 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LEANBACK_LAUNCHER" />
             </intent-filter>
+            
+            <!-- USB device filter: detectar módulos USB-Serial -->
+            <intent-filter>
+                <action android:name="android.hardware.usb.action.USB_DEVICE_ATTACHED" />
+            </intent-filter>
+            
+            <meta-data
+                android:name="android.hardware.usb.action.USB_DEVICE_ATTACHED"
+                android:resource="@xml/device_filter" />
         </activity>
 
         <!-- Requerido por Flutter -->

@@ -1,10 +1,8 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'dart:math' as math;
 import 'package:Puntazo/features/models/scoring_models.dart';
 import 'package:Puntazo/features/scoring/bloc/scoring_event.dart';
 import 'package:Puntazo/features/scoring/bloc/scoring_state.dart';
-import 'package:Puntazo/features/scoring/bloc/bloc_telemetry.dart';
 
 /// --- Compatibility layer ----------------------------------------------------
 /// Lets the bloc run whether MatchSettings already has the new fields or not.
@@ -78,9 +76,6 @@ extension MatchSettingsCompat on MatchSettings {
 /// ---------------------------------------------------------------------------
 
 class ScoringBloc extends Bloc<ScoringEvent, ScoringState> {
-  // Telemetría del Bloc
-  final blocTelemetry = BlocTelemetry();
-  
   ScoringBloc()
       : super(
           ScoringState(
@@ -97,29 +92,16 @@ class ScoringBloc extends Bloc<ScoringEvent, ScoringState> {
     on<ForceSetForEvent>(_onForceSetFor);
     on<SetExplicitGamePointsEvent>(_onSetExplicitGamePoints);
 
-    // Rules
     on<ToggleTieBreakGamesEvent>(_onToggleTieBreakGamesEvent);
     on<ToggleTieBreakTargetEvent>(_onToggleTieBreakTargetEvent);
     on<ToggleGoldenPointEvent>(_onToggleGoldenPoint);
 
-    // Optional announcer
     on<AnnounceScoreEvent>(_onAnnounceScore);
 
-    // Undo/redo
     on<UndoEvent>(_onUndo);
     on<RedoEvent>(_onRedo);
-
-    // BLE + team-undo (transformer: procesar inmediatamente sin agrupar)
-    on<BleCommandEvent>(_onBleCommand, transformer: (events, mapper) {
-      // Procesar cada comando BLE inmediatamente sin debounce ni throttle
-      return events.asyncExpand(mapper);
-    });
     on<UndoForTeamEvent>(_onUndoForTeam);
   }
-
-  // Mapping A/B to Team.blue/Team.red…
-  final Team _teamA = Team.blue;
-  final Team _teamB = Team.red;
 
   final List<_ActionMeta> _undoMeta = [];
 
@@ -319,11 +301,7 @@ class ScoringBloc extends Bloc<ScoringEvent, ScoringState> {
   }
 
   void _onPointFor(PointForEvent e, Emitter<ScoringState> emit) {
-    final t0 = DateTime.now().microsecondsSinceEpoch;
-    
-    // ▲ OPTIMIZACIÓN CRÍTICA: NO clonar innecesariamente
-    //   Freezed ya provee inmutabilidad - solo usar copyWith() cuando sea necesario
-    var m = state.match; // ← SIN _clone()
+    var m = state.match;
     final idx   = m.currentSetIndex;
     final before= m.sets[idx];
     var set     = before;
@@ -429,28 +407,6 @@ class ScoringBloc extends Bloc<ScoringEvent, ScoringState> {
 
     final teamName = e.team == Team.blue ? state.match.blueName : state.match.redName;
     _pushHistory(emit, m, 'Punto $teamName', actorTeam: e.team, actionType: 'point');
-    
-    final t1 = DateTime.now().microsecondsSinceEpoch;
-    final latency = t1 - t0;
-    
-    // Registrar telemetría completa del Bloc
-    if (_currentBleCommandLatency > 0 || _currentDispatchLatency > 0) {
-      blocTelemetry.record(BlocLatencyMeasurement(
-        cmd: _currentCommand,
-        timestampUs: t1,
-        onBleCommandUs: _currentBleCommandLatency,
-        dispatchUs: _currentDispatchLatency,
-        onPointForUs: latency,
-      ));
-      // Reset
-      _currentBleCommandLatency = 0;
-      _currentDispatchLatency = 0;
-      _currentCommand = '';
-    }
-    
-    if (kDebugMode) {
-      debugPrint('[⏱️ BLOC] _onPointFor processing: ${(latency / 1000).toStringAsFixed(2)} ms');
-    }
   }
 
   SetScore _advanceStandardPoint(SetScore set, Team team, bool goldenPoint) {
@@ -930,94 +886,6 @@ class ScoringBloc extends Bloc<ScoringEvent, ScoringState> {
            type == 'Cambiar servicio';
   }
 
-  // ========== BLE bridge ==========
-  void _onBleCommand(BleCommandEvent e, Emitter<ScoringState> emit) {
-    final t0 = DateTime.now().microsecondsSinceEpoch;
-    final cmd = e.cmd; // String: "a:123", "b:456", "u", "g"
-
-    // ▲ OPTIMIZACIÓN: Parsing ultra-rápido sin allocaciones innecesarias
-    String actualCmd = cmd;
-    int? seq;
-    
-    // Buscar ':' manualmente (más rápido que split)
-    final colonIdx = cmd.indexOf(':');
-    if (colonIdx > 0) {
-      actualCmd = cmd.substring(0, colonIdx);
-      if (colonIdx < cmd.length - 1) {
-        seq = int.tryParse(cmd.substring(colonIdx + 1));
-      }
-    }
-
-    // Switch directo
-    if (actualCmd.length == 1) {
-      _dispatchCmdWithTelemetry(actualCmd, seq);
-    } else if (actualCmd.startsWith('cmd:')) {
-      final ch = actualCmd.substring(4);
-      if (ch.isNotEmpty) {
-        _dispatchCmdWithTelemetry(ch, seq);
-      }
-    }
-    
-    final t1 = DateTime.now().microsecondsSinceEpoch;
-    final latency = t1 - t0;
-    
-    // Guardar telemetría (se actualizará cuando _onPointFor termine)
-    _currentBleCommandLatency = latency;
-    _currentSeq = seq; // Guardar seq para correlación
-    
-    if (kDebugMode) {
-      debugPrint('[⏱️ BLOC] _onBleCommand processing: ${(latency / 1000).toStringAsFixed(2)} ms (seq: $seq)');
-    }
-  }
-
-  int _currentBleCommandLatency = 0;
-  int _currentDispatchLatency = 0;
-  String _currentCommand = '';
-  int? _currentSeq; // ← Nuevo: para correlación E2E
-
-  void _dispatchCmdWithTelemetry(String ch, int? seq) {
-    _currentCommand = ch;
-    _currentSeq = seq; // Guardar para telemetría
-    
-    final t0 = DateTime.now().microsecondsSinceEpoch;
-    
-    // ▲ OPTIMIZACIÓN: Switch directo sobre primer caracter
-    //   Evita múltiples comparaciones de strings
-    if (ch.isEmpty) return;
-    
-    final firstChar = ch.codeUnitAt(0); // ← Comparar código ASCII (más rápido)
-    switch (firstChar) {
-      case 97:  // 'a'
-        add(PointForEvent(Team.blue));
-        break;
-      case 98:  // 'b'
-        add(PointForEvent(Team.red));
-        break;
-      case 117: // 'u'
-        add(const UndoEvent());
-        break;
-      case 103: // 'g'
-        add(const NewGameEvent());
-        break;
-      default:
-        if (kDebugMode) {
-          debugPrint('[⚠️ BLOC] Unknown BLE command: $ch (code: $firstChar)');
-        }
-        return;
-    }
-    
-    final t1 = DateTime.now().microsecondsSinceEpoch;
-    _currentDispatchLatency = t1 - t0;
-    
-    if (kDebugMode) {
-      debugPrint('[⏱️ BLOC] _dispatchCmd (add event): ${(_currentDispatchLatency / 1000).toStringAsFixed(2)} ms (seq: $seq)');
-    }
-  }
-
-  // Optional helper
-  void applyBleCommand(String cmd) => add(BleCommandEvent(cmd));
-
-  // ========== team-wise undo ==========
   void _onUndoForTeam(UndoForTeamEvent e, Emitter<ScoringState> emit) {
     if (state.undoStack.isEmpty || _undoMeta.isEmpty) return;
 

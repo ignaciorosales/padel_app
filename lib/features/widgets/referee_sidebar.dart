@@ -29,7 +29,10 @@ class RefereeSidebar extends StatelessWidget {
       builder: (context, isVisible, _) {
         if (!isVisible) return const SizedBox.shrink();
         
-        return _SidebarContent(team1: team1Name, team2: team2Name);
+        return Align(
+          alignment: Alignment.centerRight,
+          child: _SidebarContent(team1: team1Name, team2: team2Name),
+        );
       },
     );
   }
@@ -106,7 +109,9 @@ class _SidebarContent extends StatelessWidget {
                   icon: Icons.sports_tennis,
                   tooltip: 'Cambiar servidor',
                   label: 'Saque',
-                  onPressed: () => bloc.add(const ScoringEvent.bleCommand('cmd:toggle-server')),
+                  onPressed: () {
+                    // Cambiar servidor - lógica pendiente
+                  },
                 ),
                 
                 const Divider(height: 1, indent: 8, endIndent: 8),

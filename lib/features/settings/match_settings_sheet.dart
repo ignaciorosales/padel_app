@@ -1,15 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:Puntazo/features/ble/padel_ble_client.dart';
 import 'package:Puntazo/features/scoring/bloc/scoring_bloc.dart';
 import 'package:Puntazo/features/scoring/bloc/scoring_event.dart';
 import 'package:Puntazo/features/scoring/bloc/scoring_state.dart';
 import 'package:Puntazo/main.dart' show ThemeController; // theme controller
 import 'package:Puntazo/features/models/scoring_models.dart'; // Para MatchSettings
 
-Future<void> showMatchSettingsSheet(BuildContext context, PadelBleClient ble) async {
-  await ble.refreshPaired();
-  ble.cancelDiscovery();
+Future<void> showMatchSettingsSheet(BuildContext context) async {
 
   return showModalBottomSheet(
     context: context,
@@ -21,7 +18,7 @@ Future<void> showMatchSettingsSheet(BuildContext context, PadelBleClient ble) as
     ),
     builder: (ctx) {
       return WillPopScope(
-        onWillPop: () async { ble.cancelDiscovery(); return true; },
+        onWillPop: () async { return true; },
         child: BlocBuilder<ScoringBloc, ScoringState>(
           builder: (_, state) {
             final s = state.match.settings;
@@ -66,7 +63,6 @@ Future<void> showMatchSettingsSheet(BuildContext context, PadelBleClient ble) as
                         icon: const Icon(Icons.close),
                         tooltip: 'Cerrar',
                         onPressed: () { 
-                          ble.cancelDiscovery(); 
                           Navigator.of(ctx).maybePop(); 
                         },
                       ),
@@ -77,7 +73,7 @@ Future<void> showMatchSettingsSheet(BuildContext context, PadelBleClient ble) as
                   // Tabs para organizar el contenido
                   Expanded(
                     child: DefaultTabController(
-                      length: 3,
+                      length: 2,
                       child: Column(
                         children: [
                           TabBar(
@@ -85,10 +81,6 @@ Future<void> showMatchSettingsSheet(BuildContext context, PadelBleClient ble) as
                               Tab(
                                 icon: Icon(Icons.sports_tennis),
                                 text: 'Reglas',
-                              ),
-                              Tab(
-                                icon: Icon(Icons.bluetooth),
-                                text: 'Botones',
                               ),
                               Tab(
                                 icon: Icon(Icons.settings),
@@ -114,10 +106,7 @@ Future<void> showMatchSettingsSheet(BuildContext context, PadelBleClient ble) as
                                   setGolden: setGolden,
                                 ),
                                 
-                                // ===== TAB 2: MANDOS BLE =====
-                                _BleTab(ble: ble),
-                                
-                                // ===== TAB 3: APARIENCIA =====
+                                // ===== TAB 2: APARIENCIA =====
                                 _AppearanceTab(
                                   isDark: isDark,
                                   themeCtrl: themeCtrl,
@@ -170,7 +159,7 @@ Future<void> showMatchSettingsSheet(BuildContext context, PadelBleClient ble) as
                       const SizedBox(width: 12),
                       Expanded(
                         child: FilledButton.icon(
-                          onPressed: () { ble.cancelDiscovery(); Navigator.of(ctx).maybePop(); },
+                          onPressed: () { Navigator.of(ctx).maybePop(); },
                           icon: const Icon(Icons.check),
                           label: const Text('Cerrar'),
                         ),
@@ -479,192 +468,6 @@ class _RulesTab extends StatelessWidget {
               text: 'El tie-break se juega hasta que un jugador alcanza 7 puntos con una diferencia de al menos 2 puntos.',
             ),
           ],
-        ],
-    );
-  }
-}
-
-// =======================================================================
-// Widget para la pestaña de BLE
-// =======================================================================
-class _BleTab extends StatelessWidget {
-  final PadelBleClient ble;
-
-  const _BleTab({required this.ble});
-
-  @override
-  Widget build(BuildContext context) {
-    return ListView(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      children: [
-        // Dispositivos emparejados
-        Text('Dispositivos emparejados', style: Theme.of(context).textTheme.titleMedium),
-        const SizedBox(height: 8),
-        
-        StreamBuilder<List<PairedRemote>>(
-          stream: ble.pairedDevices,
-          initialData: ble.pairedSnapshot,
-          builder: (_, snap) {
-            final paired = snap.data ?? const <PairedRemote>[];
-            if (paired.isEmpty) {
-              return const Padding(
-                padding: EdgeInsets.symmetric(vertical: 10),
-                child: Text('No hay mandos emparejados'),
-              );
-            }
-            return Column(
-              children: paired.map((p) {
-                final hex = p.devId.toRadixString(16).padLeft(4, '0').toUpperCase();
-                final isBlue = p.team == 'blue';
-                return Card(
-                  margin: const EdgeInsets.only(bottom: 8),
-                  child: Padding(
-                    padding: const EdgeInsets.all(12),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text('Remote 0x$hex', style: Theme.of(context).textTheme.titleMedium),
-                                  const SizedBox(height: 4),
-                                  Text('Equipo: ${isBlue ? 'Verde' : 'Negro'}', 
-                                    style: Theme.of(context).textTheme.bodySmall),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 12),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: p.team == 'blue'
-                                  ? FilledButton(
-                                      onPressed: () async => await ble.pairAs(p.devId, 'blue'),
-                                      child: const Text('Verde'),
-                                    )
-                                  : OutlinedButton(
-                                      onPressed: () async => await ble.pairAs(p.devId, 'blue'),
-                                      child: const Text('Verde'),
-                                    ),
-                            ),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: p.team == 'red'
-                                  ? FilledButton(
-                                      onPressed: () async => await ble.pairAs(p.devId, 'red'),
-                                      child: const Text('Negro'),
-                                    )
-                                  : OutlinedButton(
-                                      onPressed: () async => await ble.pairAs(p.devId, 'red'),
-                                      child: const Text('Negro'),
-                                    ),
-                            ),
-                            const SizedBox(width: 8),
-                            IconButton(
-                              tooltip: 'Quitar',
-                              icon: const Icon(Icons.delete_outline),
-                              onPressed: () async { await ble.unpair(p.devId); },
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                );
-              }).toList(),
-            );
-          },
-        ),
-        
-        const SizedBox(height: 20),
-        const Divider(),
-        const SizedBox(height: 12),
-
-        // Buscar nuevos dispositivos
-        Text('Buscar dispositivos', style: Theme.of(context).textTheme.titleMedium),
-        const SizedBox(height: 8),
-        
-        ValueListenableBuilder<bool>(
-          valueListenable: ble.discoveryArmed,
-          builder: (_, armed, __) {
-            if (!armed) {
-              return FilledButton.icon(
-                onPressed: () { ble.armDiscovery(window: const Duration(seconds: 20)); },
-                icon: const Icon(Icons.radar),
-                label: const Text('Escanear'),
-              );
-            } else {
-              return OutlinedButton.icon(
-                onPressed: () { ble.cancelDiscovery(); },
-                icon: const Icon(Icons.stop),
-                label: const Text('Detener'),
-              );
-            }
-          },
-        ),
-        const SizedBox(height: 8),
-
-        // Lista de dispositivos encontrados
-        StreamBuilder<List<DiscoveredRemote>>(
-          stream: ble.discoveredRemotes,
-          initialData: ble.discoveredSnapshot,
-          builder: (_, snapshot) {
-            final items = snapshot.data ?? const <DiscoveredRemote>[];
-            if (items.isEmpty) {
-              return const Padding(
-                padding: EdgeInsets.symmetric(vertical: 16),
-                child: Text('No hay eventos aún (pulsa Escanear)'),
-              );
-            }
-            return Column(
-              children: items.map((r) {
-                final hex = r.devId.toRadixString(16).padLeft(4, '0').toUpperCase();
-                final already = ble.isPaired(r.devId);
-                return Card(
-                  margin: const EdgeInsets.only(bottom: 8),
-                  child: Padding(
-                    padding: const EdgeInsets.all(12),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text('Remote 0x$hex', style: Theme.of(context).textTheme.titleMedium),
-                              Text('RSSI ${r.rssi} dBm', style: Theme.of(context).textTheme.bodySmall),
-                            ],
-                          ),
-                        ),
-                        if (already)
-                          const Text('Ya pareado', style: TextStyle(fontWeight: FontWeight.w500))
-                        else
-                          Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              OutlinedButton(
-                                onPressed: () async { await ble.pairAs(r.devId, 'blue'); },
-                                child: const Text('Verde'),
-                              ),
-                              const SizedBox(width: 8),
-                              OutlinedButton(
-                                onPressed: () async { await ble.pairAs(r.devId, 'red'); },
-                                child: const Text('Negro'),
-                              ),
-                            ],
-                          ),
-                      ],
-                    ),
-                  ),
-                );
-              }).toList(),
-            );
-          },
-        ),
         ],
     );
   }

@@ -79,7 +79,9 @@ class _Panel extends StatelessWidget {
                   _ActionButton(
                     label: 'Saque (toggle)',
                     icon: Icons.sports_tennis,
-                    onPressed: () => bloc.add(const ScoringEvent.bleCommand('cmd:toggle-server')),
+                    onPressed: () {
+                      // Toggle server - lógica pendiente
+                    },
                     height: btnHeight,
                   ),
                   _DangerButton(

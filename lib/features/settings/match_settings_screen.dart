@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:Puntazo/config/app_config.dart';
 import 'package:Puntazo/config/team_selection_service.dart';
-import 'package:Puntazo/features/ble/padel_ble_client.dart';
 import 'package:Puntazo/features/scoring/bloc/scoring_bloc.dart';
 import 'package:Puntazo/features/scoring/bloc/scoring_event.dart';
 import 'package:Puntazo/features/scoring/bloc/scoring_state.dart';
@@ -11,29 +10,22 @@ import 'package:Puntazo/features/models/scoring_models.dart';
 
 /// Pantalla completa de configuración - optimizada para Android TV
 class MatchSettingsScreen extends StatefulWidget {
-  const MatchSettingsScreen({super.key, required this.ble});
-
-  final PadelBleClient ble;
+  const MatchSettingsScreen({super.key});
 
   @override
   State<MatchSettingsScreen> createState() => _MatchSettingsScreenState();
 }
 
 class _MatchSettingsScreenState extends State<MatchSettingsScreen> {
-  int _selectedSection = 0; // 0: Reglas, 1: BLE, 2: Apariencia
+  int _selectedSection = 0; // 0: Reglas, 1: Apariencia
 
   @override
   void initState() {
     super.initState();
-    () async {
-      await widget.ble.refreshPaired();
-      widget.ble.cancelDiscovery();
-    }();
   }
 
   @override
   void dispose() {
-    widget.ble.cancelDiscovery();
     super.dispose();
   }
 
@@ -45,7 +37,6 @@ class _MatchSettingsScreenState extends State<MatchSettingsScreen> {
   Widget build(BuildContext context) {
     return WillPopScope(
       onWillPop: () async {
-        widget.ble.cancelDiscovery();
         return true;
       },
       child: Scaffold(
@@ -69,16 +60,10 @@ class _MatchSettingsScreenState extends State<MatchSettingsScreen> {
                     onPressed: () => _changeSection(0),
                   ),
                   _SectionButton(
-                    icon: Icons.bluetooth,
-                    label: 'Botones BLE',
-                    isSelected: _selectedSection == 1,
-                    onPressed: () => _changeSection(1),
-                  ),
-                  _SectionButton(
                     icon: Icons.settings,
                     label: 'Apariencia',
-                    isSelected: _selectedSection == 2,
-                    onPressed: () => _changeSection(2),
+                    isSelected: _selectedSection == 1,
+                    onPressed: () => _changeSection(1),
                   ),
                   const Spacer(),
                   // Botón de cerrar
@@ -110,7 +95,7 @@ class _MatchSettingsScreenState extends State<MatchSettingsScreen> {
                     } catch (_) {}
                   }
 
-                  final themeCtrl = RepositoryProvider.of<ThemeController>(context);
+                  final themeCtrl = context.read<ThemeController>();
                   final isDark = themeCtrl.current == ThemeMode.dark;
 
                   // Renderizar contenido según sección seleccionada
@@ -122,8 +107,6 @@ class _MatchSettingsScreenState extends State<MatchSettingsScreen> {
                       setTieBreakTarget: setTieBreakTarget,
                       setGolden: setGolden,
                     );
-                  } else if (_selectedSection == 1) {
-                    content = _BleContent(ble: widget.ble);
                   } else {
                     content = _AppearanceContent(
                       isDark: isDark,
@@ -544,209 +527,6 @@ class _RulesContentState extends State<_RulesContent> {
 }
 
 // =======================================================================
-// Contenido de BLE
-// =======================================================================
-class _BleContent extends StatefulWidget {
-  final PadelBleClient ble;
-
-  const _BleContent({required this.ble});
-
-  @override
-  State<_BleContent> createState() => _BleContentState();
-}
-
-class _BleContentState extends State<_BleContent> {
-  final ScrollController _scrollController = ScrollController();
-
-  @override
-  void dispose() {
-    _scrollController.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      controller: _scrollController,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('Dispositivos emparejados', style: Theme.of(context).textTheme.headlineSmall),
-        const SizedBox(height: 16),
-
-        StreamBuilder<List<PairedRemote>>(
-            stream: widget.ble.pairedDevices,
-            initialData: widget.ble.pairedSnapshot,
-            builder: (_, snap) {
-              final paired = snap.data ?? const <PairedRemote>[];
-              if (paired.isEmpty) {
-                return const Padding(
-                  padding: EdgeInsets.all(16),
-                  child: Text('No hay mandos emparejados'),
-                );
-              }
-              return Column(
-                children: paired.map((p) {
-                  final hex = p.devId.toRadixString(16).padLeft(4, '0').toUpperCase();
-                  return Card(
-                    margin: const EdgeInsets.only(bottom: 8),
-                    child: Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text('Remote 0x$hex', style: Theme.of(context).textTheme.titleMedium),
-                                Text('Equipo: ${p.team == 'blue' ? 'Verde' : 'Negro'}'),
-                              ],
-                            ),
-                          ),
-                          Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              p.team == 'blue'
-                                  ? FilledButton(
-                                      onPressed: () async => await widget.ble.pairAs(p.devId, 'blue'),
-                                      child: const Text('Verde'),
-                                    )
-                                  : OutlinedButton(
-                                      onPressed: () async => await widget.ble.pairAs(p.devId, 'blue'),
-                                      child: const Text('Verde'),
-                                    ),
-                              const SizedBox(width: 8),
-                              p.team == 'red'
-                                  ? FilledButton(
-                                      onPressed: () async => await widget.ble.pairAs(p.devId, 'red'),
-                                      child: const Text('Negro'),
-                                    )
-                                  : OutlinedButton(
-                                      onPressed: () async => await widget.ble.pairAs(p.devId, 'red'),
-                                      child: const Text('Negro'),
-                                    ),
-                              const SizedBox(width: 8),
-                              IconButton(
-                                icon: const Icon(Icons.delete_outline),
-                                onPressed: () async => await widget.ble.unpair(p.devId),
-                                tooltip: 'Quitar',
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                  );
-                }).toList(),
-              );
-            },
-          ),
-
-          const SizedBox(height: 32),
-          const Divider(),
-          const SizedBox(height: 32),
-
-          Text('Buscar dispositivos', style: Theme.of(context).textTheme.headlineSmall),
-          const SizedBox(height: 16),
-
-          ValueListenableBuilder<bool>(
-            valueListenable: widget.ble.discoveryArmed,
-            builder: (_, armed, __) {
-              if (!armed) {
-                return _TVFocusableButton(
-                  scrollController: _scrollController,
-                  onPressed: () => widget.ble.armDiscovery(window: const Duration(seconds: 20)),
-                  isSelected: true,
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: const [
-                      Icon(Icons.radar),
-                      SizedBox(width: 8),
-                      Text('Escanear', style: TextStyle(fontSize: 16)),
-                    ],
-                  ),
-                );
-              } else {
-                return _TVFocusableButton(
-                  scrollController: _scrollController,
-                  onPressed: () => widget.ble.cancelDiscovery(),
-                  isSelected: false,
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: const [
-                      Icon(Icons.stop),
-                      SizedBox(width: 8),
-                      Text('Detener', style: TextStyle(fontSize: 16)),
-                    ],
-                  ),
-                );
-              }
-            },
-          ),
-          const SizedBox(height: 16),
-
-          StreamBuilder<List<DiscoveredRemote>>(
-            stream: widget.ble.discoveredRemotes,
-            initialData: widget.ble.discoveredSnapshot,
-            builder: (_, snapshot) {
-              final items = snapshot.data ?? const <DiscoveredRemote>[];
-              if (items.isEmpty) {
-                return const Padding(
-                  padding: EdgeInsets.all(16),
-                  child: Text('No hay dispositivos detectados (pulsa Escanear)'),
-                );
-              }
-              return Column(
-                children: items.map((r) {
-                  final hex = r.devId.toRadixString(16).padLeft(4, '0').toUpperCase();
-                  final already = widget.ble.isPaired(r.devId);
-                  return Card(
-                    margin: const EdgeInsets.only(bottom: 8),
-                    child: Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text('Remote 0x$hex', style: Theme.of(context).textTheme.titleMedium),
-                                Text('RSSI ${r.rssi} dBm'),
-                              ],
-                            ),
-                          ),
-                          if (already)
-                            const Text('Ya pareado')
-                          else
-                            Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                OutlinedButton(
-                                  onPressed: () async => await widget.ble.pairAs(r.devId, 'blue'),
-                                  child: const Text('Verde'),
-                                ),
-                                const SizedBox(width: 8),
-                                OutlinedButton(
-                                  onPressed: () async => await widget.ble.pairAs(r.devId, 'red'),
-                                  child: const Text('Negro'),
-                                ),
-                              ],
-                            ),
-                        ],
-                      ),
-                    ),
-                  );
-                }).toList(),
-              );
-            },
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// =======================================================================
 // Contenido de Apariencia
 // =======================================================================
 class _AppearanceContent extends StatefulWidget {
@@ -773,8 +553,8 @@ class _AppearanceContentState extends State<_AppearanceContent> {
 
   @override
   Widget build(BuildContext context) {
-    final config = RepositoryProvider.of<AppConfig>(context);
-    final teamService = RepositoryProvider.of<TeamSelectionService>(context);
+    final teamService = context.read<TeamSelectionService>();
+    final config = context.read<AppConfig>();
     
     return SingleChildScrollView(
       controller: _scrollController,
@@ -782,121 +562,121 @@ class _AppearanceContentState extends State<_AppearanceContent> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text('Tema de la aplicación', style: Theme.of(context).textTheme.headlineSmall),
-        const SizedBox(height: 16),
+          const SizedBox(height: 16),
 
-        Row(
-          children: [
-            Expanded(
-              child: _TVFocusableButton(
-                scrollController: _scrollController,
-                onPressed: () => widget.themeCtrl.set(ThemeMode.light),
-                isSelected: !widget.isDark,
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: const [
-                    Icon(Icons.light_mode),
-                    SizedBox(width: 8),
-                    Text('Claro', style: TextStyle(fontSize: 16)),
-                  ],
+          Row(
+            children: [
+              Expanded(
+                child: _TVFocusableButton(
+                  scrollController: _scrollController,
+                  onPressed: () => widget.themeCtrl.set(ThemeMode.light),
+                  isSelected: !widget.isDark,
+                  child: const Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.light_mode),
+                      SizedBox(width: 8),
+                      Text('Claro', style: TextStyle(fontSize: 16)),
+                    ],
+                  ),
                 ),
               ),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: _TVFocusableButton(
-                scrollController: _scrollController,
-                onPressed: () => widget.themeCtrl.set(ThemeMode.dark),
-                isSelected: widget.isDark,
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: const [
-                    Icon(Icons.dark_mode),
-                    SizedBox(width: 8),
-                    Text('Oscuro', style: TextStyle(fontSize: 16)),
-                  ],
+              const SizedBox(width: 16),
+              Expanded(
+                child: _TVFocusableButton(
+                  scrollController: _scrollController,
+                  onPressed: () => widget.themeCtrl.set(ThemeMode.dark),
+                  isSelected: widget.isDark,
+                  child: const Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.dark_mode),
+                      SizedBox(width: 8),
+                      Text('Oscuro', style: TextStyle(fontSize: 16)),
+                    ],
+                  ),
                 ),
               ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 16),
-        _InfoBox(
-          text: 'El tema seleccionado se aplicará inmediatamente a toda la aplicación.',
-        ),
-        
-        // =======================================================================
-        // NUEVA SECCIÓN: Colores de Equipos
-        // =======================================================================
-        const SizedBox(height: 32),
-        const Divider(),
-        const SizedBox(height: 32),
-        
-        Text('Colores de equipos', style: Theme.of(context).textTheme.headlineSmall),
-        const SizedBox(height: 12),
-        Text(
-          'Selecciona los colores que representarán a cada equipo en el marcador',
-          style: Theme.of(context).textTheme.bodyLarge,
-        ),
-        const SizedBox(height: 24),
-        
-        // Equipo 1 (Izquierda)
-        Text('Equipo 1 (Lado izquierdo)', style: Theme.of(context).textTheme.titleLarge),
-        const SizedBox(height: 12),
-        ValueListenableBuilder<String>(
-          valueListenable: teamService.team1Selection,
-          builder: (_, selectedId, __) {
-            return Wrap(
-              spacing: 12,
-              runSpacing: 12,
-              children: config.availableTeams.map((team) {
-                final isSelected = team.id == selectedId;
-                final color = _hexToColor(team.colorHex);
-                
-                return _ColorTile(
-                  team: team,
-                  color: color,
-                  isSelected: isSelected,
-                  onPressed: () async {
-                    await teamService.setTeam1(team.id);
-                    // El tema se reconstruirá automáticamente por el listener en main.dart
-                  },
-                  scrollController: _scrollController,
-                );
-              }).toList(),
-            );
-          },
-        ),
-        
-        const SizedBox(height: 32),
-        
-        // Equipo 2 (Derecha)
-        Text('Equipo 2 (Lado derecho)', style: Theme.of(context).textTheme.titleLarge),
-        const SizedBox(height: 12),
-        ValueListenableBuilder<String>(
-          valueListenable: teamService.team2Selection,
-          builder: (_, selectedId, __) {
-            return Wrap(
-              spacing: 12,
-              runSpacing: 12,
-              children: config.availableTeams.map((team) {
-                final isSelected = team.id == selectedId;
-                final color = _hexToColor(team.colorHex);
-                
-                return _ColorTile(
-                  team: team,
-                  color: color,
-                  isSelected: isSelected,
-                  onPressed: () async {
-                    await teamService.setTeam2(team.id);
-                    // El tema se reconstruirá automáticamente por el listener en main.dart
-                  },
-                  scrollController: _scrollController,
-                );
-              }).toList(),
-            );
-          },
-        ),
-      ],
+            ],
+          ),
+          const SizedBox(height: 16),
+          _InfoBox(
+            text: 'El tema seleccionado se aplicará inmediatamente a toda la aplicación.',
+          ),
+          
+          // =======================================================================
+          // NUEVA SECCIÓN: Colores de Equipos
+          // =======================================================================
+          const SizedBox(height: 32),
+          const Divider(),
+          const SizedBox(height: 32),
+          
+          Text('Colores de equipos', style: Theme.of(context).textTheme.headlineSmall),
+          const SizedBox(height: 12),
+          Text(
+            'Selecciona los colores que representarán a cada equipo en el marcador',
+            style: Theme.of(context).textTheme.bodyLarge,
+          ),
+          const SizedBox(height: 24),
+          
+          // Equipo 1 (Izquierda)
+          Text('Equipo 1 (Lado izquierdo)', style: Theme.of(context).textTheme.titleLarge),
+          const SizedBox(height: 12),
+          ValueListenableBuilder<String>(
+            valueListenable: teamService.team1Selection,
+            builder: (_, selectedId, __) {
+              return Wrap(
+                spacing: 12,
+                runSpacing: 12,
+                children: config.availableTeams.map((team) {
+                  final isSelected = team.id == selectedId;
+                  final color = _hexToColor(team.colorHex);
+                  
+                  return _ColorTile(
+                    team: team,
+                    color: color,
+                    isSelected: isSelected,
+                    onPressed: () async {
+                      await teamService.setTeam1(team.id);
+                      // El tema se reconstruirá automáticamente por el listener en main.dart
+                    },
+                    scrollController: _scrollController,
+                  );
+                }).toList(),
+              );
+            },
+          ),
+          
+          const SizedBox(height: 32),
+          
+          // Equipo 2 (Derecha)
+          Text('Equipo 2 (Lado derecho)', style: Theme.of(context).textTheme.titleLarge),
+          const SizedBox(height: 12),
+          ValueListenableBuilder<String>(
+            valueListenable: teamService.team2Selection,
+            builder: (_, selectedId, __) {
+              return Wrap(
+                spacing: 12,
+                runSpacing: 12,
+                children: config.availableTeams.map((team) {
+                  final isSelected = team.id == selectedId;
+                  final color = _hexToColor(team.colorHex);
+                  
+                  return _ColorTile(
+                    team: team,
+                    color: color,
+                    isSelected: isSelected,
+                    onPressed: () async {
+                      await teamService.setTeam2(team.id);
+                      // El tema se reconstruirá automáticamente por el listener en main.dart
+                    },
+                    scrollController: _scrollController,
+                  );
+                }).toList(),
+              );
+            },
+          ),
+        ],
       ),
     );
   }

@@ -2,7 +2,6 @@ import 'dart:math';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:Puntazo/config/app_config.dart';
 import 'package:Puntazo/config/app_theme.dart';
 import 'package:Puntazo/config/team_selection_service.dart';
 import 'package:Puntazo/features/models/scoring_models.dart' hide SetScore;
@@ -286,8 +285,8 @@ class _StaticBackgroundState extends State<_StaticBackground> {
     final redGrad = widget.redColor;
     final hexCol = widget.hexColor;
     
-    return RepaintBoundary(
-      child: Positioned.fill(
+    return Positioned.fill(
+      child: RepaintBoundary(
         child: Stack(
           children: [
             // Left side (Team 1 gradient - color from config)

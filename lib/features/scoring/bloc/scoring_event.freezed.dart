@@ -35,7 +35,6 @@ mixin _$ScoringEvent {
     required TResult Function() undo,
     required TResult Function() redo,
     required TResult Function(Team team) undoForTeam,
-    required TResult Function(String cmd) bleCommand,
   }) => throw _privateConstructorUsedError;
   @optionalTypeArgs
   TResult? whenOrNull<TResult extends Object?>({
@@ -54,7 +53,6 @@ mixin _$ScoringEvent {
     TResult? Function()? undo,
     TResult? Function()? redo,
     TResult? Function(Team team)? undoForTeam,
-    TResult? Function(String cmd)? bleCommand,
   }) => throw _privateConstructorUsedError;
   @optionalTypeArgs
   TResult maybeWhen<TResult extends Object?>({
@@ -73,7 +71,6 @@ mixin _$ScoringEvent {
     TResult Function()? undo,
     TResult Function()? redo,
     TResult Function(Team team)? undoForTeam,
-    TResult Function(String cmd)? bleCommand,
     required TResult orElse(),
   }) => throw _privateConstructorUsedError;
   @optionalTypeArgs
@@ -96,7 +93,6 @@ mixin _$ScoringEvent {
     required TResult Function(UndoEvent value) undo,
     required TResult Function(RedoEvent value) redo,
     required TResult Function(UndoForTeamEvent value) undoForTeam,
-    required TResult Function(BleCommandEvent value) bleCommand,
   }) => throw _privateConstructorUsedError;
   @optionalTypeArgs
   TResult? mapOrNull<TResult extends Object?>({
@@ -115,7 +111,6 @@ mixin _$ScoringEvent {
     TResult? Function(UndoEvent value)? undo,
     TResult? Function(RedoEvent value)? redo,
     TResult? Function(UndoForTeamEvent value)? undoForTeam,
-    TResult? Function(BleCommandEvent value)? bleCommand,
   }) => throw _privateConstructorUsedError;
   @optionalTypeArgs
   TResult maybeMap<TResult extends Object?>({
@@ -134,7 +129,6 @@ mixin _$ScoringEvent {
     TResult Function(UndoEvent value)? undo,
     TResult Function(RedoEvent value)? redo,
     TResult Function(UndoForTeamEvent value)? undoForTeam,
-    TResult Function(BleCommandEvent value)? bleCommand,
     required TResult orElse(),
   }) => throw _privateConstructorUsedError;
 }
@@ -274,7 +268,6 @@ class _$NewMatchEventImpl implements NewMatchEvent {
     required TResult Function() undo,
     required TResult Function() redo,
     required TResult Function(Team team) undoForTeam,
-    required TResult Function(String cmd) bleCommand,
   }) {
     return newMatch(settings, startingServer);
   }
@@ -297,7 +290,6 @@ class _$NewMatchEventImpl implements NewMatchEvent {
     TResult? Function()? undo,
     TResult? Function()? redo,
     TResult? Function(Team team)? undoForTeam,
-    TResult? Function(String cmd)? bleCommand,
   }) {
     return newMatch?.call(settings, startingServer);
   }
@@ -320,7 +312,6 @@ class _$NewMatchEventImpl implements NewMatchEvent {
     TResult Function()? undo,
     TResult Function()? redo,
     TResult Function(Team team)? undoForTeam,
-    TResult Function(String cmd)? bleCommand,
     required TResult orElse(),
   }) {
     if (newMatch != null) {
@@ -350,7 +341,6 @@ class _$NewMatchEventImpl implements NewMatchEvent {
     required TResult Function(UndoEvent value) undo,
     required TResult Function(RedoEvent value) redo,
     required TResult Function(UndoForTeamEvent value) undoForTeam,
-    required TResult Function(BleCommandEvent value) bleCommand,
   }) {
     return newMatch(this);
   }
@@ -373,7 +363,6 @@ class _$NewMatchEventImpl implements NewMatchEvent {
     TResult? Function(UndoEvent value)? undo,
     TResult? Function(RedoEvent value)? redo,
     TResult? Function(UndoForTeamEvent value)? undoForTeam,
-    TResult? Function(BleCommandEvent value)? bleCommand,
   }) {
     return newMatch?.call(this);
   }
@@ -396,7 +385,6 @@ class _$NewMatchEventImpl implements NewMatchEvent {
     TResult Function(UndoEvent value)? undo,
     TResult Function(RedoEvent value)? redo,
     TResult Function(UndoForTeamEvent value)? undoForTeam,
-    TResult Function(BleCommandEvent value)? bleCommand,
     required TResult orElse(),
   }) {
     if (newMatch != null) {
@@ -481,7 +469,6 @@ class _$NewSetEventImpl implements NewSetEvent {
     required TResult Function() undo,
     required TResult Function() redo,
     required TResult Function(Team team) undoForTeam,
-    required TResult Function(String cmd) bleCommand,
   }) {
     return newSet();
   }
@@ -504,7 +491,6 @@ class _$NewSetEventImpl implements NewSetEvent {
     TResult? Function()? undo,
     TResult? Function()? redo,
     TResult? Function(Team team)? undoForTeam,
-    TResult? Function(String cmd)? bleCommand,
   }) {
     return newSet?.call();
   }
@@ -527,7 +513,6 @@ class _$NewSetEventImpl implements NewSetEvent {
     TResult Function()? undo,
     TResult Function()? redo,
     TResult Function(Team team)? undoForTeam,
-    TResult Function(String cmd)? bleCommand,
     required TResult orElse(),
   }) {
     if (newSet != null) {
@@ -557,7 +542,6 @@ class _$NewSetEventImpl implements NewSetEvent {
     required TResult Function(UndoEvent value) undo,
     required TResult Function(RedoEvent value) redo,
     required TResult Function(UndoForTeamEvent value) undoForTeam,
-    required TResult Function(BleCommandEvent value) bleCommand,
   }) {
     return newSet(this);
   }
@@ -580,7 +564,6 @@ class _$NewSetEventImpl implements NewSetEvent {
     TResult? Function(UndoEvent value)? undo,
     TResult? Function(RedoEvent value)? redo,
     TResult? Function(UndoForTeamEvent value)? undoForTeam,
-    TResult? Function(BleCommandEvent value)? bleCommand,
   }) {
     return newSet?.call(this);
   }
@@ -603,7 +586,6 @@ class _$NewSetEventImpl implements NewSetEvent {
     TResult Function(UndoEvent value)? undo,
     TResult Function(RedoEvent value)? redo,
     TResult Function(UndoForTeamEvent value)? undoForTeam,
-    TResult Function(BleCommandEvent value)? bleCommand,
     required TResult orElse(),
   }) {
     if (newSet != null) {
@@ -676,7 +658,6 @@ class _$NewGameEventImpl implements NewGameEvent {
     required TResult Function() undo,
     required TResult Function() redo,
     required TResult Function(Team team) undoForTeam,
-    required TResult Function(String cmd) bleCommand,
   }) {
     return newGame();
   }
@@ -699,7 +680,6 @@ class _$NewGameEventImpl implements NewGameEvent {
     TResult? Function()? undo,
     TResult? Function()? redo,
     TResult? Function(Team team)? undoForTeam,
-    TResult? Function(String cmd)? bleCommand,
   }) {
     return newGame?.call();
   }
@@ -722,7 +702,6 @@ class _$NewGameEventImpl implements NewGameEvent {
     TResult Function()? undo,
     TResult Function()? redo,
     TResult Function(Team team)? undoForTeam,
-    TResult Function(String cmd)? bleCommand,
     required TResult orElse(),
   }) {
     if (newGame != null) {
@@ -752,7 +731,6 @@ class _$NewGameEventImpl implements NewGameEvent {
     required TResult Function(UndoEvent value) undo,
     required TResult Function(RedoEvent value) redo,
     required TResult Function(UndoForTeamEvent value) undoForTeam,
-    required TResult Function(BleCommandEvent value) bleCommand,
   }) {
     return newGame(this);
   }
@@ -775,7 +753,6 @@ class _$NewGameEventImpl implements NewGameEvent {
     TResult? Function(UndoEvent value)? undo,
     TResult? Function(RedoEvent value)? redo,
     TResult? Function(UndoForTeamEvent value)? undoForTeam,
-    TResult? Function(BleCommandEvent value)? bleCommand,
   }) {
     return newGame?.call(this);
   }
@@ -798,7 +775,6 @@ class _$NewGameEventImpl implements NewGameEvent {
     TResult Function(UndoEvent value)? undo,
     TResult Function(RedoEvent value)? redo,
     TResult Function(UndoForTeamEvent value)? undoForTeam,
-    TResult Function(BleCommandEvent value)? bleCommand,
     required TResult orElse(),
   }) {
     if (newGame != null) {
@@ -898,7 +874,6 @@ class _$PointForEventImpl implements PointForEvent {
     required TResult Function() undo,
     required TResult Function() redo,
     required TResult Function(Team team) undoForTeam,
-    required TResult Function(String cmd) bleCommand,
   }) {
     return pointFor(team);
   }
@@ -921,7 +896,6 @@ class _$PointForEventImpl implements PointForEvent {
     TResult? Function()? undo,
     TResult? Function()? redo,
     TResult? Function(Team team)? undoForTeam,
-    TResult? Function(String cmd)? bleCommand,
   }) {
     return pointFor?.call(team);
   }
@@ -944,7 +918,6 @@ class _$PointForEventImpl implements PointForEvent {
     TResult Function()? undo,
     TResult Function()? redo,
     TResult Function(Team team)? undoForTeam,
-    TResult Function(String cmd)? bleCommand,
     required TResult orElse(),
   }) {
     if (pointFor != null) {
@@ -974,7 +947,6 @@ class _$PointForEventImpl implements PointForEvent {
     required TResult Function(UndoEvent value) undo,
     required TResult Function(RedoEvent value) redo,
     required TResult Function(UndoForTeamEvent value) undoForTeam,
-    required TResult Function(BleCommandEvent value) bleCommand,
   }) {
     return pointFor(this);
   }
@@ -997,7 +969,6 @@ class _$PointForEventImpl implements PointForEvent {
     TResult? Function(UndoEvent value)? undo,
     TResult? Function(RedoEvent value)? redo,
     TResult? Function(UndoForTeamEvent value)? undoForTeam,
-    TResult? Function(BleCommandEvent value)? bleCommand,
   }) {
     return pointFor?.call(this);
   }
@@ -1020,7 +991,6 @@ class _$PointForEventImpl implements PointForEvent {
     TResult Function(UndoEvent value)? undo,
     TResult Function(RedoEvent value)? redo,
     TResult Function(UndoForTeamEvent value)? undoForTeam,
-    TResult Function(BleCommandEvent value)? bleCommand,
     required TResult orElse(),
   }) {
     if (pointFor != null) {
@@ -1131,7 +1101,6 @@ class _$RemovePointEventImpl implements RemovePointEvent {
     required TResult Function() undo,
     required TResult Function() redo,
     required TResult Function(Team team) undoForTeam,
-    required TResult Function(String cmd) bleCommand,
   }) {
     return removePoint(team);
   }
@@ -1154,7 +1123,6 @@ class _$RemovePointEventImpl implements RemovePointEvent {
     TResult? Function()? undo,
     TResult? Function()? redo,
     TResult? Function(Team team)? undoForTeam,
-    TResult? Function(String cmd)? bleCommand,
   }) {
     return removePoint?.call(team);
   }
@@ -1177,7 +1145,6 @@ class _$RemovePointEventImpl implements RemovePointEvent {
     TResult Function()? undo,
     TResult Function()? redo,
     TResult Function(Team team)? undoForTeam,
-    TResult Function(String cmd)? bleCommand,
     required TResult orElse(),
   }) {
     if (removePoint != null) {
@@ -1207,7 +1174,6 @@ class _$RemovePointEventImpl implements RemovePointEvent {
     required TResult Function(UndoEvent value) undo,
     required TResult Function(RedoEvent value) redo,
     required TResult Function(UndoForTeamEvent value) undoForTeam,
-    required TResult Function(BleCommandEvent value) bleCommand,
   }) {
     return removePoint(this);
   }
@@ -1230,7 +1196,6 @@ class _$RemovePointEventImpl implements RemovePointEvent {
     TResult? Function(UndoEvent value)? undo,
     TResult? Function(RedoEvent value)? redo,
     TResult? Function(UndoForTeamEvent value)? undoForTeam,
-    TResult? Function(BleCommandEvent value)? bleCommand,
   }) {
     return removePoint?.call(this);
   }
@@ -1253,7 +1218,6 @@ class _$RemovePointEventImpl implements RemovePointEvent {
     TResult Function(UndoEvent value)? undo,
     TResult Function(RedoEvent value)? redo,
     TResult Function(UndoForTeamEvent value)? undoForTeam,
-    TResult Function(BleCommandEvent value)? bleCommand,
     required TResult orElse(),
   }) {
     if (removePoint != null) {
@@ -1364,7 +1328,6 @@ class _$ForceGameForEventImpl implements ForceGameForEvent {
     required TResult Function() undo,
     required TResult Function() redo,
     required TResult Function(Team team) undoForTeam,
-    required TResult Function(String cmd) bleCommand,
   }) {
     return forceGameFor(team);
   }
@@ -1387,7 +1350,6 @@ class _$ForceGameForEventImpl implements ForceGameForEvent {
     TResult? Function()? undo,
     TResult? Function()? redo,
     TResult? Function(Team team)? undoForTeam,
-    TResult? Function(String cmd)? bleCommand,
   }) {
     return forceGameFor?.call(team);
   }
@@ -1410,7 +1372,6 @@ class _$ForceGameForEventImpl implements ForceGameForEvent {
     TResult Function()? undo,
     TResult Function()? redo,
     TResult Function(Team team)? undoForTeam,
-    TResult Function(String cmd)? bleCommand,
     required TResult orElse(),
   }) {
     if (forceGameFor != null) {
@@ -1440,7 +1401,6 @@ class _$ForceGameForEventImpl implements ForceGameForEvent {
     required TResult Function(UndoEvent value) undo,
     required TResult Function(RedoEvent value) redo,
     required TResult Function(UndoForTeamEvent value) undoForTeam,
-    required TResult Function(BleCommandEvent value) bleCommand,
   }) {
     return forceGameFor(this);
   }
@@ -1463,7 +1423,6 @@ class _$ForceGameForEventImpl implements ForceGameForEvent {
     TResult? Function(UndoEvent value)? undo,
     TResult? Function(RedoEvent value)? redo,
     TResult? Function(UndoForTeamEvent value)? undoForTeam,
-    TResult? Function(BleCommandEvent value)? bleCommand,
   }) {
     return forceGameFor?.call(this);
   }
@@ -1486,7 +1445,6 @@ class _$ForceGameForEventImpl implements ForceGameForEvent {
     TResult Function(UndoEvent value)? undo,
     TResult Function(RedoEvent value)? redo,
     TResult Function(UndoForTeamEvent value)? undoForTeam,
-    TResult Function(BleCommandEvent value)? bleCommand,
     required TResult orElse(),
   }) {
     if (forceGameFor != null) {
@@ -1597,7 +1555,6 @@ class _$ForceSetForEventImpl implements ForceSetForEvent {
     required TResult Function() undo,
     required TResult Function() redo,
     required TResult Function(Team team) undoForTeam,
-    required TResult Function(String cmd) bleCommand,
   }) {
     return forceSetFor(team);
   }
@@ -1620,7 +1577,6 @@ class _$ForceSetForEventImpl implements ForceSetForEvent {
     TResult? Function()? undo,
     TResult? Function()? redo,
     TResult? Function(Team team)? undoForTeam,
-    TResult? Function(String cmd)? bleCommand,
   }) {
     return forceSetFor?.call(team);
   }
@@ -1643,7 +1599,6 @@ class _$ForceSetForEventImpl implements ForceSetForEvent {
     TResult Function()? undo,
     TResult Function()? redo,
     TResult Function(Team team)? undoForTeam,
-    TResult Function(String cmd)? bleCommand,
     required TResult orElse(),
   }) {
     if (forceSetFor != null) {
@@ -1673,7 +1628,6 @@ class _$ForceSetForEventImpl implements ForceSetForEvent {
     required TResult Function(UndoEvent value) undo,
     required TResult Function(RedoEvent value) redo,
     required TResult Function(UndoForTeamEvent value) undoForTeam,
-    required TResult Function(BleCommandEvent value) bleCommand,
   }) {
     return forceSetFor(this);
   }
@@ -1696,7 +1650,6 @@ class _$ForceSetForEventImpl implements ForceSetForEvent {
     TResult? Function(UndoEvent value)? undo,
     TResult? Function(RedoEvent value)? redo,
     TResult? Function(UndoForTeamEvent value)? undoForTeam,
-    TResult? Function(BleCommandEvent value)? bleCommand,
   }) {
     return forceSetFor?.call(this);
   }
@@ -1719,7 +1672,6 @@ class _$ForceSetForEventImpl implements ForceSetForEvent {
     TResult Function(UndoEvent value)? undo,
     TResult Function(RedoEvent value)? redo,
     TResult Function(UndoForTeamEvent value)? undoForTeam,
-    TResult Function(BleCommandEvent value)? bleCommand,
     required TResult orElse(),
   }) {
     if (forceSetFor != null) {
@@ -1841,7 +1793,6 @@ class _$SetExplicitGamePointsEventImpl implements SetExplicitGamePointsEvent {
     required TResult Function() undo,
     required TResult Function() redo,
     required TResult Function(Team team) undoForTeam,
-    required TResult Function(String cmd) bleCommand,
   }) {
     return setExplicitGamePoints(blue, red);
   }
@@ -1864,7 +1815,6 @@ class _$SetExplicitGamePointsEventImpl implements SetExplicitGamePointsEvent {
     TResult? Function()? undo,
     TResult? Function()? redo,
     TResult? Function(Team team)? undoForTeam,
-    TResult? Function(String cmd)? bleCommand,
   }) {
     return setExplicitGamePoints?.call(blue, red);
   }
@@ -1887,7 +1837,6 @@ class _$SetExplicitGamePointsEventImpl implements SetExplicitGamePointsEvent {
     TResult Function()? undo,
     TResult Function()? redo,
     TResult Function(Team team)? undoForTeam,
-    TResult Function(String cmd)? bleCommand,
     required TResult orElse(),
   }) {
     if (setExplicitGamePoints != null) {
@@ -1917,7 +1866,6 @@ class _$SetExplicitGamePointsEventImpl implements SetExplicitGamePointsEvent {
     required TResult Function(UndoEvent value) undo,
     required TResult Function(RedoEvent value) redo,
     required TResult Function(UndoForTeamEvent value) undoForTeam,
-    required TResult Function(BleCommandEvent value) bleCommand,
   }) {
     return setExplicitGamePoints(this);
   }
@@ -1940,7 +1888,6 @@ class _$SetExplicitGamePointsEventImpl implements SetExplicitGamePointsEvent {
     TResult? Function(UndoEvent value)? undo,
     TResult? Function(RedoEvent value)? redo,
     TResult? Function(UndoForTeamEvent value)? undoForTeam,
-    TResult? Function(BleCommandEvent value)? bleCommand,
   }) {
     return setExplicitGamePoints?.call(this);
   }
@@ -1963,7 +1910,6 @@ class _$SetExplicitGamePointsEventImpl implements SetExplicitGamePointsEvent {
     TResult Function(UndoEvent value)? undo,
     TResult Function(RedoEvent value)? redo,
     TResult Function(UndoForTeamEvent value)? undoForTeam,
-    TResult Function(BleCommandEvent value)? bleCommand,
     required TResult orElse(),
   }) {
     if (setExplicitGamePoints != null) {
@@ -2077,7 +2023,6 @@ class _$ToggleTieBreakGamesEventImpl implements ToggleTieBreakGamesEvent {
     required TResult Function() undo,
     required TResult Function() redo,
     required TResult Function(Team team) undoForTeam,
-    required TResult Function(String cmd) bleCommand,
   }) {
     return toggleTieBreakGames(games);
   }
@@ -2100,7 +2045,6 @@ class _$ToggleTieBreakGamesEventImpl implements ToggleTieBreakGamesEvent {
     TResult? Function()? undo,
     TResult? Function()? redo,
     TResult? Function(Team team)? undoForTeam,
-    TResult? Function(String cmd)? bleCommand,
   }) {
     return toggleTieBreakGames?.call(games);
   }
@@ -2123,7 +2067,6 @@ class _$ToggleTieBreakGamesEventImpl implements ToggleTieBreakGamesEvent {
     TResult Function()? undo,
     TResult Function()? redo,
     TResult Function(Team team)? undoForTeam,
-    TResult Function(String cmd)? bleCommand,
     required TResult orElse(),
   }) {
     if (toggleTieBreakGames != null) {
@@ -2153,7 +2096,6 @@ class _$ToggleTieBreakGamesEventImpl implements ToggleTieBreakGamesEvent {
     required TResult Function(UndoEvent value) undo,
     required TResult Function(RedoEvent value) redo,
     required TResult Function(UndoForTeamEvent value) undoForTeam,
-    required TResult Function(BleCommandEvent value) bleCommand,
   }) {
     return toggleTieBreakGames(this);
   }
@@ -2176,7 +2118,6 @@ class _$ToggleTieBreakGamesEventImpl implements ToggleTieBreakGamesEvent {
     TResult? Function(UndoEvent value)? undo,
     TResult? Function(RedoEvent value)? redo,
     TResult? Function(UndoForTeamEvent value)? undoForTeam,
-    TResult? Function(BleCommandEvent value)? bleCommand,
   }) {
     return toggleTieBreakGames?.call(this);
   }
@@ -2199,7 +2140,6 @@ class _$ToggleTieBreakGamesEventImpl implements ToggleTieBreakGamesEvent {
     TResult Function(UndoEvent value)? undo,
     TResult Function(RedoEvent value)? redo,
     TResult Function(UndoForTeamEvent value)? undoForTeam,
-    TResult Function(BleCommandEvent value)? bleCommand,
     required TResult orElse(),
   }) {
     if (toggleTieBreakGames != null) {
@@ -2310,7 +2250,6 @@ class _$ToggleTieBreakTargetEventImpl implements ToggleTieBreakTargetEvent {
     required TResult Function() undo,
     required TResult Function() redo,
     required TResult Function(Team team) undoForTeam,
-    required TResult Function(String cmd) bleCommand,
   }) {
     return toggleTieBreakTarget(target);
   }
@@ -2333,7 +2272,6 @@ class _$ToggleTieBreakTargetEventImpl implements ToggleTieBreakTargetEvent {
     TResult? Function()? undo,
     TResult? Function()? redo,
     TResult? Function(Team team)? undoForTeam,
-    TResult? Function(String cmd)? bleCommand,
   }) {
     return toggleTieBreakTarget?.call(target);
   }
@@ -2356,7 +2294,6 @@ class _$ToggleTieBreakTargetEventImpl implements ToggleTieBreakTargetEvent {
     TResult Function()? undo,
     TResult Function()? redo,
     TResult Function(Team team)? undoForTeam,
-    TResult Function(String cmd)? bleCommand,
     required TResult orElse(),
   }) {
     if (toggleTieBreakTarget != null) {
@@ -2386,7 +2323,6 @@ class _$ToggleTieBreakTargetEventImpl implements ToggleTieBreakTargetEvent {
     required TResult Function(UndoEvent value) undo,
     required TResult Function(RedoEvent value) redo,
     required TResult Function(UndoForTeamEvent value) undoForTeam,
-    required TResult Function(BleCommandEvent value) bleCommand,
   }) {
     return toggleTieBreakTarget(this);
   }
@@ -2409,7 +2345,6 @@ class _$ToggleTieBreakTargetEventImpl implements ToggleTieBreakTargetEvent {
     TResult? Function(UndoEvent value)? undo,
     TResult? Function(RedoEvent value)? redo,
     TResult? Function(UndoForTeamEvent value)? undoForTeam,
-    TResult? Function(BleCommandEvent value)? bleCommand,
   }) {
     return toggleTieBreakTarget?.call(this);
   }
@@ -2432,7 +2367,6 @@ class _$ToggleTieBreakTargetEventImpl implements ToggleTieBreakTargetEvent {
     TResult Function(UndoEvent value)? undo,
     TResult Function(RedoEvent value)? redo,
     TResult Function(UndoForTeamEvent value)? undoForTeam,
-    TResult Function(BleCommandEvent value)? bleCommand,
     required TResult orElse(),
   }) {
     if (toggleTieBreakTarget != null) {
@@ -2545,7 +2479,6 @@ class _$ToggleGoldenPointEventImpl implements ToggleGoldenPointEvent {
     required TResult Function() undo,
     required TResult Function() redo,
     required TResult Function(Team team) undoForTeam,
-    required TResult Function(String cmd) bleCommand,
   }) {
     return toggleGoldenPoint(enabled);
   }
@@ -2568,7 +2501,6 @@ class _$ToggleGoldenPointEventImpl implements ToggleGoldenPointEvent {
     TResult? Function()? undo,
     TResult? Function()? redo,
     TResult? Function(Team team)? undoForTeam,
-    TResult? Function(String cmd)? bleCommand,
   }) {
     return toggleGoldenPoint?.call(enabled);
   }
@@ -2591,7 +2523,6 @@ class _$ToggleGoldenPointEventImpl implements ToggleGoldenPointEvent {
     TResult Function()? undo,
     TResult Function()? redo,
     TResult Function(Team team)? undoForTeam,
-    TResult Function(String cmd)? bleCommand,
     required TResult orElse(),
   }) {
     if (toggleGoldenPoint != null) {
@@ -2621,7 +2552,6 @@ class _$ToggleGoldenPointEventImpl implements ToggleGoldenPointEvent {
     required TResult Function(UndoEvent value) undo,
     required TResult Function(RedoEvent value) redo,
     required TResult Function(UndoForTeamEvent value) undoForTeam,
-    required TResult Function(BleCommandEvent value) bleCommand,
   }) {
     return toggleGoldenPoint(this);
   }
@@ -2644,7 +2574,6 @@ class _$ToggleGoldenPointEventImpl implements ToggleGoldenPointEvent {
     TResult? Function(UndoEvent value)? undo,
     TResult? Function(RedoEvent value)? redo,
     TResult? Function(UndoForTeamEvent value)? undoForTeam,
-    TResult? Function(BleCommandEvent value)? bleCommand,
   }) {
     return toggleGoldenPoint?.call(this);
   }
@@ -2667,7 +2596,6 @@ class _$ToggleGoldenPointEventImpl implements ToggleGoldenPointEvent {
     TResult Function(UndoEvent value)? undo,
     TResult Function(RedoEvent value)? redo,
     TResult Function(UndoForTeamEvent value)? undoForTeam,
-    TResult Function(BleCommandEvent value)? bleCommand,
     required TResult orElse(),
   }) {
     if (toggleGoldenPoint != null) {
@@ -2749,7 +2677,6 @@ class _$AnnounceScoreEventImpl implements AnnounceScoreEvent {
     required TResult Function() undo,
     required TResult Function() redo,
     required TResult Function(Team team) undoForTeam,
-    required TResult Function(String cmd) bleCommand,
   }) {
     return announceScore();
   }
@@ -2772,7 +2699,6 @@ class _$AnnounceScoreEventImpl implements AnnounceScoreEvent {
     TResult? Function()? undo,
     TResult? Function()? redo,
     TResult? Function(Team team)? undoForTeam,
-    TResult? Function(String cmd)? bleCommand,
   }) {
     return announceScore?.call();
   }
@@ -2795,7 +2721,6 @@ class _$AnnounceScoreEventImpl implements AnnounceScoreEvent {
     TResult Function()? undo,
     TResult Function()? redo,
     TResult Function(Team team)? undoForTeam,
-    TResult Function(String cmd)? bleCommand,
     required TResult orElse(),
   }) {
     if (announceScore != null) {
@@ -2825,7 +2750,6 @@ class _$AnnounceScoreEventImpl implements AnnounceScoreEvent {
     required TResult Function(UndoEvent value) undo,
     required TResult Function(RedoEvent value) redo,
     required TResult Function(UndoForTeamEvent value) undoForTeam,
-    required TResult Function(BleCommandEvent value) bleCommand,
   }) {
     return announceScore(this);
   }
@@ -2848,7 +2772,6 @@ class _$AnnounceScoreEventImpl implements AnnounceScoreEvent {
     TResult? Function(UndoEvent value)? undo,
     TResult? Function(RedoEvent value)? redo,
     TResult? Function(UndoForTeamEvent value)? undoForTeam,
-    TResult? Function(BleCommandEvent value)? bleCommand,
   }) {
     return announceScore?.call(this);
   }
@@ -2871,7 +2794,6 @@ class _$AnnounceScoreEventImpl implements AnnounceScoreEvent {
     TResult Function(UndoEvent value)? undo,
     TResult Function(RedoEvent value)? redo,
     TResult Function(UndoForTeamEvent value)? undoForTeam,
-    TResult Function(BleCommandEvent value)? bleCommand,
     required TResult orElse(),
   }) {
     if (announceScore != null) {
@@ -2944,7 +2866,6 @@ class _$UndoEventImpl implements UndoEvent {
     required TResult Function() undo,
     required TResult Function() redo,
     required TResult Function(Team team) undoForTeam,
-    required TResult Function(String cmd) bleCommand,
   }) {
     return undo();
   }
@@ -2967,7 +2888,6 @@ class _$UndoEventImpl implements UndoEvent {
     TResult? Function()? undo,
     TResult? Function()? redo,
     TResult? Function(Team team)? undoForTeam,
-    TResult? Function(String cmd)? bleCommand,
   }) {
     return undo?.call();
   }
@@ -2990,7 +2910,6 @@ class _$UndoEventImpl implements UndoEvent {
     TResult Function()? undo,
     TResult Function()? redo,
     TResult Function(Team team)? undoForTeam,
-    TResult Function(String cmd)? bleCommand,
     required TResult orElse(),
   }) {
     if (undo != null) {
@@ -3020,7 +2939,6 @@ class _$UndoEventImpl implements UndoEvent {
     required TResult Function(UndoEvent value) undo,
     required TResult Function(RedoEvent value) redo,
     required TResult Function(UndoForTeamEvent value) undoForTeam,
-    required TResult Function(BleCommandEvent value) bleCommand,
   }) {
     return undo(this);
   }
@@ -3043,7 +2961,6 @@ class _$UndoEventImpl implements UndoEvent {
     TResult? Function(UndoEvent value)? undo,
     TResult? Function(RedoEvent value)? redo,
     TResult? Function(UndoForTeamEvent value)? undoForTeam,
-    TResult? Function(BleCommandEvent value)? bleCommand,
   }) {
     return undo?.call(this);
   }
@@ -3066,7 +2983,6 @@ class _$UndoEventImpl implements UndoEvent {
     TResult Function(UndoEvent value)? undo,
     TResult Function(RedoEvent value)? redo,
     TResult Function(UndoForTeamEvent value)? undoForTeam,
-    TResult Function(BleCommandEvent value)? bleCommand,
     required TResult orElse(),
   }) {
     if (undo != null) {
@@ -3139,7 +3055,6 @@ class _$RedoEventImpl implements RedoEvent {
     required TResult Function() undo,
     required TResult Function() redo,
     required TResult Function(Team team) undoForTeam,
-    required TResult Function(String cmd) bleCommand,
   }) {
     return redo();
   }
@@ -3162,7 +3077,6 @@ class _$RedoEventImpl implements RedoEvent {
     TResult? Function()? undo,
     TResult? Function()? redo,
     TResult? Function(Team team)? undoForTeam,
-    TResult? Function(String cmd)? bleCommand,
   }) {
     return redo?.call();
   }
@@ -3185,7 +3099,6 @@ class _$RedoEventImpl implements RedoEvent {
     TResult Function()? undo,
     TResult Function()? redo,
     TResult Function(Team team)? undoForTeam,
-    TResult Function(String cmd)? bleCommand,
     required TResult orElse(),
   }) {
     if (redo != null) {
@@ -3215,7 +3128,6 @@ class _$RedoEventImpl implements RedoEvent {
     required TResult Function(UndoEvent value) undo,
     required TResult Function(RedoEvent value) redo,
     required TResult Function(UndoForTeamEvent value) undoForTeam,
-    required TResult Function(BleCommandEvent value) bleCommand,
   }) {
     return redo(this);
   }
@@ -3238,7 +3150,6 @@ class _$RedoEventImpl implements RedoEvent {
     TResult? Function(UndoEvent value)? undo,
     TResult? Function(RedoEvent value)? redo,
     TResult? Function(UndoForTeamEvent value)? undoForTeam,
-    TResult? Function(BleCommandEvent value)? bleCommand,
   }) {
     return redo?.call(this);
   }
@@ -3261,7 +3172,6 @@ class _$RedoEventImpl implements RedoEvent {
     TResult Function(UndoEvent value)? undo,
     TResult Function(RedoEvent value)? redo,
     TResult Function(UndoForTeamEvent value)? undoForTeam,
-    TResult Function(BleCommandEvent value)? bleCommand,
     required TResult orElse(),
   }) {
     if (redo != null) {
@@ -3364,7 +3274,6 @@ class _$UndoForTeamEventImpl implements UndoForTeamEvent {
     required TResult Function() undo,
     required TResult Function() redo,
     required TResult Function(Team team) undoForTeam,
-    required TResult Function(String cmd) bleCommand,
   }) {
     return undoForTeam(team);
   }
@@ -3387,7 +3296,6 @@ class _$UndoForTeamEventImpl implements UndoForTeamEvent {
     TResult? Function()? undo,
     TResult? Function()? redo,
     TResult? Function(Team team)? undoForTeam,
-    TResult? Function(String cmd)? bleCommand,
   }) {
     return undoForTeam?.call(team);
   }
@@ -3410,7 +3318,6 @@ class _$UndoForTeamEventImpl implements UndoForTeamEvent {
     TResult Function()? undo,
     TResult Function()? redo,
     TResult Function(Team team)? undoForTeam,
-    TResult Function(String cmd)? bleCommand,
     required TResult orElse(),
   }) {
     if (undoForTeam != null) {
@@ -3440,7 +3347,6 @@ class _$UndoForTeamEventImpl implements UndoForTeamEvent {
     required TResult Function(UndoEvent value) undo,
     required TResult Function(RedoEvent value) redo,
     required TResult Function(UndoForTeamEvent value) undoForTeam,
-    required TResult Function(BleCommandEvent value) bleCommand,
   }) {
     return undoForTeam(this);
   }
@@ -3463,7 +3369,6 @@ class _$UndoForTeamEventImpl implements UndoForTeamEvent {
     TResult? Function(UndoEvent value)? undo,
     TResult? Function(RedoEvent value)? redo,
     TResult? Function(UndoForTeamEvent value)? undoForTeam,
-    TResult? Function(BleCommandEvent value)? bleCommand,
   }) {
     return undoForTeam?.call(this);
   }
@@ -3486,7 +3391,6 @@ class _$UndoForTeamEventImpl implements UndoForTeamEvent {
     TResult Function(UndoEvent value)? undo,
     TResult Function(RedoEvent value)? redo,
     TResult Function(UndoForTeamEvent value)? undoForTeam,
-    TResult Function(BleCommandEvent value)? bleCommand,
     required TResult orElse(),
   }) {
     if (undoForTeam != null) {
@@ -3505,238 +3409,5 @@ abstract class UndoForTeamEvent implements ScoringEvent {
   /// with the given fields replaced by the non-null parameter values.
   @JsonKey(includeFromJson: false, includeToJson: false)
   _$$UndoForTeamEventImplCopyWith<_$UndoForTeamEventImpl> get copyWith =>
-      throw _privateConstructorUsedError;
-}
-
-/// @nodoc
-abstract class _$$BleCommandEventImplCopyWith<$Res> {
-  factory _$$BleCommandEventImplCopyWith(
-    _$BleCommandEventImpl value,
-    $Res Function(_$BleCommandEventImpl) then,
-  ) = __$$BleCommandEventImplCopyWithImpl<$Res>;
-  @useResult
-  $Res call({String cmd});
-}
-
-/// @nodoc
-class __$$BleCommandEventImplCopyWithImpl<$Res>
-    extends _$ScoringEventCopyWithImpl<$Res, _$BleCommandEventImpl>
-    implements _$$BleCommandEventImplCopyWith<$Res> {
-  __$$BleCommandEventImplCopyWithImpl(
-    _$BleCommandEventImpl _value,
-    $Res Function(_$BleCommandEventImpl) _then,
-  ) : super(_value, _then);
-
-  /// Create a copy of ScoringEvent
-  /// with the given fields replaced by the non-null parameter values.
-  @pragma('vm:prefer-inline')
-  @override
-  $Res call({Object? cmd = null}) {
-    return _then(
-      _$BleCommandEventImpl(
-        null == cmd
-            ? _value.cmd
-            : cmd // ignore: cast_nullable_to_non_nullable
-                as String,
-      ),
-    );
-  }
-}
-
-/// @nodoc
-
-class _$BleCommandEventImpl implements BleCommandEvent {
-  const _$BleCommandEventImpl(this.cmd);
-
-  @override
-  final String cmd;
-
-  @override
-  String toString() {
-    return 'ScoringEvent.bleCommand(cmd: $cmd)';
-  }
-
-  @override
-  bool operator ==(Object other) {
-    return identical(this, other) ||
-        (other.runtimeType == runtimeType &&
-            other is _$BleCommandEventImpl &&
-            (identical(other.cmd, cmd) || other.cmd == cmd));
-  }
-
-  @override
-  int get hashCode => Object.hash(runtimeType, cmd);
-
-  /// Create a copy of ScoringEvent
-  /// with the given fields replaced by the non-null parameter values.
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  @override
-  @pragma('vm:prefer-inline')
-  _$$BleCommandEventImplCopyWith<_$BleCommandEventImpl> get copyWith =>
-      __$$BleCommandEventImplCopyWithImpl<_$BleCommandEventImpl>(
-        this,
-        _$identity,
-      );
-
-  @override
-  @optionalTypeArgs
-  TResult when<TResult extends Object?>({
-    required TResult Function(MatchSettings? settings, Team? startingServer)
-    newMatch,
-    required TResult Function() newSet,
-    required TResult Function() newGame,
-    required TResult Function(Team team) pointFor,
-    required TResult Function(Team team) removePoint,
-    required TResult Function(Team team) forceGameFor,
-    required TResult Function(Team team) forceSetFor,
-    required TResult Function(int blue, int red) setExplicitGamePoints,
-    required TResult Function(int games) toggleTieBreakGames,
-    required TResult Function(int target) toggleTieBreakTarget,
-    required TResult Function(bool enabled) toggleGoldenPoint,
-    required TResult Function() announceScore,
-    required TResult Function() undo,
-    required TResult Function() redo,
-    required TResult Function(Team team) undoForTeam,
-    required TResult Function(String cmd) bleCommand,
-  }) {
-    return bleCommand(cmd);
-  }
-
-  @override
-  @optionalTypeArgs
-  TResult? whenOrNull<TResult extends Object?>({
-    TResult? Function(MatchSettings? settings, Team? startingServer)? newMatch,
-    TResult? Function()? newSet,
-    TResult? Function()? newGame,
-    TResult? Function(Team team)? pointFor,
-    TResult? Function(Team team)? removePoint,
-    TResult? Function(Team team)? forceGameFor,
-    TResult? Function(Team team)? forceSetFor,
-    TResult? Function(int blue, int red)? setExplicitGamePoints,
-    TResult? Function(int games)? toggleTieBreakGames,
-    TResult? Function(int target)? toggleTieBreakTarget,
-    TResult? Function(bool enabled)? toggleGoldenPoint,
-    TResult? Function()? announceScore,
-    TResult? Function()? undo,
-    TResult? Function()? redo,
-    TResult? Function(Team team)? undoForTeam,
-    TResult? Function(String cmd)? bleCommand,
-  }) {
-    return bleCommand?.call(cmd);
-  }
-
-  @override
-  @optionalTypeArgs
-  TResult maybeWhen<TResult extends Object?>({
-    TResult Function(MatchSettings? settings, Team? startingServer)? newMatch,
-    TResult Function()? newSet,
-    TResult Function()? newGame,
-    TResult Function(Team team)? pointFor,
-    TResult Function(Team team)? removePoint,
-    TResult Function(Team team)? forceGameFor,
-    TResult Function(Team team)? forceSetFor,
-    TResult Function(int blue, int red)? setExplicitGamePoints,
-    TResult Function(int games)? toggleTieBreakGames,
-    TResult Function(int target)? toggleTieBreakTarget,
-    TResult Function(bool enabled)? toggleGoldenPoint,
-    TResult Function()? announceScore,
-    TResult Function()? undo,
-    TResult Function()? redo,
-    TResult Function(Team team)? undoForTeam,
-    TResult Function(String cmd)? bleCommand,
-    required TResult orElse(),
-  }) {
-    if (bleCommand != null) {
-      return bleCommand(cmd);
-    }
-    return orElse();
-  }
-
-  @override
-  @optionalTypeArgs
-  TResult map<TResult extends Object?>({
-    required TResult Function(NewMatchEvent value) newMatch,
-    required TResult Function(NewSetEvent value) newSet,
-    required TResult Function(NewGameEvent value) newGame,
-    required TResult Function(PointForEvent value) pointFor,
-    required TResult Function(RemovePointEvent value) removePoint,
-    required TResult Function(ForceGameForEvent value) forceGameFor,
-    required TResult Function(ForceSetForEvent value) forceSetFor,
-    required TResult Function(SetExplicitGamePointsEvent value)
-    setExplicitGamePoints,
-    required TResult Function(ToggleTieBreakGamesEvent value)
-    toggleTieBreakGames,
-    required TResult Function(ToggleTieBreakTargetEvent value)
-    toggleTieBreakTarget,
-    required TResult Function(ToggleGoldenPointEvent value) toggleGoldenPoint,
-    required TResult Function(AnnounceScoreEvent value) announceScore,
-    required TResult Function(UndoEvent value) undo,
-    required TResult Function(RedoEvent value) redo,
-    required TResult Function(UndoForTeamEvent value) undoForTeam,
-    required TResult Function(BleCommandEvent value) bleCommand,
-  }) {
-    return bleCommand(this);
-  }
-
-  @override
-  @optionalTypeArgs
-  TResult? mapOrNull<TResult extends Object?>({
-    TResult? Function(NewMatchEvent value)? newMatch,
-    TResult? Function(NewSetEvent value)? newSet,
-    TResult? Function(NewGameEvent value)? newGame,
-    TResult? Function(PointForEvent value)? pointFor,
-    TResult? Function(RemovePointEvent value)? removePoint,
-    TResult? Function(ForceGameForEvent value)? forceGameFor,
-    TResult? Function(ForceSetForEvent value)? forceSetFor,
-    TResult? Function(SetExplicitGamePointsEvent value)? setExplicitGamePoints,
-    TResult? Function(ToggleTieBreakGamesEvent value)? toggleTieBreakGames,
-    TResult? Function(ToggleTieBreakTargetEvent value)? toggleTieBreakTarget,
-    TResult? Function(ToggleGoldenPointEvent value)? toggleGoldenPoint,
-    TResult? Function(AnnounceScoreEvent value)? announceScore,
-    TResult? Function(UndoEvent value)? undo,
-    TResult? Function(RedoEvent value)? redo,
-    TResult? Function(UndoForTeamEvent value)? undoForTeam,
-    TResult? Function(BleCommandEvent value)? bleCommand,
-  }) {
-    return bleCommand?.call(this);
-  }
-
-  @override
-  @optionalTypeArgs
-  TResult maybeMap<TResult extends Object?>({
-    TResult Function(NewMatchEvent value)? newMatch,
-    TResult Function(NewSetEvent value)? newSet,
-    TResult Function(NewGameEvent value)? newGame,
-    TResult Function(PointForEvent value)? pointFor,
-    TResult Function(RemovePointEvent value)? removePoint,
-    TResult Function(ForceGameForEvent value)? forceGameFor,
-    TResult Function(ForceSetForEvent value)? forceSetFor,
-    TResult Function(SetExplicitGamePointsEvent value)? setExplicitGamePoints,
-    TResult Function(ToggleTieBreakGamesEvent value)? toggleTieBreakGames,
-    TResult Function(ToggleTieBreakTargetEvent value)? toggleTieBreakTarget,
-    TResult Function(ToggleGoldenPointEvent value)? toggleGoldenPoint,
-    TResult Function(AnnounceScoreEvent value)? announceScore,
-    TResult Function(UndoEvent value)? undo,
-    TResult Function(RedoEvent value)? redo,
-    TResult Function(UndoForTeamEvent value)? undoForTeam,
-    TResult Function(BleCommandEvent value)? bleCommand,
-    required TResult orElse(),
-  }) {
-    if (bleCommand != null) {
-      return bleCommand(this);
-    }
-    return orElse();
-  }
-}
-
-abstract class BleCommandEvent implements ScoringEvent {
-  const factory BleCommandEvent(final String cmd) = _$BleCommandEventImpl;
-
-  String get cmd;
-
-  /// Create a copy of ScoringEvent
-  /// with the given fields replaced by the non-null parameter values.
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  _$$BleCommandEventImplCopyWith<_$BleCommandEventImpl> get copyWith =>
       throw _privateConstructorUsedError;
 }

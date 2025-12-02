@@ -35,7 +35,4 @@ class ScoringEvent with _$ScoringEvent {
   const factory ScoringEvent.undo() = UndoEvent;
   const factory ScoringEvent.redo() = RedoEvent;
   const factory ScoringEvent.undoForTeam(Team team) = UndoForTeamEvent;
-
-  /// Raw BLE command from ESP32: 'a','b','u' etc.
-  const factory ScoringEvent.bleCommand(String cmd) = BleCommandEvent;
 }
