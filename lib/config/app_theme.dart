@@ -363,6 +363,49 @@ class PadelThemeExtension extends ThemeExtension<PadelThemeExtension> {
     required this.winnerOverlayBackground,
   });
 
+  /// Factory para crear desde AppConfig
+  factory PadelThemeExtension.fromConfig(dynamic config) {
+    // Extraer colores de equipos desde config si existen
+    Color team1Color = PadelColors.blueTeamLight;
+    Color team2Color = PadelColors.redTeamLight;
+    
+    try {
+      if (config != null && config.teams != null && config.teams.isNotEmpty) {
+        if (config.teams.length > 0 && config.teams[0].colorHex != null) {
+          team1Color = _hexToColor(config.teams[0].colorHex);
+        }
+        if (config.teams.length > 1 && config.teams[1].colorHex != null) {
+          team2Color = _hexToColor(config.teams[1].colorHex);
+        }
+      }
+    } catch (e) {
+      // Usar colores por defecto si hay error
+    }
+    
+    return PadelThemeExtension(
+      teamBlueColor: team1Color,
+      teamRedColor: team2Color,
+      scoreboardBackgroundBlue: team1Color,
+      scoreboardBackgroundRed: team2Color,
+      sidebarBackground: const Color(0xFF1A1A2E).withOpacity(0.95),
+      sidebarDivider: Colors.white.withOpacity(0.1),
+      digitalFontColor: Colors.white,
+      hexPatternColor: Colors.white.withOpacity(0.05),
+      brandBackgroundColor: Colors.black.withOpacity(0.3),
+      tieBreakColor: PadelColors.tieBreakColor,
+      deuceColor: PadelColors.deuceColor,
+      goldenPointColor: PadelColors.goldenPointColor,
+      winnerOverlayBackground: Colors.black.withOpacity(0.85),
+    );
+  }
+  
+  static Color _hexToColor(String hex) {
+    var h = hex.replaceAll('#', '').trim();
+    if (h.length == 6) h = 'FF$h';
+    final v = int.tryParse(h, radix: 16) ?? 0xFF2196F3;
+    return Color(v);
+  }
+
   @override
   PadelThemeExtension copyWith({
     Color? teamBlueColor,

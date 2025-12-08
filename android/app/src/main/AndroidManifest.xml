@@ -1,28 +1,26 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <!-- ===== Features ===== -->
-    <!-- USB Serial support -->
-    <uses-feature android:name="android.hardware.usb.host" android:required="true" />
+    <!-- Bluetooth Low Energy -->
+    <uses-feature android:name="android.hardware.bluetooth_le" android:required="true" />
     <!-- Android TV no tiene pantalla táctil; evita el filtro por requerirla -->
     <uses-feature android:name="android.hardware.touchscreen" android:required="false" />
     <!-- Leanback: si tu app es multi-plataforma, mantenlo en false -->
     <uses-feature android:name="android.software.leanback" android:required="false" />
-    <!-- Micrófono opcional (para TV sin micrófono integrado) -->
-    <uses-feature android:name="android.hardware.microphone" android:required="false" />
 
     <!-- ===== Permissions ===== -->
-    <!-- USB Serial (no requiere permisos peligrosos) -->
-
-    <!-- Pre-Android 12 BLE -->
+    <!-- BLE Pre-Android 12 -->
     <uses-permission android:name="android.permission.BLUETOOTH" android:maxSdkVersion="30" />
     <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" android:maxSdkVersion="30" />
-    <!-- Escaneo en Android 6–11 -->
-    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" android:maxSdkVersion="30" />
-    <!-- Si necesitas escaneo en background (Android 10/11) -->
-    <!-- <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" android:maxSdkVersion="29" /> -->
-
-    <!-- STT -->
-    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    
+    <!-- BLE Android 12+ -->
+    <uses-permission android:name="android.permission.BLUETOOTH_SCAN" />
+    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
+    
+    <!-- Location (requerido para BLE scan en Android 6-11) -->
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    
     <!-- Red para Flutter -->
     <uses-permission android:name="android.permission.INTERNET" />
     
@@ -31,8 +29,6 @@
     <uses-permission android:name="android.permission.WAKE_LOCK" />
     <!-- REQUEST_IGNORE_BATTERY_OPTIMIZATIONS: Evitar Doze Mode -->
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
-    <!-- FOREGROUND_SERVICE: Permitir servicio en primer plano (opcional pero ayuda) -->
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
 
     <!-- ===== Application ===== -->
     <application

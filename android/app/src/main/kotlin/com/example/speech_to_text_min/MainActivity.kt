@@ -12,10 +12,12 @@ import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothManager
+import com.padelapp.NativeBLEScanner
 
 class MainActivity: FlutterActivity() {
     private val CHANNEL = "ble_caps"
     private var wakeLock: PowerManager.WakeLock? = null
+    private var bleScanner: NativeBLEScanner? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -77,6 +79,10 @@ class MainActivity: FlutterActivity() {
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
+        
+        // Inicializar BLE Scanner Nativo
+        bleScanner = NativeBLEScanner(flutterEngine)
+        bleScanner?.setup()
 
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, CHANNEL).setMethodCallHandler { call, result ->
             when (call.method) {

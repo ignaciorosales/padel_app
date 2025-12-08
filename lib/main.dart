@@ -1,34 +1,22 @@
 import 'dart:async';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
+import 'package:permission_handler/permission_handler.dart';
+
+import 'package:Puntazo/config/config_loader.dart';
 import 'package:Puntazo/config/app_config.dart';
 import 'package:Puntazo/config/app_theme.dart';
-import 'package:Puntazo/config/config_loader.dart';
 import 'package:Puntazo/config/team_selection_service.dart';
-import 'package:Puntazo/features/serial/padel_serial_client_android.dart';
 import 'package:Puntazo/features/models/scoring_models.dart';
 import 'package:Puntazo/features/scoring/bloc/scoring_bloc.dart';
 import 'package:Puntazo/features/scoring/bloc/scoring_event.dart';
-import 'package:Puntazo/features/widgets/referee_sidebar.dart';
-import 'package:Puntazo/features/widgets/winner_overlay.dart';
+import 'package:Puntazo/features/ble/native_ble_listener.dart';
 import 'package:Puntazo/features/widgets/scoreboard.dart';
-import 'package:Puntazo/features/settings/match_settings_screen.dart';
-
-/// Controlador de tema de la aplicación
-class ThemeController {
-  ThemeController(ThemeMode initial) : mode = ValueNotifier<ThemeMode>(initial);
-
-  final ValueNotifier<ThemeMode> mode;
-
-  void set(ThemeMode m) => mode.value = m;
-
-  ThemeMode get current => mode.value;
-
-  void dispose() => mode.dispose();
-}
+import 'package:Puntazo/features/widgets/winner_overlay.dart';
+import 'package:Puntazo/features/widgets/referee_sidebar.dart';
+import 'package:Puntazo/features/widgets/control_bar.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -38,349 +26,231 @@ Future<void> main() async {
     DeviceOrientation.landscapeRight,
   ]);
   await SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
-
-  final config = await ConfigLoader.load();
-  final teamSelection = await TeamSelectionService.init(config);
   
-  runApp(PadelApp(config: config, teamSelection: teamSelection));
+  // Cargar configuración
+  final config = await ConfigLoader.load();
+  
+  // Inicializar TeamSelectionService de forma asíncrona
+  final teamService = await TeamSelectionService.init(config);
+  
+  runApp(PuntazoApp(config: config, teamService: teamService));
 }
 
-class PadelApp extends StatefulWidget {
-  const PadelApp({super.key, required this.config, required this.teamSelection});
-
+class PuntazoApp extends StatelessWidget {
   final AppConfig config;
-  final TeamSelectionService teamSelection;
-
-  @override
-  State<PadelApp> createState() => _PadelAppState();
-}
-
-class _PadelAppState extends State<PadelApp> {
-  late final ThemeController _themeCtrl;
-
-  @override
-  void initState() {
-    super.initState();
-    _themeCtrl = ThemeController(ThemeMode.dark);
-    widget.teamSelection.team1Selection.addListener(_onTeamColorsChanged);
-    widget.teamSelection.team2Selection.addListener(_onTeamColorsChanged);
-  }
-
-  @override
-  void dispose() {
-    widget.teamSelection.team1Selection.removeListener(_onTeamColorsChanged);
-    widget.teamSelection.team2Selection.removeListener(_onTeamColorsChanged);
-    _themeCtrl.dispose();
-    widget.teamSelection.dispose();
-    super.dispose();
-  }
-
-  void _onTeamColorsChanged() {
-    if (!mounted) return;
-    setState(() {});
-  }
-
-  ThemeData _buildTheme(Brightness brightness) {
-    final color1 = widget.teamSelection.getColor1();
-    final color2 = widget.teamSelection.getColor2();
-    
-    return brightness == Brightness.light
-        ? PadelTheme.lightTheme(team1Color: color1, team2Color: color2)
-        : PadelTheme.darkTheme(team1Color: color1, team2Color: color2);
-  }
+  final TeamSelectionService teamService;
+  
+  const PuntazoApp({
+    super.key, 
+    required this.config,
+    required this.teamService,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return ValueListenableBuilder<ThemeMode>(
-      valueListenable: _themeCtrl.mode,
-      builder: (context, mode, _) {
-        return MultiRepositoryProvider(
-          providers: [
-            RepositoryProvider<AppConfig>.value(value: widget.config),
-            RepositoryProvider<TeamSelectionService>.value(value: widget.teamSelection),
-            RepositoryProvider<ThemeController>.value(value: _themeCtrl),
-          ],
-          child: MaterialApp(
-            title: 'Puntazo',
-            debugShowCheckedModeBanner: false,
-            theme: _buildTheme(Brightness.light),
-            darkTheme: _buildTheme(Brightness.dark),
-            themeMode: mode,
-            home: _ScoreOnlyScreen(
-              config: widget.config,
-              teamSelection: widget.teamSelection,
-              themeController: _themeCtrl,
-            ),
-          ),
-        );
-      },
-    );
-  }
-}
-
-class _ScoreOnlyScreen extends StatefulWidget {
-  const _ScoreOnlyScreen({
-    required this.config,
-    required this.teamSelection,
-    required this.themeController,
-  });
-
-  final AppConfig config;
-  final TeamSelectionService teamSelection;
-  final ThemeController themeController;
-
-  @override
-  State<_ScoreOnlyScreen> createState() => _ScoreOnlyScreenState();
-}
-
-class _ScoreOnlyScreenState extends State<_ScoreOnlyScreen> with WidgetsBindingObserver {
-  late final PadelSerialClientAndroid _serial;
-  late final ScoringBloc _bloc;
-  StreamSubscription<String>? _cmdSub;
-  final ValueNotifier<bool> _refSidebarVisible = ValueNotifier<bool>(false);
-  bool _restartDialogOpen = false;
-
-  @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addObserver(this);
-    WakelockPlus.enable();
-    
-    // Crear bloc
-    _bloc = ScoringBloc();
-    final cfg = widget.config;
-    final starting = (cfg.rules.startingServerId == 'team2') ? Team.red : Team.blue;
-    _bloc.add(
-      ScoringEvent.newMatch(
-        startingServer: starting,
-        settings: MatchSettings(
-          goldenPoint: cfg.rules.goldenPoint,
-          tieBreakAtGames: cfg.rules.tiebreakAtSixSix ? 6 : 1,
-          tieBreakTarget: 7,
-          setsToWin: cfg.rules.setsToWin,
+    return MultiRepositoryProvider(
+      providers: [
+        RepositoryProvider.value(value: config),
+        RepositoryProvider.value(value: teamService),
+      ],
+      child: BlocProvider(
+        create: (context) {
+          final settings = MatchSettings(
+            setsToWin: config.rules.setsToWin,
+            goldenPoint: config.rules.goldenPoint,
+            tieBreakAtGames: config.rules.tiebreakAtSixSix ? 6 : 12,
+          );
+          
+          final startingServer = config.rules.startingServerId == 'team1' 
+              ? Team.blue 
+              : Team.red;
+          
+          return ScoringBloc()
+            ..add(ScoringEvent.newMatch(
+              settings: settings,
+              startingServer: startingServer,
+            ));
+        },
+        child: MaterialApp(
+          title: 'Puntazo',
+          debugShowCheckedModeBanner: false,
+          theme: _buildLightTheme(config),
+          darkTheme: _buildDarkTheme(config),
+          themeMode: ThemeMode.dark,
+          home: const MatchScreen(),
         ),
       ),
     );
-    
-    // Inicializar cliente serial para Android
-    _serial = PadelSerialClientAndroid();
-    _serial.init();
-    
-    // Suscribirse a comandos serial
-    _cmdSub = _serial.commands.listen((cmd) {
-      if (!mounted) return;
-      
-      // Formato: "cmd:devId:seq" (ej: "a:1:42", "b:2:43")
-      final parts = cmd.split(':');
-      if (parts.isEmpty) return;
-      
-      final cmdChar = parts[0];
-      final devId = parts.length > 1 ? parts[1] : '?';
-      final seq = parts.length > 2 ? parts[2] : '?';
-      
-      if (cmdChar == 'g') {
-        // Restart
-        _showRestartConfirmation();
-      } else if (cmdChar == 'u') {
-        // Undo
-        _bloc.add(const UndoEvent());
-      } else if (cmdChar == 'a') {
-        // Botón A → Equipo Blue (lado izquierdo)
-        _bloc.add(const PointForEvent(Team.blue));
-        if (kDebugMode) {
-          print('[MAIN] Punto para BLUE (botón A, dev:$devId, seq:$seq)');
-        }
-      } else if (cmdChar == 'b') {
-        // Botón B → Equipo Red (lado derecho)
-        _bloc.add(const PointForEvent(Team.red));
-        if (kDebugMode) {
-          print('[MAIN] Punto para RED (botón B, dev:$devId, seq:$seq)');
-        }
-      }
-    });
   }
 
-  @override
-  void dispose() {
-    WidgetsBinding.instance.removeObserver(this);
-    WakelockPlus.disable();
-    _cmdSub?.cancel();
-    _serial.dispose();
-    _bloc.close();
-    _refSidebarVisible.dispose();
-    super.dispose();
-  }
-
-  @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed) {
-      _serial.init();
-    }
-  }
-
-  void _showRestartConfirmation() {
-    if (_restartDialogOpen) return;
-    _restartDialogOpen = true;
-    
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Reiniciar Partido'),
-        content: const Text('¿Desea reiniciar el partido actual?'),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.of(ctx).pop();
-              _restartDialogOpen = false;
-            },
-            child: const Text('Cancelar'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              _bloc.add(const ScoringEvent.newMatch());
-              Navigator.of(ctx).pop();
-              _restartDialogOpen = false;
-            },
-            child: const Text('Reiniciar'),
-          ),
-        ],
+  ThemeData _buildLightTheme(AppConfig config) {
+    return ThemeData(
+      useMaterial3: true,
+      brightness: Brightness.light,
+      colorScheme: ColorScheme.fromSeed(
+        seedColor: Colors.blue,
+        brightness: Brightness.light,
       ),
-    ).then((_) {
-      _restartDialogOpen = false;
-    });
+      extensions: [PadelThemeExtension.fromConfig(config)],
+    );
   }
 
-  void _toggleRefPanel() => _refSidebarVisible.value = !_refSidebarVisible.value;
-
-  @override
-  Widget build(BuildContext context) {
-    return BlocProvider.value(
-      value: _bloc,
-      child: Builder(
-        builder: (scaffoldContext) {
-          return Scaffold(
-              body: Stack(
-                children: [
-                  const Scoreboard(),
-                  RefereeSidebar(visibleNotifier: _refSidebarVisible),
-                  const WinnerOverlay(),
-                ],
-              ),
-              floatingActionButton: ValueListenableBuilder<bool>(
-                valueListenable: _refSidebarVisible,
-                builder: (_, isVisible, __) {
-                  // Calcular padding para evitar que los FABs queden detrás del sidebar
-                  final paddingRight = isVisible
-                      ? MediaQuery.of(context).size.width * 0.1
-                      : 0.0;
-
-                  return Padding(
-                    padding: EdgeInsets.only(right: paddingRight),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        // Botón de panel árbitro - FOCUSABLE para control remoto
-                        _FocusableButton(
-                          autofocus: true,
-                          onPressed: _toggleRefPanel,
-                          icon: isVisible ? Icons.chevron_right : Icons.sports,
-                          tooltip: isVisible
-                              ? 'Ocultar panel árbitro'
-                              : 'Mostrar panel árbitro',
-                          heroTag: 'referee',
-                        ),
-                        const SizedBox(height: 10),
-                        // Botón de configuración - FOCUSABLE para control remoto
-                        _FocusableButton(
-                          onPressed: () {
-                            Navigator.of(scaffoldContext).push(
-                              MaterialPageRoute(
-                                builder: (_) => BlocProvider.value(
-                                  value: _bloc,
-                                  child: const MatchSettingsScreen(),
-                                ),
-                              ),
-                            );
-                          },
-                          icon: Icons.settings,
-                          tooltip: 'Configuración',
-                          heroTag: 'settings',
-                        ),
-                      ],
-                    ),
-                  );
-                },
-              ),
-              floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
-            );
-        },
+  ThemeData _buildDarkTheme(AppConfig config) {
+    return ThemeData(
+      useMaterial3: true,
+      brightness: Brightness.dark,
+      colorScheme: ColorScheme.fromSeed(
+        seedColor: Colors.blue,
+        brightness: Brightness.dark,
       ),
+      extensions: [PadelThemeExtension.fromConfig(config)],
     );
   }
 }
 
-/// Widget personalizado para botones focusables (Android TV Box con control remoto)
-class _FocusableButton extends StatefulWidget {
-  const _FocusableButton({
-    required this.onPressed,
-    required this.icon,
-    required this.tooltip,
-    required this.heroTag,
-    this.autofocus = false,
-  });
-
-  final VoidCallback onPressed;
-  final IconData icon;
-  final String tooltip;
-  final String heroTag;
-  final bool autofocus;
+class MatchScreen extends StatefulWidget {
+  const MatchScreen({super.key});
 
   @override
-  State<_FocusableButton> createState() => _FocusableButtonState();
+  State<MatchScreen> createState() => _MatchScreenState();
 }
 
-class _FocusableButtonState extends State<_FocusableButton> {
-  final FocusNode _focusNode = FocusNode();
-  bool _hasFocus = false;
+class _MatchScreenState extends State<MatchScreen> {
+  NativeBLEListener? _bleListener;
+  StreamSubscription<String>? _commandSub;
+  StreamSubscription<String>? _debugSub;
+  
+  final ValueNotifier<bool> _sidebarVisible = ValueNotifier(false);
 
   @override
   void initState() {
     super.initState();
-    _focusNode.addListener(_onFocusChange);
+    WakelockPlus.enable();
+    _requestPermissionsAndStartBLE();
   }
 
   @override
   void dispose() {
-    _focusNode.removeListener(_onFocusChange);
-    _focusNode.dispose();
+    WakelockPlus.disable();
+    _commandSub?.cancel();
+    _debugSub?.cancel();
+    _bleListener?.stop();
+    _sidebarVisible.dispose();
     super.dispose();
   }
 
-  void _onFocusChange() {
-    setState(() {
-      _hasFocus = _focusNode.hasFocus;
+  Future<void> _requestPermissionsAndStartBLE() async {
+    final permissions = [
+      Permission.bluetoothScan,
+      Permission.bluetoothConnect,
+      Permission.location,
+    ];
+
+    final statuses = await permissions.request();
+    
+    if (statuses.values.every((status) => status.isGranted)) {
+      await _startBLE();
+    } else {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('⚠️ Permisos BLE denegados')),
+        );
+      }
+    }
+  }
+
+  Future<void> _startBLE() async {
+    _bleListener = NativeBLEListener();
+    
+    // Escuchar comandos BLE y enviarlos al BLoC
+    _commandSub = _bleListener!.commands.listen((cmd) {
+      if (!mounted) return;
+      
+      final bloc = context.read<ScoringBloc>();
+      
+      // Mapear comandos BLE nativos a eventos del BLoC
+      switch (cmd) {
+        case 'P_A':
+          bloc.add(const ScoringEvent.pointFor(Team.blue));
+          break;
+        case 'P_B':
+          bloc.add(const ScoringEvent.pointFor(Team.red));
+          break;
+        case 'UNDO_A':
+          bloc.add(const ScoringEvent.undoForTeam(Team.blue));
+          break;
+        case 'UNDO_B':
+          bloc.add(const ScoringEvent.undoForTeam(Team.red));
+          break;
+        case 'RESET_GAME':
+          bloc.add(const ScoringEvent.newMatch());
+          break;
+        default:
+          debugPrint('⚠️ Comando BLE desconocido: $cmd');
+      }
     });
+    
+    // Escuchar mensajes de debug del listener nativo
+    _debugSub = _bleListener!.debugMessages.listen((msg) {
+      debugPrint('[BLE] $msg');
+    });
+    
+    await _bleListener!.start();
   }
 
   @override
   Widget build(BuildContext context) {
-    return FloatingActionButton.small(
-      heroTag: widget.heroTag,
-      tooltip: widget.tooltip,
-      onPressed: widget.onPressed,
-      autofocus: widget.autofocus,
-      focusNode: _focusNode,
-      backgroundColor:
-          _hasFocus ? Theme.of(context).colorScheme.primary : Colors.grey[800],
-      elevation: _hasFocus ? 8 : 2,
-      focusColor: Colors.transparent,
-      hoverColor: Colors.transparent,
-      splashColor: Colors.white.withOpacity(0.2),
-      child: Icon(
-        widget.icon,
-        color: Colors.white,
-        size: _hasFocus ? 26 : 24,
+    return Scaffold(
+      backgroundColor: Colors.black,
+      body: Stack(
+        children: [
+          // Scoreboard principal con toda la lógica de puntuación
+          const Scoreboard(),
+          
+          // Panel lateral del árbitro (se desliza desde la derecha)
+          RefereeSidebar(visibleNotifier: _sidebarVisible),
+          
+          // Control bar en la parte inferior (solo visible cuando sidebar está abierto)
+          Align(
+            alignment: Alignment.bottomCenter,
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: ValueListenableBuilder<bool>(
+                valueListenable: _sidebarVisible,
+                builder: (context, visible, _) {
+                  if (!visible) return const SizedBox.shrink();
+                  return const ControlBar();
+                },
+              ),
+            ),
+          ),
+          
+          // Overlay de ganador (se muestra automáticamente al terminar el partido)
+          const WinnerOverlay(),
+          
+          // Botón flotante para abrir/cerrar el sidebar (siempre visible en la esquina superior derecha)
+          Positioned(
+            top: 16,
+            right: 16,
+            child: ValueListenableBuilder<bool>(
+              valueListenable: _sidebarVisible,
+              builder: (context, visible, _) {
+                return FloatingActionButton(
+                  heroTag: 'referee_button',
+                  onPressed: () => _sidebarVisible.value = !visible,
+                  backgroundColor: visible 
+                      ? Colors.red.withOpacity(0.9) 
+                      : Colors.white.withOpacity(0.9),
+                  child: Icon(
+                    visible ? Icons.close : Icons.settings,
+                    color: visible ? Colors.white : Colors.black87,
+                    size: 28,
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
       ),
     );
   }
