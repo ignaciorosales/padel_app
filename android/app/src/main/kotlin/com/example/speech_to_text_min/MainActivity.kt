@@ -10,25 +10,29 @@ import android.provider.Settings
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
-import android.bluetooth.BluetoothAdapter
-import android.bluetooth.BluetoothManager
-import com.padelapp.NativeBLEScanner
+import com.padelapp.NativeUsbSerial
+import com.padelapp.UsbForegroundService
 
 class MainActivity: FlutterActivity() {
-    private val CHANNEL = "ble_caps"
+    private val CHANNEL = "puntazo_system"
     private var wakeLock: PowerManager.WakeLock? = null
-    private var bleScanner: NativeBLEScanner? = null
+    private var usbSerial: NativeUsbSerial? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         
-        // ===== CRITICAL: Prevenir sleep/throttling =====
+        // ===== CRITICAL: Prevenir sleep/throttling 24/7 =====
         requestBatteryOptimizationExemption()
         acquireWakeLock()
+        
+        // Start foreground service for 24/7 operation
+        UsbForegroundService.start(this)
     }
 
     override fun onDestroy() {
         releaseWakeLock()
+        usbSerial?.cleanup()
+        // Note: Don't stop the foreground service on destroy - it should keep running
         super.onDestroy()
     }
 
@@ -58,11 +62,12 @@ class MainActivity: FlutterActivity() {
             // PARTIAL_WAKE_LOCK: Mantiene CPU activa pero permite que pantalla se apague
             wakeLock = pm.newWakeLock(
                 PowerManager.PARTIAL_WAKE_LOCK or PowerManager.ON_AFTER_RELEASE,
-                "Puntazo::BleWakeLock"
+                "Puntazo::UsbWakeLock"
             ).apply {
                 setReferenceCounted(false)
-                acquire()
+                acquire(24 * 60 * 60 * 1000L)  // 24 hours max
             }
+            android.util.Log.d("MainActivity", "🔒 WakeLock acquired for 24h")
         } catch (e: Exception) {
             e.printStackTrace()
         }
@@ -72,6 +77,7 @@ class MainActivity: FlutterActivity() {
         wakeLock?.let {
             if (it.isHeld) {
                 it.release()
+                android.util.Log.d("MainActivity", "🔓 WakeLock released")
             }
         }
         wakeLock = null
@@ -80,47 +86,28 @@ class MainActivity: FlutterActivity() {
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
         
-        // Inicializar BLE Scanner Nativo
-        bleScanner = NativeBLEScanner(flutterEngine)
-        bleScanner?.setup()
+        // Inicializar USB Serial
+        try {
+            usbSerial = NativeUsbSerial(this, flutterEngine)
+            usbSerial?.setup()
+            android.util.Log.d("MainActivity", "✅ USB Serial initialized")
+        } catch (e: Exception) {
+            android.util.Log.e("MainActivity", "Error inicializando USB Serial: ${e.message}", e)
+        }
 
+        // System channel for misc operations
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, CHANNEL).setMethodCallHandler { call, result ->
             when (call.method) {
-                "queryCaps" -> {
-                    result.success(queryCaps())
+                "isIgnoringBatteryOptimizations" -> {
+                    val pm = getSystemService(Context.POWER_SERVICE) as PowerManager
+                    result.success(pm.isIgnoringBatteryOptimizations(packageName))
+                }
+                "requestBatteryOptimizationExemption" -> {
+                    requestBatteryOptimizationExemption()
+                    result.success(null)
                 }
                 else -> result.notImplemented()
             }
         }
-    }
-
-    private fun queryCaps(): Map<String, Any?> {
-        val mgr = getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager
-        val adapter: BluetoothAdapter? = mgr.adapter
-        if (adapter == null) {
-            return mapOf(
-                "isLeCodedPhySupported" to false,
-                "isLe2MPhySupported" to false,
-                "isLeExtendedAdvertisingSupported" to false,
-                "isLePeriodicAdvertisingSupported" to false,
-                "isOffloadedFilteringSupported" to false,
-                "isOffloadedBatchingSupported" to false
-            )
-        }
-
-        val is26 = Build.VERSION.SDK_INT >= Build.VERSION_CODES.O
-
-        fun safeBool(check: () -> Boolean): Boolean? =
-            if (is26) try { check() } catch (_: Throwable) { null } else null
-
-        // Estas propiedades existen en API >= 26 (Android 8.0)
-        return mapOf(
-            "isLeCodedPhySupported" to safeBool { adapter.isLeCodedPhySupported },
-            "isLe2MPhySupported" to safeBool { adapter.isLe2MPhySupported },
-            "isLeExtendedAdvertisingSupported" to safeBool { adapter.isLeExtendedAdvertisingSupported },
-            "isLePeriodicAdvertisingSupported" to safeBool { adapter.isLePeriodicAdvertisingSupported },
-            "isOffloadedFilteringSupported" to safeBool { adapter.isOffloadedFilteringSupported },
-            "isOffloadedBatchingSupported" to safeBool { adapter.isOffloadedScanBatchingSupported }
-        )
     }
 }

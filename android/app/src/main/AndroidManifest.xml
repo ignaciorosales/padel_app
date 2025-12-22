@@ -1,34 +1,25 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <!-- ===== Features ===== -->
-    <!-- Bluetooth Low Energy -->
-    <uses-feature android:name="android.hardware.bluetooth_le" android:required="true" />
+    <!-- USB Host mode for serial communication -->
+    <uses-feature android:name="android.hardware.usb.host" android:required="true" />
     <!-- Android TV no tiene pantalla táctil; evita el filtro por requerirla -->
     <uses-feature android:name="android.hardware.touchscreen" android:required="false" />
     <!-- Leanback: si tu app es multi-plataforma, mantenlo en false -->
     <uses-feature android:name="android.software.leanback" android:required="false" />
 
     <!-- ===== Permissions ===== -->
-    <!-- BLE Pre-Android 12 -->
-    <uses-permission android:name="android.permission.BLUETOOTH" android:maxSdkVersion="30" />
-    <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" android:maxSdkVersion="30" />
-    
-    <!-- BLE Android 12+ -->
-    <uses-permission android:name="android.permission.BLUETOOTH_SCAN" />
-    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
-    
-    <!-- Location (requerido para BLE scan en Android 6-11) -->
-    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
-    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
-    
     <!-- Red para Flutter -->
     <uses-permission android:name="android.permission.INTERNET" />
     
-    <!-- ===== CRITICAL: Prevenir sleep/throttling ===== -->
+    <!-- ===== CRITICAL: Prevenir sleep/throttling 24/7 ===== -->
     <!-- WAKE_LOCK: Prevenir que la CPU se suspenda durante el partido -->
     <uses-permission android:name="android.permission.WAKE_LOCK" />
     <!-- REQUEST_IGNORE_BATTERY_OPTIMIZATIONS: Evitar Doze Mode -->
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
+    <!-- FOREGROUND_SERVICE: Para Foreground Service -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_CONNECTED_DEVICE" />
 
     <!-- ===== Application ===== -->
     <application
@@ -79,6 +70,13 @@
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
+        
+        <!-- ===== Foreground Service para USB Serial 24/7 ===== -->
+        <service
+            android:name="com.padelapp.UsbForegroundService"
+            android:enabled="true"
+            android:exported="false"
+            android:foregroundServiceType="connectedDevice" />
     </application>
 
     <!-- Package visibility para Process Text (ok) -->

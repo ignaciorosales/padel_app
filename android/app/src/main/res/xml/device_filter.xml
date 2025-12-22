@@ -2,15 +2,24 @@
 <resources>
     <!-- Filtros para módulos USB-Serial comunes -->
     
-    <!-- FTDI devices (FT232, FT2232, etc) -->
+    <!-- ESP32 nativo (Espressif) - vendor-id 0x303A = 12346 decimal -->
+    <usb-device vendor-id="12346" />
+    
+    <!-- FTDI devices (FT232, FT2232, etc) - 0x0403 = 1027 -->
     <usb-device vendor-id="1027" />
     
-    <!-- CH340/CH341 devices -->
+    <!-- CH340/CH341 devices - 0x1A86 = 6790 -->
     <usb-device vendor-id="6790" />
     
-    <!-- Silicon Labs CP210x -->
+    <!-- Silicon Labs CP210x - 0x10C4 = 4292 -->
     <usb-device vendor-id="4292" />
     
-    <!-- Prolific PL2303 -->
+    <!-- Prolific PL2303 - 0x067B = 1659 -->
     <usb-device vendor-id="1659" />
+    
+    <!-- Arduino (varios) - 0x2341 = 9025 -->
+    <usb-device vendor-id="9025" />
+    
+    <!-- Adafruit - 0x239A = 9114 -->
+    <usb-device vendor-id="9114" />
 </resources>
