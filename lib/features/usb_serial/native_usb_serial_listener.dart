@@ -76,9 +76,54 @@ class NativeUsbSerialListener {
                 break;
                 
               case 'rx':
-                // Raw data received - debug only
+                // Raw data received - debug only (filter non-printable chars)
                 final data = event['data'] as String? ?? '';
-                _debugController.add('RX: $data');
+                final hex = event['hex'] as String? ?? '';
+                final length = event['length'] as int? ?? 0;
+                // Only show if it contains printable ASCII
+                final printable = data.replaceAll(RegExp(r'[^\x20-\x7E\n\r]'), '');
+                if (printable.trim().isNotEmpty) {
+                  _debugController.add('RX($length): $printable');
+                } else if (hex.isNotEmpty) {
+                  // Show hex for binary data
+                  _debugController.add('RX(hex,$length): $hex');
+                }
+                break;
+                
+              case 'error':
+                // Error de parsing/formato desde Kotlin
+                final errorType = event['error'] as String? ?? 'UNKNOWN';
+                final message = event['message'] as String? ?? '';
+                final hexData = event['hex'] as String? ?? '';
+                debugPrint('🛑 [NativeUsbSerialListener] ERROR: $errorType - $message');
+                
+                // Formatear mensaje de error según tipo
+                String errorMsg;
+                switch (errorType) {
+                  case 'DECODE_ERROR':
+                    errorMsg = '❌ DECODE: $message';
+                    if (hexData.isNotEmpty) errorMsg += '\n   hex: $hexData';
+                    break;
+                  case 'BUFFER_OVERFLOW':
+                    final discardedLen = event['discardedLength'] as int? ?? 0;
+                    errorMsg = '❌ OVERFLOW: $discardedLen bytes sin newline';
+                    if (hexData.isNotEmpty) errorMsg += '\n   preview: $hexData';
+                    break;
+                  case 'LINE_TOO_LONG':
+                    final preview = event['preview'] as String? ?? '';
+                    errorMsg = '❌ LÍNEA LARGA: $message';
+                    if (preview.isNotEmpty) errorMsg += '\n   preview: $preview...';
+                    break;
+                  case 'UNKNOWN_COMMAND':
+                    final validCmds = event['validCommands'] as List? ?? [];
+                    errorMsg = '⚠️ CMD DESCONOCIDO: $message';
+                    if (hexData.isNotEmpty) errorMsg += '\n   hex: $hexData';
+                    errorMsg += '\n   válidos: ${validCmds.join(", ")}';
+                    break;
+                  default:
+                    errorMsg = '⚠️ $errorType: $message';
+                }
+                _debugController.add(errorMsg);
                 break;
                 
               case 'devices':
@@ -90,7 +135,16 @@ class NativeUsbSerialListener {
                   if (!_isConnected && _autoReconnect) {
                     _tryAutoConnect(devices);
                   }
+                } else {
+                  _debugController.add('⚠️ No hay dispositivos USB');
                 }
+                break;
+                
+              case 'tx':
+                // Data sent confirmation
+                final txData = event['data'] as String? ?? '';
+                final txLen = event['length'] as int? ?? 0;
+                _debugController.add('TX($txLen): $txData');
                 break;
             }
           }

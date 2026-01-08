@@ -216,7 +216,14 @@ class NativeUsbSerial(
             "connected" to isConnected,
             "bytesReceived" to bytesReceived,
             "bytesSent" to bytesSent,
-            "deviceName" to (usbDevice?.productName ?: "None")
+            "deviceName" to (usbDevice?.productName ?: "None"),
+            // Estadísticas de parsing
+            "totalLinesProcessed" to totalLinesProcessed,
+            "validCommandsFound" to validCommandsFound,
+            "invalidLinesSkipped" to invalidLinesSkipped,
+            "bufferOverflows" to bufferOverflows,
+            "decodingErrors" to decodingErrors,
+            "currentBufferSize" to lineBuffer.length
         )
     }
     
@@ -347,6 +354,10 @@ class NativeUsbSerial(
             isConnected = true
             bytesReceived = 0
             bytesSent = 0
+            
+            // Start foreground service now that USB is connected
+            // Android 14+ requires USB connection before starting foregroundServiceType="connectedDevice"
+            UsbForegroundService.start(context)
             
             sendDebug("✅ ¡Conectado! Esperando datos...")
             sendStatus(true)
@@ -504,6 +515,13 @@ class NativeUsbSerial(
     // Comandos válidos que la app reconoce
     private val VALID_COMMANDS = setOf("P_A", "P_B", "UNDO_A", "UNDO_B", "RESET", "PONG")
     
+    // Estadísticas de parsing para diagnóstico
+    private var totalLinesProcessed = 0
+    private var validCommandsFound = 0
+    private var invalidLinesSkipped = 0
+    private var bufferOverflows = 0
+    private var decodingErrors = 0
+    
     private fun startReading() {
         if (isReading) return
         isReading = true
@@ -518,8 +536,35 @@ class NativeUsbSerial(
                     
                     if (len > 0) {
                         bytesReceived += len
-                        val data = String(buffer, 0, len, Charsets.UTF_8)
                         val hex = buffer.take(len).joinToString(" ") { "%02X".format(it) }
+                        
+                        // Intentar decodificar como UTF-8 con manejo de errores
+                        val data: String
+                        try {
+                            data = String(buffer, 0, len, Charsets.UTF_8)
+                        } catch (e: Exception) {
+                            decodingErrors++
+                            Log.e(TAG, "❌ Error decodificando UTF-8: ${e.message}")
+                            sendDebug("⚠️ DECODE ERROR: No es UTF-8 válido")
+                            sendDebug("   → hex: $hex")
+                            handler.post {
+                                eventSink?.success(mapOf(
+                                    "type" to "error",
+                                    "error" to "DECODE_ERROR",
+                                    "message" to "Datos no son UTF-8 válido",
+                                    "hex" to hex
+                                ))
+                            }
+                            continue
+                        }
+                        
+                        // Detectar caracteres no imprimibles (posible datos binarios)
+                        val nonPrintable = data.count { it.code < 32 && it != '\n' && it != '\r' && it != '\t' }
+                        if (nonPrintable > len / 2) {
+                            Log.w(TAG, "⚠️ Datos mayormente binarios ($nonPrintable/$len chars no imprimibles)")
+                            sendDebug("⚠️ BINARY DATA: ${nonPrintable}/${len} chars no imprimibles")
+                            sendDebug("   → hex: $hex")
+                        }
                         
                         Log.d(TAG, "📥 Received $len bytes: $hex")
                         
@@ -551,29 +596,85 @@ class NativeUsbSerial(
     private fun parseIncomingData(data: String) {
         lineBuffer.append(data)
         
-        // Process complete lines
-        var newlineIdx = lineBuffer.indexOf('\n')
+        // Detectar si los datos no tienen newlines (protocolo incorrecto)
+        if (!data.contains('\n') && !data.contains('\r') && lineBuffer.length > 50) {
+            sendDebug("⚠️ PROTOCOL: Datos sin newline, buffer=${lineBuffer.length}")
+            sendDebug("   → Esperando terminador de línea...")
+        }
+        
+        // Process complete lines (soporta \n y \r\n)
+        var newlineIdx = lineBuffer.indexOfAny(charArrayOf('\n', '\r'))
         while (newlineIdx >= 0) {
             val line = lineBuffer.substring(0, newlineIdx).trim()
-            lineBuffer.delete(0, newlineIdx + 1)
+            // Eliminar el newline y cualquier \r adicional
+            var endIdx = newlineIdx + 1
+            if (endIdx < lineBuffer.length && lineBuffer[endIdx] == '\n') {
+                endIdx++  // Skip \r\n pair
+            }
+            lineBuffer.delete(0, endIdx)
             
             if (line.isNotEmpty()) {
                 processLine(line)
+            } else {
+                // Línea vacía (doble newline)
+                Log.d(TAG, "📋 Línea vacía ignorada")
             }
             
-            newlineIdx = lineBuffer.indexOf('\n')
+            newlineIdx = lineBuffer.indexOfAny(charArrayOf('\n', '\r'))
         }
         
         // Prevent buffer overflow (discard if too long without newline)
         if (lineBuffer.length > 1024) {
+            bufferOverflows++
+            val discarded = lineBuffer.toString()
+            val discardedHex = discarded.toByteArray().take(50).joinToString(" ") { "%02X".format(it) }
             Log.w(TAG, "⚠️ Line buffer overflow, clearing")
+            sendDebug("❌ BUFFER OVERFLOW: Descartando ${lineBuffer.length} bytes")
+            sendDebug("   → Sin newline detectado después de 1024 bytes")
+            sendDebug("   → Primeros 50 bytes: $discardedHex")
+            sendDebug("   → Verificar que ESP32 envía comandos con \\n")
+            handler.post {
+                eventSink?.success(mapOf(
+                    "type" to "error",
+                    "error" to "BUFFER_OVERFLOW",
+                    "message" to "Buffer overflow: no se encontró newline en 1024 bytes",
+                    "discardedLength" to lineBuffer.length,
+                    "preview" to discardedHex
+                ))
+            }
             lineBuffer.clear()
         }
     }
     
     // Process a complete line, check if it's a valid command
     private fun processLine(line: String) {
-        Log.d(TAG, "📋 Processing line: '$line'")
+        totalLinesProcessed++
+        Log.d(TAG, "📋 Processing line #$totalLinesProcessed: '$line'")
+        
+        // Verificar formato básico
+        if (line.length > 50) {
+            invalidLinesSkipped++
+            val hex = line.toByteArray().take(50).joinToString(" ") { "%02X".format(it) }
+            sendDebug("⚠️ LINE TOO LONG: ${line.length} chars (máx esperado ~10)")
+            sendDebug("   → preview: ${line.take(30)}...")
+            sendDebug("   → hex: $hex")
+            handler.post {
+                eventSink?.success(mapOf(
+                    "type" to "error",
+                    "error" to "LINE_TOO_LONG",
+                    "message" to "Línea demasiado larga: ${line.length} chars",
+                    "preview" to line.take(30)
+                ))
+            }
+            return
+        }
+        
+        // Detectar caracteres extraños en el comando
+        val invalidChars = line.filter { !it.isLetterOrDigit() && it != '_' && it != '[' && it != ']' }
+        if (invalidChars.isNotEmpty() && !line.startsWith("[")) {
+            sendDebug("⚠️ CHARS EXTRAÑOS: '${invalidChars.map { "0x${it.code.toString(16)}" }}'")
+            sendDebug("   → en línea: '$line'")
+        }
         
         // Check if this is a valid command
         val cmd = line.uppercase().trim()
@@ -585,13 +686,38 @@ class NativeUsbSerial(
         }
         
         if (VALID_COMMANDS.contains(normalizedCmd)) {
-            Log.d(TAG, "🎮 Valid command detected: $normalizedCmd")
+            validCommandsFound++
+            Log.d(TAG, "🎮 Valid command #$validCommandsFound: $normalizedCmd")
             sendCommand(normalizedCmd)
         } else if (line.startsWith("[")) {
             // Debug/log message from ESP32, just log it
             sendDebug("ESP32: $line")
         } else {
-            Log.d(TAG, "📝 Non-command line: $line")
+            // Comando no reconocido
+            invalidLinesSkipped++
+            val hex = line.toByteArray().joinToString(" ") { "%02X".format(it) }
+            Log.d(TAG, "📝 Unknown command: '$line' (hex: $hex)")
+            sendDebug("⚠️ CMD DESCONOCIDO: '$line'")
+            sendDebug("   → hex: $hex")
+            sendDebug("   → Comandos válidos: ${VALID_COMMANDS.joinToString()}")
+            
+            // Detectar comandos similares (posible typo)
+            val similar = VALID_COMMANDS.filter { 
+                it.contains(cmd.take(2)) || cmd.contains(it.take(2))
+            }
+            if (similar.isNotEmpty()) {
+                sendDebug("   → ¿Quizás quisiste: ${similar.joinToString()}?")
+            }
+            
+            handler.post {
+                eventSink?.success(mapOf(
+                    "type" to "error",
+                    "error" to "UNKNOWN_COMMAND",
+                    "message" to "Comando no reconocido: $line",
+                    "hex" to hex,
+                    "validCommands" to VALID_COMMANDS.toList()
+                ))
+            }
         }
     }
     
@@ -652,6 +778,9 @@ class NativeUsbSerial(
         usbDevice = null
         readEndpoint = null
         writeEndpoint = null
+        
+        // Stop foreground service when USB disconnects
+        UsbForegroundService.stop(context)
         
         sendStatus(false)
         sendDebug("🔌 Desconectado")

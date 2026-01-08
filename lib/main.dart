@@ -12,11 +12,11 @@ import 'package:Puntazo/features/models/scoring_models.dart';
 import 'package:Puntazo/features/scoring/bloc/scoring_bloc.dart';
 import 'package:Puntazo/features/scoring/bloc/scoring_event.dart';
 import 'package:Puntazo/features/usb_serial/native_usb_serial_listener.dart';
+import 'package:Puntazo/features/usb_serial/usb_diagnostic_widget.dart';
 import 'package:Puntazo/features/widgets/scoreboard.dart';
 import 'package:Puntazo/features/widgets/winner_overlay.dart';
 import 'package:Puntazo/features/widgets/referee_sidebar.dart';
 import 'package:Puntazo/features/widgets/control_bar.dart';
-import 'package:Puntazo/features/usb_serial/usb_serial_test_page.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -123,15 +123,53 @@ class _MatchScreenState extends State<MatchScreen> {
   
   final ValueNotifier<bool> _sidebarVisible = ValueNotifier(false);
   
-  // Log overlay para debug en TV box (sin acceso fácil a logcat)
-  final ValueNotifier<List<String>> _usbLog = ValueNotifier<List<String>>([]);
-  final ValueNotifier<bool> _usbConnected = ValueNotifier<bool>(false);
+  // Diagnóstico USB mejorado
+  final ValueNotifier<UsbDiagnosticInfo> _usbDiagnostic = ValueNotifier(
+    const UsbDiagnosticInfo(),
+  );
   
-  void _pushUsbLog(String line) {
-    final list = List<String>.from(_usbLog.value);
-    list.add('${DateTime.now().toString().substring(11, 19)} $line');
-    if (list.length > 50) list.removeRange(0, list.length - 50);
-    _usbLog.value = list;
+  // Control de visibilidad del panel de diagnóstico expandido
+  final ValueNotifier<bool> _showDiagnosticPanel = ValueNotifier(false);
+  
+  // Logs para diagnóstico (últimos 10)
+  final List<String> _recentLogs = [];
+  
+  void _updateDiagnostic({
+    UsbDiagnosticState? state,
+    bool? isConnected,
+    int? addBytes,
+    int? addCommands,
+    int? addErrors,
+    String? lastCommand,
+    String? lastError,
+    String? deviceName,
+    bool updateDataTime = false,
+  }) {
+    final current = _usbDiagnostic.value;
+    _usbDiagnostic.value = current.copyWith(
+      state: state,
+      isConnected: isConnected,
+      bytesReceived: addBytes != null ? current.bytesReceived + addBytes : null,
+      commandsReceived: addCommands != null ? current.commandsReceived + addCommands : null,
+      packetsWithErrors: addErrors != null ? current.packetsWithErrors + addErrors : null,
+      lastCommand: lastCommand,
+      lastError: lastError,
+      deviceName: deviceName,
+      lastDataTime: updateDataTime ? DateTime.now() : null,
+      recentLogs: List.from(_recentLogs),
+    );
+  }
+  
+  void _addLog(String line) {
+    final timestamp = DateTime.now().toString().substring(11, 19);
+    _recentLogs.add('[$timestamp] $line');
+    if (_recentLogs.length > 25) _recentLogs.removeAt(0);
+    
+    // Actualizar el notifier con los logs recientes
+    final current = _usbDiagnostic.value;
+    _usbDiagnostic.value = current.copyWith(
+      recentLogs: List.from(_recentLogs),
+    );
   }
 
   @override
@@ -149,19 +187,31 @@ class _MatchScreenState extends State<MatchScreen> {
     _connectionSub?.cancel();
     _usbListener?.stop();
     _sidebarVisible.dispose();
-    _usbLog.dispose();
-    _usbConnected.dispose();
+    _usbDiagnostic.dispose();
+    _showDiagnosticPanel.dispose();
     super.dispose();
   }
 
   Future<void> _startUsbSerial() async {
     _usbListener = NativeUsbSerialListener();
-    _pushUsbLog('Creando NativeUsbSerialListener...');
+    _addLog('Iniciando USB Serial...');
+    _updateDiagnostic(state: UsbDiagnosticState.noDevice);
     
     // Escuchar estado de conexión
     _connectionSub = _usbListener!.connectionStatus.listen((connected) {
-      _usbConnected.value = connected;
-      _pushUsbLog(connected ? '✅ USB CONECTADO' : '❌ USB DESCONECTADO');
+      if (connected) {
+        _addLog('✅ USB CONECTADO');
+        _updateDiagnostic(
+          isConnected: true,
+          state: UsbDiagnosticState.connectedNoData,
+        );
+      } else {
+        _addLog('❌ USB DESCONECTADO');
+        _updateDiagnostic(
+          isConnected: false,
+          state: UsbDiagnosticState.noDevice,
+        );
+      }
     });
     
     // Escuchar comandos USB y enviarlos al BLoC
@@ -169,47 +219,139 @@ class _MatchScreenState extends State<MatchScreen> {
       if (!mounted) return;
       
       debugPrint('🎮 [USB CMD] Received: $cmd');
-      _pushUsbLog('🎮 CMD: $cmd');
+      
+      // Validar que el comando no esté vacío
+      if (cmd.isEmpty) {
+        _addLog('⚠️ CMD vacío recibido');
+        _updateDiagnostic(addErrors: 1, lastError: 'Comando vacío');
+        return;
+      }
+      
+      // Validar longitud razonable
+      if (cmd.length > 20) {
+        final hexRepr = cmd.codeUnits.take(20).map((c) => c.toRadixString(16).padLeft(2, '0')).join(' ');
+        _addLog('⚠️ CMD muy largo: ${cmd.length} chars');
+        _addLog('   → preview: ${cmd.substring(0, 20)}...');
+        _addLog('   → hex: $hexRepr');
+        _updateDiagnostic(addErrors: 1, lastError: 'Comando muy largo: ${cmd.length}');
+        return;
+      }
+      
+      // Limpiar el comando (trim whitespace, normalize)
+      final cleanCmd = cmd.trim().toUpperCase();
+      
+      _addLog('🎮 CMD: $cleanCmd');
+      
+      // Actualizar diagnóstico - comando recibido
+      _updateDiagnostic(
+        state: UsbDiagnosticState.fullyOperational,
+        addCommands: 1,
+        lastCommand: cleanCmd,
+        updateDataTime: true,
+      );
       
       final bloc = context.read<ScoringBloc>();
       
       // Mapear comandos USB nativos a eventos del BLoC
-      switch (cmd) {
+      switch (cleanCmd) {
         case 'P_A':
           debugPrint('🎮 [USB CMD] -> pointFor(Team.blue)');
+          _addLog('✅ P_A → Punto Azul');
           bloc.add(const ScoringEvent.pointFor(Team.blue));
           break;
         case 'P_B':
           debugPrint('🎮 [USB CMD] -> pointFor(Team.red)');
+          _addLog('✅ P_B → Punto Rojo');
           bloc.add(const ScoringEvent.pointFor(Team.red));
           break;
         case 'UNDO_A':
           debugPrint('🎮 [USB CMD] -> undoForTeam(Team.blue)');
+          _addLog('✅ UNDO_A → Deshacer Azul');
           bloc.add(const ScoringEvent.undoForTeam(Team.blue));
           break;
         case 'UNDO_B':
           debugPrint('🎮 [USB CMD] -> undoForTeam(Team.red)');
+          _addLog('✅ UNDO_B → Deshacer Rojo');
           bloc.add(const ScoringEvent.undoForTeam(Team.red));
           break;
         case 'RESET':
         case 'RESET_GAME':
           debugPrint('🎮 [USB CMD] -> newMatch()');
+          _addLog('✅ RESET → Nuevo partido');
           bloc.add(const ScoringEvent.newMatch());
           break;
+        case 'PONG':
+          // Respuesta a ping, solo log
+          _addLog('🏓 PONG recibido');
+          break;
         default:
-          debugPrint('⚠️ Comando USB desconocido: $cmd');
-          _pushUsbLog('⚠️ CMD desconocido: $cmd');
+          // Mostrar el comando con su representación para debug
+          final hexRepr = cleanCmd.codeUnits.map((c) => c.toRadixString(16).padLeft(2, '0')).join(' ');
+          debugPrint('⚠️ Comando USB desconocido: $cleanCmd (hex: $hexRepr)');
+          _addLog('⚠️ CMD ignorado: "$cleanCmd"');
+          _addLog('   → hex: $hexRepr');
+          _addLog('   → válidos: P_A, P_B, UNDO_A, UNDO_B, RESET');
+          _updateDiagnostic(addErrors: 1, lastError: 'Comando desconocido: $cleanCmd');
       }
-    });
+      });
     
     // Escuchar mensajes de debug del listener nativo
     _debugSub = _usbListener!.debugMessages.listen((msg) {
       debugPrint('📡 [USB DEBUG] $msg');
-      _pushUsbLog(msg);
+      _addLog(msg);
+      
+      // Actualizar estado basado en mensajes de debug
+      final current = _usbDiagnostic.value;
+      if (current.isConnected && current.state == UsbDiagnosticState.connectedNoData) {
+        // Si estamos conectados y recibimos debug, estamos recibiendo datos
+        _updateDiagnostic(
+          state: UsbDiagnosticState.connectedReceiving,
+          updateDataTime: true,
+        );
+      }
+      
+      // Contar bytes si el mensaje indica RX
+      if (msg.contains('RX(')) {
+        // Extraer longitud del mensaje RX(123): ...
+        final rxMatch = RegExp(r'RX\((?:hex,)?(\d+)\)').firstMatch(msg);
+        final bytesRead = rxMatch != null ? int.tryParse(rxMatch.group(1) ?? '0') ?? msg.length : msg.length;
+        _updateDiagnostic(addBytes: bytesRead, updateDataTime: true);
+      }
+      
+      // Detectar y contar errores
+      if (msg.contains('❌') || msg.contains('ERROR') || msg.contains('OVERFLOW')) {
+        _updateDiagnostic(
+          addErrors: 1, 
+          lastError: msg.split('\n').first, // Solo primera línea
+        );
+      }
+      
+      // Detectar advertencias (no son errores graves pero se registran)
+      if (msg.contains('⚠️') && !msg.contains('CMD DESCONOCIDO')) {
+        // Los comandos desconocidos ya se cuentan como error
+        debugPrint('⚠️ [USB WARNING] $msg');
+      }
+      
+      // Detectar dispositivo encontrado
+      if (msg.contains('dispositivos USB') || msg.contains('Auto-conectando')) {
+        if (!current.isConnected) {
+          _updateDiagnostic(state: UsbDiagnosticState.deviceFound);
+        }
+      }
+      
+      // Capturar nombre del dispositivo
+      if (msg.contains('Auto-conectando a')) {
+        final deviceName = msg.replaceAll('Auto-conectando a ', '').replaceAll('...', '');
+        _updateDiagnostic(deviceName: deviceName);
+      }
+      
+      // Detectar problemas de protocolo
+      if (msg.contains('PROTOCOL:') || msg.contains('Sin newline')) {
+        debugPrint('🚨 [PROTOCOL ISSUE] $msg');
+      }
     });
     
     debugPrint('🚀 [USB] Iniciando NativeUsbSerialListener...');
-    _pushUsbLog('Llamando start()...');
     await _usbListener!.start();
     debugPrint('✅ [USB] NativeUsbSerialListener iniciado');
   }
@@ -244,61 +386,18 @@ class _MatchScreenState extends State<MatchScreen> {
           // Overlay de ganador (se muestra automáticamente al terminar el partido)
           const WinnerOverlay(),
           
-          // === DEBUG: Overlay de logs USB Serial (esquina superior izquierda) ===
+          // === Diagnóstico USB Serial (esquina superior izquierda) ===
+          // Widget compacto por defecto, se expande al tocar
           Positioned(
             left: 12,
             top: 12,
-            child: ValueListenableBuilder<List<String>>(
-              valueListenable: _usbLog,
-              builder: (context, lines, _) {
-                if (lines.isEmpty) return const SizedBox.shrink();
-                final tail = lines.length > 15 ? lines.sublist(lines.length - 15) : lines;
-                return Container(
-                  width: 500,
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: Colors.black.withOpacity(0.80),
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: Colors.green.withOpacity(0.5)),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Row(
-                        children: [
-                          ValueListenableBuilder<bool>(
-                            valueListenable: _usbConnected,
-                            builder: (context, connected, _) {
-                              return Icon(
-                                Icons.usb,
-                                color: connected ? Colors.green : Colors.red,
-                                size: 16,
-                              );
-                            },
-                          ),
-                          const SizedBox(width: 6),
-                          const Text(
-                            '🔌 USB Serial Debug Log',
-                            style: TextStyle(
-                              color: Colors.green,
-                              fontSize: 14,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 6),
-                      Text(
-                        tail.join('\n'),
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 11,
-                          fontFamily: 'monospace',
-                        ),
-                      ),
-                    ],
-                  ),
+            child: ValueListenableBuilder<bool>(
+              valueListenable: _showDiagnosticPanel,
+              builder: (context, showPanel, _) {
+                return UsbDiagnosticWidget(
+                  diagnosticNotifier: _usbDiagnostic,
+                  startExpanded: showPanel,
+                  onTap: () => _showDiagnosticPanel.value = !showPanel,
                 );
               },
             ),
@@ -311,35 +410,17 @@ class _MatchScreenState extends State<MatchScreen> {
             child: ValueListenableBuilder<bool>(
               valueListenable: _sidebarVisible,
               builder: (context, visible, _) {
-                return Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    // Botón USB Test
-                    FloatingActionButton.small(
-                      heroTag: 'usb_test_button',
-                      onPressed: () {
-                        Navigator.of(context).push(
-                          MaterialPageRoute(builder: (_) => const UsbSerialTestPage()),
-                        );
-                      },
-                      backgroundColor: Colors.orange.withOpacity(0.9),
-                      child: const Icon(Icons.usb, color: Colors.white, size: 20),
-                    ),
-                    const SizedBox(width: 12),
-                    // Botón Settings
-                    FloatingActionButton(
-                      heroTag: 'referee_button',
-                      onPressed: () => _sidebarVisible.value = !visible,
-                      backgroundColor: visible 
-                          ? Colors.red.withOpacity(0.9) 
-                          : Colors.white.withOpacity(0.9),
-                      child: Icon(
-                        visible ? Icons.close : Icons.settings,
-                        color: visible ? Colors.white : Colors.black87,
-                        size: 28,
-                      ),
-                    ),
-                  ],
+                return FloatingActionButton(
+                  heroTag: 'referee_button',
+                  onPressed: () => _sidebarVisible.value = !visible,
+                  backgroundColor: visible 
+                      ? Colors.red.withOpacity(0.9) 
+                      : Colors.white.withOpacity(0.9),
+                  child: Icon(
+                    visible ? Icons.close : Icons.settings,
+                    color: visible ? Colors.white : Colors.black87,
+                    size: 28,
+                  ),
                 );
               },
             ),

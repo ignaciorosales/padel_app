@@ -25,8 +25,9 @@ class MainActivity: FlutterActivity() {
         requestBatteryOptimizationExemption()
         acquireWakeLock()
         
-        // Start foreground service for 24/7 operation
-        UsbForegroundService.start(this)
+        // NOTE: Foreground service se inicia desde NativeUsbSerial cuando
+        // hay un dispositivo USB conectado y permiso otorgado.
+        // Esto es requerido por Android 14+ para foregroundServiceType="connectedDevice"
     }
 
     override fun onDestroy() {
