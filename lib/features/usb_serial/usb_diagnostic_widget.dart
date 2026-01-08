@@ -236,15 +236,15 @@ class _UsbDiagnosticWidgetState extends State<UsbDiagnosticWidget>
           
           const Divider(color: Colors.white24, height: 16),
           
-          // Estado actual
-          _buildStateCard(info),
+          // // Estado actual
+          // _buildStateCard(info),
           
-          const SizedBox(height: 8),
+          // const SizedBox(height: 8),
           
-          // Estadísticas
-          _buildStatsRow(info),
+          // // Estadísticas
+          // _buildStatsRow(info),
           
-          const SizedBox(height: 8),
+          // const SizedBox(height: 8),
           
           // Guía de troubleshooting
           _buildTroubleshootingHint(info),
@@ -420,19 +420,19 @@ class _UsbDiagnosticWidgetState extends State<UsbDiagnosticWidget>
   }
 
   Widget _buildRecentLogs(UsbDiagnosticInfo info) {
-    // Mostrar hasta 12 logs recientes (los más nuevos primero)
-    final logs = info.recentLogs.reversed.take(12).toList();
+    // Mostrar hasta 20 logs recientes (los más nuevos primero)
+    final logs = info.recentLogs.reversed.take(20).toList();
     
     return Container(
-      constraints: const BoxConstraints(maxHeight: 180),
+      height: 180, // Altura fija para permitir scroll
       padding: const EdgeInsets.all(8),
       decoration: BoxDecoration(
         color: Colors.black.withOpacity(0.5),
         borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: Colors.white24, width: 1),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
         children: [
           Row(
             children: [
@@ -456,40 +456,52 @@ class _UsbDiagnosticWidgetState extends State<UsbDiagnosticWidget>
               ),
             ],
           ),
-          const SizedBox(height: 4),
-          Flexible(
-            child: SingleChildScrollView(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: logs.map((log) {
-                  // Colorear según tipo de mensaje
-                  Color logColor = Colors.white70;
-                  if (log.contains('✅')) {
-                    logColor = Colors.green;
-                  } else if (log.contains('⚠️')) {
-                    logColor = Colors.orange;
-                  } else if (log.contains('❌')) {
-                    logColor = Colors.red;
-                  } else if (log.contains('RX')) {
-                    logColor = Colors.cyan;
-                  }
-                  
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: 2),
+          const Divider(color: Colors.white24, height: 8),
+          Expanded(
+            child: logs.isEmpty
+                ? const Center(
                     child: Text(
-                      log,
-                      style: TextStyle(
-                        color: logColor,
-                        fontSize: 10,
-                        fontFamily: 'monospace',
-                      ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
+                      'Sin logs aún...',
+                      style: TextStyle(color: Colors.white38, fontSize: 10),
                     ),
-                  );
-                }).toList(),
-              ),
-            ),
+                  )
+                : ListView.builder(
+                    itemCount: logs.length,
+                    padding: EdgeInsets.zero,
+                    itemBuilder: (context, index) {
+                      final log = logs[index];
+                      // Colorear según tipo de mensaje
+                      Color logColor = Colors.white70;
+                      if (log.contains('✅')) {
+                        logColor = Colors.green;
+                      } else if (log.contains('⚠️')) {
+                        logColor = Colors.orange;
+                      } else if (log.contains('❌')) {
+                        logColor = Colors.red;
+                      } else if (log.contains('RX(')) {
+                        logColor = Colors.cyan;
+                      } else if (log.contains('TX(')) {
+                        logColor = Colors.lightBlue;
+                      } else if (log.contains('🎮')) {
+                        logColor = Colors.greenAccent;
+                      } else if (log.contains('ESP32:')) {
+                        logColor = Colors.amber;
+                      }
+                      
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 3),
+                        child: Text(
+                          log,
+                          style: TextStyle(
+                            color: logColor,
+                            fontSize: 10,
+                            fontFamily: 'monospace',
+                            height: 1.3,
+                          ),
+                        ),
+                      );
+                    },
+                  ),
           ),
         ],
       ),
