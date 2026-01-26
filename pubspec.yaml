@@ -38,6 +38,7 @@ dependencies:
   flutter_bloc: ^8.1.4
   collection: ^1.18.0
   shared_preferences: ^2.2.2
+  usb_serial: ^0.5.1
 
 dev_dependencies:
   flutter_test:

@@ -10,13 +10,10 @@ import android.provider.Settings
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
-import com.padelapp.NativeUsbSerial
-import com.padelapp.UsbForegroundService
 
 class MainActivity: FlutterActivity() {
     private val CHANNEL = "puntazo_system"
     private var wakeLock: PowerManager.WakeLock? = null
-    private var usbSerial: NativeUsbSerial? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -24,16 +21,10 @@ class MainActivity: FlutterActivity() {
         // ===== CRITICAL: Prevenir sleep/throttling 24/7 =====
         requestBatteryOptimizationExemption()
         acquireWakeLock()
-        
-        // NOTE: Foreground service se inicia desde NativeUsbSerial cuando
-        // hay un dispositivo USB conectado y permiso otorgado.
-        // Esto es requerido por Android 14+ para foregroundServiceType="connectedDevice"
     }
 
     override fun onDestroy() {
         releaseWakeLock()
-        usbSerial?.cleanup()
-        // Note: Don't stop the foreground service on destroy - it should keep running
         super.onDestroy()
     }
 
@@ -86,15 +77,6 @@ class MainActivity: FlutterActivity() {
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
-        
-        // Inicializar USB Serial
-        try {
-            usbSerial = NativeUsbSerial(this, flutterEngine)
-            usbSerial?.setup()
-            android.util.Log.d("MainActivity", "✅ USB Serial initialized")
-        } catch (e: Exception) {
-            android.util.Log.e("MainActivity", "Error inicializando USB Serial: ${e.message}", e)
-        }
 
         // System channel for misc operations
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, CHANNEL).setMethodCallHandler { call, result ->

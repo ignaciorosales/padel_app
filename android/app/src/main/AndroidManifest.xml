@@ -17,9 +17,6 @@
     <uses-permission android:name="android.permission.WAKE_LOCK" />
     <!-- REQUEST_IGNORE_BATTERY_OPTIMIZATIONS: Evitar Doze Mode -->
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
-    <!-- FOREGROUND_SERVICE: Para Foreground Service -->
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_CONNECTED_DEVICE" />
 
     <!-- ===== Application ===== -->
     <application
@@ -70,13 +67,6 @@
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
-        
-        <!-- ===== Foreground Service para USB Serial 24/7 ===== -->
-        <service
-            android:name="com.padelapp.UsbForegroundService"
-            android:enabled="true"
-            android:exported="false"
-            android:foregroundServiceType="connectedDevice" />
     </application>
 
     <!-- Package visibility para Process Text (ok) -->

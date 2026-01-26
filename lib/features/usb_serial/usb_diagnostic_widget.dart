@@ -591,9 +591,10 @@ class _UsbDiagnosticWidgetState extends State<UsbDiagnosticWidget>
       
       case UsbDiagnosticState.connectedReceiving:
         if (info.packetsWithErrors > 0) {
-          return '⚠️ Hay errores de comunicación:\n'
-                 '- Verifica las conexiones RS-485\n'
-                 '- Revisa que los esclavos tienen direcciones correctas';
+          return '⚠️ FORMATO INCORRECTO:\n'
+                 '- Los datos llegan pero NO son P_A, P_B, etc.\n'
+                 '- Revisa el LOG para ver qué envía el ESP32\n'
+                 '- Posible firmware diferente al esperado';
         }
         return 'Recibiendo datos del ESP32.\n'
                'Presiona un botón para ver si llegan comandos.';

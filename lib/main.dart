@@ -11,7 +11,7 @@ import 'package:Puntazo/config/team_selection_service.dart';
 import 'package:Puntazo/features/models/scoring_models.dart';
 import 'package:Puntazo/features/scoring/bloc/scoring_bloc.dart';
 import 'package:Puntazo/features/scoring/bloc/scoring_event.dart';
-import 'package:Puntazo/features/usb_serial/native_usb_serial_listener.dart';
+import 'package:Puntazo/features/usb_serial/simple_usb_serial_listener.dart';
 import 'package:Puntazo/features/usb_serial/usb_diagnostic_widget.dart';
 import 'package:Puntazo/features/widgets/scoreboard.dart';
 import 'package:Puntazo/features/widgets/winner_overlay.dart';
@@ -116,7 +116,7 @@ class MatchScreen extends StatefulWidget {
 }
 
 class _MatchScreenState extends State<MatchScreen> {
-  NativeUsbSerialListener? _usbListener;
+  SimpleUsbSerialListener? _usbListener;
   StreamSubscription<String>? _commandSub;
   StreamSubscription<String>? _debugSub;
   StreamSubscription<bool>? _connectionSub;
@@ -193,8 +193,8 @@ class _MatchScreenState extends State<MatchScreen> {
   }
 
   Future<void> _startUsbSerial() async {
-    _usbListener = NativeUsbSerialListener();
-    _addLog('Iniciando USB Serial...');
+    _usbListener = SimpleUsbSerialListener();
+    _addLog('Iniciando USB Serial (SIMPLE)...');
     _updateDiagnostic(state: UsbDiagnosticState.noDevice);
     
     // Escuchar estado de conexión
@@ -295,7 +295,7 @@ class _MatchScreenState extends State<MatchScreen> {
       }
       });
     
-    // Escuchar mensajes de debug del listener nativo
+    // Escuchar mensajes de debug del listener USB
     _debugSub = _usbListener!.debugMessages.listen((msg) {
       debugPrint('📡 [USB DEBUG] $msg');
       _addLog(msg);
@@ -351,9 +351,9 @@ class _MatchScreenState extends State<MatchScreen> {
       }
     });
     
-    debugPrint('🚀 [USB] Iniciando NativeUsbSerialListener...');
+    debugPrint('🚀 [USB] Iniciando SimpleUsbSerialListener...');
     await _usbListener!.start();
-    debugPrint('✅ [USB] NativeUsbSerialListener iniciado');
+    debugPrint('✅ [USB] SimpleUsbSerialListener iniciado');
   }
 
   @override
