@@ -289,16 +289,35 @@ class _MatchScreenState extends State<MatchScreen> {
 
           // Botón de configuración → abre pantalla completa
           Positioned(
-            top: 16,
+            bottom: 16,
             right: 16,
-            child: FloatingActionButton(
-              heroTag: 'settings_button',
-              onPressed: () => SettingsScreen.open(context),
-              backgroundColor: Colors.white.withOpacity(0.9),
-              child: const Icon(
-                Icons.settings,
-                color: Colors.black87,
-                size: 28,
+            child: Material(
+              color: Colors.transparent,
+              child: InkWell(
+                onTap: () => SettingsScreen.open(context),
+                borderRadius: BorderRadius.circular(12),
+                child: Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: const Color(0xFF42A5F5), // Blue focus color
+                      width: 2,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0xFF42A5F5).withOpacity(0.4),
+                        blurRadius: 8,
+                      ),
+                    ],
+                  ),
+                  child: const Icon(
+                    Icons.settings,
+                    color: Colors.white70,
+                    size: 20,
+                  ),
+                ),
               ),
             ),
           ),
