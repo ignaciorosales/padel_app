@@ -392,9 +392,6 @@ class ScoringBloc extends Bloc<ScoringEvent, ScoringState> {
             // Siempre a 7 para tie-breaks regulares
             isSuperTieBreak: false,
           );
-          
-          // Log para debug
-          print("Activando tie-break en 6-6 (set ${idx + 1}, formato: $thirdSetFormat)");
         }
       }
       m = m.copyWith(sets: (m.sets.toList()..[idx] = set));
@@ -887,30 +884,74 @@ class ScoringBloc extends Bloc<ScoringEvent, ScoringState> {
   }
 
   void _onUndoForTeam(UndoForTeamEvent e, Emitter<ScoringState> emit) {
+    // Undo only the most recent point action for a specific team
+    // WITHOUT affecting the other team's points
+    
+    final m = state.match;
+    final idx = m.currentSetIndex;
+    final currentSet = m.sets[idx];
+    final gp = currentSet.currentGame;
+    
+    // Check if there are points to undo for this team in the current game
+    final teamPoints = e.team == Team.blue ? gp.blue : gp.red;
+    
+    if (teamPoints > 0) {
+      // Simple case: just reduce the team's points in the current game
+      final newBlue = e.team == Team.blue ? gp.blue - 1 : gp.blue;
+      final newRed = e.team == Team.red ? gp.red - 1 : gp.red;
+      
+      final updatedGame = gp.copyWith(blue: newBlue, red: newRed);
+      final updatedSet = currentSet.copyWith(currentGame: updatedGame);
+      final updatedSets = m.sets.toList()..[idx] = updatedSet;
+      
+      final next = m.copyWith(sets: updatedSets);
+      
+      emit(state.copyWith(
+        undoStack: [...state.undoStack, state.match],
+        redoStack: const [],
+        match: next,
+        lastActionLabel: 'Deshacer punto ${e.team == Team.blue ? "A" : "B"}',
+      ));
+      
+      _undoMeta.add(_ActionMeta(e.team, 'undo-team-point'));
+      return;
+    }
+    
+    // Complex case: if no points in current game, we need to look back 
+    // at the history for a game won by this team
+    // For now, fall back to the original undo-to-previous behavior
+    // but only if we find a matching action
     if (state.undoStack.isEmpty || _undoMeta.isEmpty) return;
 
-    // Find the most recent action from that team
-    int idx = _undoMeta.length - 1;
-    while (idx >= 0 && _undoMeta[idx].team != e.team) {
-      idx--;
+    // Find the most recent scoring action from that team
+    int metaIdx = _undoMeta.length - 1;
+    while (metaIdx >= 0) {
+      final meta = _undoMeta[metaIdx];
+      // Only undo point-related actions, not config changes
+      if (meta.team == e.team && 
+          (meta.type == 'point' || meta.type.contains('Punto'))) {
+        break;
+      }
+      metaIdx--;
     }
-    if (idx < 0) return; // nothing from that team to undo
-
-    // Jump undo to that index (inclusive)
-    final target = state.undoStack[idx];
-    final newUndo = state.undoStack.take(idx).toList();
-    final skipped = state.undoStack.sublist(idx + 1); // states we jump over
-    final newRedo = [...state.redoStack, ...skipped, state.match];
+    
+    if (metaIdx < 0) return; // nothing from that team to undo
+    
+    // Get the state before that action
+    if (metaIdx >= state.undoStack.length) return;
+    
+    final target = state.undoStack[metaIdx];
+    final newUndo = state.undoStack.take(metaIdx).toList();
 
     emit(state.copyWith(
       match: target,
       undoStack: newUndo,
-      redoStack: newRedo,
+      redoStack: [...state.redoStack, state.match],
       lastActionLabel: 'Deshacer (${e.team == Team.blue ? 'A' : 'B'})',
     ));
 
     // Trim meta to match newUndo length
-    _undoMeta.removeRange(idx, _undoMeta.length);
+    _undoMeta.removeRange(metaIdx, _undoMeta.length);
   }
 
   // Helper to deep-clone the match state (for undo/redo)

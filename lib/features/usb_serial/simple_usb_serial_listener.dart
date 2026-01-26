@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:typed_data';
-import 'package:flutter/foundation.dart';
 import 'package:usb_serial/transaction.dart';
 import 'package:usb_serial/usb_serial.dart';
 
@@ -27,22 +26,18 @@ class SimpleUsbSerialListener {
   bool get isConnected => _isConnected;
   String get deviceName => _deviceName;
   
-  SimpleUsbSerialListener() {
-    debugPrint('🔌 [SimpleUsbSerialListener] Constructor');
-  }
+  SimpleUsbSerialListener();
 
   Future<void> start() async {
-    debugPrint('🔌 [SimpleUsbSerialListener] start()');
-    _sendDebug('Iniciando USB Serial (simple)...');
+    _sendDebug('Iniciando USB Serial...');
     
     // Escuchar eventos de conexión/desconexión USB
     _usbEventSub = UsbSerial.usbEventStream?.listen((event) {
-      debugPrint('🔌 [USB EVENT] ${event.event}');
       if (event.event == UsbEvent.ACTION_USB_ATTACHED) {
-        _sendDebug('📱 Dispositivo USB conectado');
+        _sendDebug('Dispositivo USB conectado');
         _connectToFirstDevice();
       } else if (event.event == UsbEvent.ACTION_USB_DETACHED) {
-        _sendDebug('📱 Dispositivo USB desconectado');
+        _sendDebug('Dispositivo USB desconectado');
         _disconnect();
       }
     });
@@ -53,34 +48,23 @@ class SimpleUsbSerialListener {
 
   Future<void> _connectToFirstDevice() async {
     final devices = await UsbSerial.listDevices();
-    _sendDebug('📋 ${devices.length} dispositivos USB encontrados');
+    _sendDebug('${devices.length} dispositivos USB encontrados');
     
     if (devices.isEmpty) {
-      _sendDebug('⚠️ No hay dispositivos USB');
+      _sendDebug('No hay dispositivos USB');
       _connectionController.add(false);
       return;
-    }
-    
-    // Listar dispositivos encontrados
-    for (final device in devices) {
-      _sendDebug('   → ${device.productName ?? "Unknown"} (VID:0x${device.vid?.toRadixString(16) ?? "?"}, PID:0x${device.pid?.toRadixString(16) ?? "?"})');
     }
     
     // Intentar conectar a cada dispositivo
     for (final device in devices) {
       final port = await device.create();
-      if (port == null) {
-        _sendDebug('⚠️ No se pudo crear puerto para ${device.productName}');
-        continue;
-      }
+      if (port == null) continue;
       
       final opened = await port.open();
-      if (!opened) {
-        _sendDebug('⚠️ No se pudo abrir puerto para ${device.productName}');
-        continue;
-      }
+      if (!opened) continue;
       
-      // Configurar puerto - IGUAL que la app que funciona
+      // Configurar puerto
       await port.setDTR(true);
       await port.setRTS(true);
       await port.setPortParameters(
@@ -93,8 +77,7 @@ class SimpleUsbSerialListener {
       _port = port;
       _deviceName = device.productName ?? 'USB Serial';
       
-      // Crear Transaction con terminador de línea (newline = 0x0A)
-      // ESTA ES LA CLAVE - maneja automáticamente el buffering por líneas
+      // Crear Transaction con terminador de línea
       _transaction = Transaction.stringTerminated(
         port.inputStream!,
         Uint8List.fromList([10]), // 0x0A = newline
@@ -104,36 +87,28 @@ class SimpleUsbSerialListener {
       _lineSub = _transaction!.stream.listen(
         _handleLine,
         onError: (e) {
-          _sendDebug('❌ Error en stream: $e');
+          _sendDebug('Error en stream: $e');
         },
         onDone: () {
-          _sendDebug('📡 Stream cerrado');
+          _sendDebug('Stream cerrado');
         },
       );
       
       _isConnected = true;
       _connectionController.add(true);
-      _sendDebug('✅ Conectado a $_deviceName');
-      _sendDebug('   → 115200 baud, 8N1');
-      _sendDebug('   → Esperando comandos...');
+      _sendDebug('Conectado a $_deviceName');
       return;
     }
     
-    _sendDebug('❌ No se pudo conectar a ningún dispositivo');
+    _sendDebug('No se pudo conectar a ningún dispositivo');
     _connectionController.add(false);
   }
 
   void _handleLine(String line) {
     final cmd = line.trim();
-    
-    // Log raw recibido
-    final hex = cmd.codeUnits.map((c) => c.toRadixString(16).padLeft(2, '0')).join(' ');
-    debugPrint('🔌 [RX LINE] "$cmd" (hex: $hex)');
-    _sendDebug('📥 RX: "$cmd"');
-    
     if (cmd.isEmpty) return;
     
-    // Filtrar mensajes de debug del ESP32 (empiezan con [)
+    // Filtrar mensajes de debug del ESP32
     if (cmd.startsWith('[')) {
       _sendDebug('ESP32: $cmd');
       return;
@@ -144,26 +119,19 @@ class SimpleUsbSerialListener {
     final upperCmd = cmd.toUpperCase();
     
     if (validCommands.contains(upperCmd)) {
-      debugPrint('🎮 [COMMAND] $upperCmd');
-      _sendDebug('🎮 CMD válido: $upperCmd');
+      _sendDebug('CMD: $upperCmd');
       
       // Normalizar RESET_GAME a RESET
       final normalizedCmd = upperCmd == 'RESET_GAME' ? 'RESET' : upperCmd;
       _commandController.add(normalizedCmd);
-    } else {
-      _sendDebug('⚠️ Línea ignorada: "$cmd"');
-      _sendDebug('   → hex: $hex');
     }
   }
 
   void _sendDebug(String msg) {
-    debugPrint('📡 [DEBUG] $msg');
     _debugController.add(msg);
   }
 
   void _disconnect() {
-    debugPrint('🔌 [SimpleUsbSerialListener] disconnect()');
-    
     _lineSub?.cancel();
     _lineSub = null;
     
@@ -176,26 +144,24 @@ class SimpleUsbSerialListener {
     _isConnected = false;
     _deviceName = '';
     _connectionController.add(false);
-    _sendDebug('🔌 Desconectado');
+    _sendDebug('Desconectado');
   }
 
   Future<void> send(String data) async {
     if (_port == null || !_isConnected) {
-      _sendDebug('❌ No conectado, no se puede enviar');
+      _sendDebug('No conectado');
       return;
     }
     
     try {
       await _port!.write(Uint8List.fromList('$data\n'.codeUnits));
-      _sendDebug('📤 TX: $data');
+      _sendDebug('TX: $data');
     } catch (e) {
-      _sendDebug('❌ Error enviando: $e');
+      _sendDebug('Error enviando: $e');
     }
   }
 
   Future<void> stop() async {
-    debugPrint('🔌 [SimpleUsbSerialListener] stop()');
-    
     _usbEventSub?.cancel();
     _disconnect();
     

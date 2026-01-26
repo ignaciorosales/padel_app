@@ -32,11 +32,7 @@ class TeamSelectionService {
         ValueNotifier(team2Id),
       );
     } catch (e, st) {
-      // ▲ CRASH SAFETY: Si falla SharedPreferences, crear servicio con defaults
-      print('[TEAM_SERVICE] ⚠️ Error initializing: $e');
-      print('[TEAM_SERVICE] Stack trace: $st');
-      print('[TEAM_SERVICE] Using in-memory defaults...');
-      
+      // CRASH SAFETY: Si falla SharedPreferences, crear servicio con defaults
       // Crear servicio sin persistencia (solo en memoria)
       final prefs = await SharedPreferences.getInstance();
       return TeamSelectionService._(
@@ -102,8 +98,7 @@ class TeamSelectionService {
       team1Selection.value = teamId;
       await _prefs.setString(_keyTeam1, teamId);
     } catch (e) {
-      // ▲ CRASH SAFETY: Si falla la persistencia, al menos actualizar en memoria
-      print('[TEAM_SERVICE] ⚠️ Error saving team1: $e');
+      // CRASH SAFETY: Si falla la persistencia, al menos actualizar en memoria
       team1Selection.value = teamId; // Actualizar en memoria aunque falle el guardado
     }
   }
@@ -115,8 +110,7 @@ class TeamSelectionService {
       team2Selection.value = teamId;
       await _prefs.setString(_keyTeam2, teamId);
     } catch (e) {
-      // ▲ CRASH SAFETY: Si falla la persistencia, al menos actualizar en memoria
-      print('[TEAM_SERVICE] ⚠️ Error saving team2: $e');
+      // CRASH SAFETY: Si falla la persistencia, al menos actualizar en memoria
       team2Selection.value = teamId; // Actualizar en memoria aunque falle el guardado
     }
   }

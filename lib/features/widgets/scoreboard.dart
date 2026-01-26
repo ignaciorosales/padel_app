@@ -1,5 +1,4 @@
 import 'dart:math';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:Puntazo/config/app_theme.dart';
@@ -8,67 +7,15 @@ import 'package:Puntazo/features/models/scoring_models.dart' hide SetScore;
 import 'package:Puntazo/features/scoring/bloc/scoring_bloc.dart';
 import 'package:Puntazo/features/scoring/bloc/scoring_state.dart';
 import 'package:Puntazo/features/widgets/set_score.dart';
+import 'package:Puntazo/l10n/app_localizations.dart';
 
-/// ========== TELEMETRÍA UI ==========
-/// Singleton para rastrear rebuilds de widgets del scoreboard
-/// OPTIMIZADO: Sin prints para máxima velocidad
-class _UITelemetry {
-  static final _UITelemetry _instance = _UITelemetry._internal();
-  factory _UITelemetry() => _instance;
-  _UITelemetry._internal();
-
-  int _bluePointsRebuilds = 0;
-  int _redPointsRebuilds = 0;
-  int _setGamesRebuilds = 0;
-  int _headerRebuilds = 0;
-  int _statusRebuilds = 0;
-  int _backgroundRebuilds = 0;
-
-  // ▲ OPTIMIZACIÓN: Sin prints en cada rebuild (causan latencia)
-  //   Solo incrementar contadores (operación instantánea)
-  void recordBluePointsRebuild() => _bluePointsRebuilds++;
-  void recordRedPointsRebuild() => _redPointsRebuilds++;
-  void recordSetGamesRebuild() => _setGamesRebuilds++;
-  void recordHeaderRebuild() => _headerRebuilds++;
-  void recordStatusRebuild() => _statusRebuilds++;
-  
-  // ▲ WARNING: Background DEBE ser solo 1 rebuild (al inicio)
-  void recordBackgroundRebuild() {
-    _backgroundRebuilds++;
-    // Solo mostrar warning si hay problema crítico (>1 rebuild)
-    if (kDebugMode && _backgroundRebuilds > 1) {
-      print('⚠️ UI] CRITICAL: Background redibujado $_backgroundRebuilds veces!');
-    }
-  }
-
-  Map<String, int> getStats() => {
-    'blue_points': _bluePointsRebuilds,
-    'red_points': _redPointsRebuilds,
-    'set_games': _setGamesRebuilds,
-    'header': _headerRebuilds,
-    'status': _statusRebuilds,
-    'background': _backgroundRebuilds,
-  };
-
-  void reset() {
-    _bluePointsRebuilds = 0;
-    _redPointsRebuilds = 0;
-    _setGamesRebuilds = 0;
-    _headerRebuilds = 0;
-    _statusRebuilds = 0;
-    _backgroundRebuilds = 0;
-  }
-}
-/// ========================================
-
-/// Helper para crear color más oscuro para gradiente
+/// Helper to create darker color for gradient
 Color _darkenColor(Color color, [double amount = 0.3]) {
   final hsl = HSLColor.fromColor(color);
   return hsl.withLightness((hsl.lightness - amount).clamp(0.0, 1.0)).toColor();
 }
 
-/// Displays a string of digits using the digital font. If [alignRight] is
-/// true the digits will align to the right edge of their container.
+/// Displays a string of digits using the digital font.
 class _DigitalPoints extends StatelessWidget {
   final String text;
   final double height;
@@ -222,16 +169,12 @@ class _HexagonalHivePainter extends CustomPainter {
 class Scoreboard extends StatelessWidget {
   const Scoreboard({super.key});
 
-  // ▲ API pública para acceder a telemetría desde el monitor
-  static Map<String, int> getUIStats() => _UITelemetry().getStats();
-  static void resetUIStats() => _UITelemetry().reset();
-
   @override
   Widget build(BuildContext context) {
     final padelTheme = context.padelTheme;
     
     return Container(
-      color: Colors.black, // ▲ FIX: Fondo negro explícito (evita grises por defecto)
+      color: Colors.black,
       child: Stack(
         children: [
           // ▲ OPTIMIZACIÓN CRÍTICA: Fondo estático con RepaintBoundary
@@ -251,8 +194,8 @@ class Scoreboard extends StatelessWidget {
   }
 }
 
-/// ▲ OPTIMIZACIÓN: Fondo estático que NUNCA se redibuja
-///   RepaintBoundary + StatefulWidget (initState garantiza registro único)
+/// Static background that never redraws
+/// Uses RepaintBoundary for optimization
 class _StaticBackground extends StatefulWidget {
   final PadelThemeExtension padelTheme;
   final Color blueColor;
@@ -272,15 +215,7 @@ class _StaticBackground extends StatefulWidget {
 
 class _StaticBackgroundState extends State<_StaticBackground> {
   @override
-  void initState() {
-    super.initState();
-    // ▲ TELEMETRÍA: Registrar en initState (garantizado UNA VEZ)
-    _UITelemetry().recordBackgroundRebuild();
-  }
-
-  @override
   Widget build(BuildContext context) {
-    // ▲ USAR colores con fallback explícito
     final blueGrad = widget.blueColor;
     final redGrad = widget.redColor;
     final hexCol = widget.hexColor;
@@ -348,11 +283,10 @@ class _ScoreboardContent extends StatelessWidget {
               children: [
                 // ====== Contenido central ======
                 Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    // Etiquetas de equipo + historial de sets
+                    // Etiquetas de equipo + historial de sets (arriba)
                     Padding(
-                      padding: const EdgeInsets.only(left: 20.0, right: 20.0, top: 100.0, bottom: 12),
+                      padding: const EdgeInsets.only(left: 20.0, right: 20.0, top: 24, bottom: 12),
                       child: _TeamHeaderRow(
                         labelSize: labelSize,
                         histFont: histFont,
@@ -360,10 +294,9 @@ class _ScoreboardContent extends StatelessWidget {
                       ),
                     ),
 
-                    // Puntos grandes (juego actual)
+                    // Puntos grandes (juego actual) - centrado verticalmente
                     Expanded(
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 20.0),
+                      child: Center(
                         child: _CurrentGamePointsRow(
                           pointsSize: pointsSize,
                           textColor: textColor,
@@ -373,7 +306,7 @@ class _ScoreboardContent extends StatelessWidget {
 
                     // Información de tie-break/punto de oro abajo
                     Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 6),
+                      padding: const EdgeInsets.symmetric(vertical: 12),
                       child: _GameStatusIndicator(labelSize: labelSize),
                     ),
                   ],
@@ -402,10 +335,6 @@ class _TeamHeaderRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // ▲ TELEMETRÍA: Registrar rebuild del header
-    _UITelemetry().recordHeaderRebuild();
-
-    // ▲ OPTIMIZACIÓN: BlocSelector solo rebuilds cuando cambia server o sets
     return BlocSelector<ScoringBloc, ScoringState, _HeaderData>(
       selector: (state) {
         final m = state.match;
@@ -413,6 +342,12 @@ class _TeamHeaderRow extends StatelessWidget {
         final curIdx = m.currentSetIndex;
         
         final finishedSets = <SetScore>[];
+        
+        // ========== TEST DATA - UNCOMMENT TO TEST ==========
+         finishedSets.add(SetScore(6, 4));
+         finishedSets.add(SetScore(4, 6));
+        // ===================================================
+        
         for (int i = 0; i < sets.length; i++) {
           if (i == curIdx) continue;
           final sb = sets[i].blueGames;
@@ -479,62 +414,80 @@ class _TeamHeaderRow extends StatelessWidget {
             Expanded(
               flex: 50,
               child: finishedSets.isNotEmpty
-                ? Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
+                ? Column(
+                    mainAxisSize: MainAxisSize.min,
                     children: [
-                      for (int i = 0; i < finishedSets.length; i++) ...[
-                        Text(
-                          '${finishedSets[i].blue}',
-                          style: TextStyle(
-                            color: textColor,
-                            fontSize: histFont * 0.8,
-                            fontWeight: FontWeight.bold,
-                            fontFamily: 'Digital7',
-                            shadows: [
-                              Shadow(
-                                offset: Offset(1, 1),
-                                blurRadius: 4,
-                                color: Colors.black.withOpacity(0.5),
-                              ),
-                            ],
-                          ),
+                      Text(
+                        'SETS',
+                        style: TextStyle(
+                          color: textColor.withOpacity(0.5),
+                          fontSize: histFont * 0.5,
+                          fontWeight: FontWeight.w500,
+                          letterSpacing: 2.0,
                         ),
-                        Text(
-                          '-',
-                          style: TextStyle(
-                            color: textColor.withOpacity(0.7),
-                            fontSize: histFont * 0.8,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        Text(
-                          '${finishedSets[i].red}',
-                          style: TextStyle(
-                            color: textColor,
-                            fontSize: histFont * 0.8,
-                            fontWeight: FontWeight.bold,
-                            fontFamily: 'Digital7',
-                            shadows: [
-                              Shadow(
-                                offset: Offset(1, 1),
-                                blurRadius: 4,
-                                color: Colors.black.withOpacity(0.5),
-                              ),
-                            ],
-                          ),
-                        ),
-                        if (i != finishedSets.length - 1)
-                          Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 12.0),
-                            child: Text(
-                              '|',
+                      ),
+                      const SizedBox(height: 4),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          for (int i = 0; i < finishedSets.length; i++) ...[
+                            Text(
+                              '${finishedSets[i].blue}',
                               style: TextStyle(
-                                color: textColor.withOpacity(0.5),
-                                fontSize: histFont * 0.8,
+                                color: textColor,
+                                fontSize: histFont * 1.2,
+                                fontWeight: FontWeight.bold,
+                                fontFamily: 'Digital7',
+                                shadows: [
+                                  Shadow(
+                                    offset: Offset(1, 1),
+                                    blurRadius: 4,
+                                    color: Colors.black.withOpacity(0.5),
+                                  ),
+                                ],
                               ),
                             ),
-                          ),
-                      ],
+                            Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 6.0),
+                              child: Text(
+                                '-',
+                                style: TextStyle(
+                                  color: textColor.withOpacity(0.7),
+                                  fontSize: histFont * 1.0,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                            Text(
+                              '${finishedSets[i].red}',
+                              style: TextStyle(
+                                color: textColor,
+                                fontSize: histFont * 1.2,
+                                fontWeight: FontWeight.bold,
+                                fontFamily: 'Digital7',
+                                shadows: [
+                                  Shadow(
+                                    offset: Offset(1, 1),
+                                    blurRadius: 4,
+                                    color: Colors.black.withOpacity(0.5),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            if (i != finishedSets.length - 1)
+                              Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                                child: Text(
+                                  '|',
+                                  style: TextStyle(
+                                    color: textColor.withOpacity(0.4),
+                                    fontSize: histFont * 1.0,
+                                  ),
+                                ),
+                              ),
+                          ],
+                        ],
+                      ),
                     ],
                   )
                 : const SizedBox.shrink(),
@@ -608,9 +561,9 @@ class _CurrentGamePointsRow extends StatelessWidget {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        // Lado VERDE - 40% del espacio
+        // Lado VERDE - 38% del espacio
         Expanded(
-          flex: 40,
+          flex: 38,
           child: Center(
             child: BlocSelector<ScoringBloc, ScoringState, String>(
               selector: (state) {
@@ -630,9 +583,6 @@ class _CurrentGamePointsRow extends StatelessWidget {
                 return mapPts(gp.blue, gp.red);
               },
               builder: (context, bluePts) {
-                // ▲ TELEMETRÍA: Registrar rebuild de puntos azules
-                _UITelemetry().recordBluePointsRebuild();
-
                 return _DigitalPoints(
                   text: bluePts,
                   height: pointsSize,
@@ -643,9 +593,9 @@ class _CurrentGamePointsRow extends StatelessWidget {
           ),
         ),
         
-        // Centro - SET ACTUAL
+        // Center - CURRENT SET
         Expanded(
-          flex: 20,
+          flex: 24,
           child: BlocSelector<ScoringBloc, ScoringState, _SetGamesData>(
             selector: (state) {
               final m = state.match;
@@ -655,98 +605,82 @@ class _CurrentGamePointsRow extends StatelessWidget {
               return _SetGamesData(s.blueGames, s.redGames, isSuperTB);
             },
             builder: (context, setData) {
-              // ▲ TELEMETRÍA: Registrar rebuild del set actual
-              _UITelemetry().recordSetGamesRebuild();
-
               return !setData.isSuperTB
-                ? Column(
-                    mainAxisAlignment: MainAxisAlignment.start,
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      SizedBox(height: 52),
-                      Text(
-                        'SET ACTUAL',
-                        style: TextStyle(
-                          color: textColor.withOpacity(0.6),
-                          fontSize: (pointsSize * 0.34) * 0.6,
-                          fontWeight: FontWeight.w500,
-                          letterSpacing: 1.0,
-                          shadows: [
-                            Shadow(
-                              offset: Offset(1, 1),
-                              blurRadius: 3,
-                              color: Colors.black.withOpacity(0.4),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Row(
+                ? Center(
+                    child: Padding(
+                      padding: const EdgeInsets.only(bottom: 60),
+                      child: Column(
                         mainAxisSize: MainAxisSize.min,
-                        mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          SizedBox(
-                            width: pointsSize * 0.25,
-                            child: Text(
-                              '${setData.blueGames}',
-                              textAlign: TextAlign.center,
-                              style: TextStyle(
-                                color: textColor,
-                                fontSize: pointsSize * 0.35,
-                                fontWeight: FontWeight.w700,
-                                fontFamily: 'Digital7',
-                                shadows: [
-                                  Shadow(
-                                    offset: Offset(1, 1),
-                                    blurRadius: 4,
-                                    color: Colors.black.withOpacity(0.5),
-                                  ),
-                                ],
-                              ),
+                          Text(
+                            'SET ACTUAL',
+                            maxLines: 1,
+                            style: TextStyle(
+                              color: textColor.withOpacity(0.6),
+                              fontSize: pointsSize * 0.12,
+                              fontWeight: FontWeight.w500,
+                              letterSpacing: 2.0,
+                              shadows: [
+                                Shadow(
+                                  offset: Offset(1, 1),
+                                  blurRadius: 3,
+                                  color: Colors.black.withOpacity(0.4),
+                                ),
+                              ],
                             ),
                           ),
-                          Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 14.0),
-                            child: Text(
-                              '-',
-                              style: TextStyle(
-                                color: textColor.withOpacity(0.5),
-                                fontSize: pointsSize * 0.3,
+                          const SizedBox(height: 12),
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text(
+                                '${setData.blueGames}',
+                                style: TextStyle(
+                                  color: textColor,
+                                  fontSize: pointsSize * 0.42,
+                                  fontWeight: FontWeight.w700,
+                                  fontFamily: 'Digital7',
+                                  shadows: [
+                                    Shadow(
+                                      offset: Offset(1, 1),
+                                      blurRadius: 4,
+                                      color: Colors.black.withOpacity(0.5),
+                                    ),
+                                  ],
+                                ),
                               ),
-                            ),
-                          ),
-                          SizedBox(
-                            width: pointsSize * 0.25,
-                            child: Text(
-                              '${setData.redGames}',
-                              textAlign: TextAlign.center,
-                              style: TextStyle(
-                                color: textColor,
-                                fontSize: pointsSize * 0.35,
-                                fontWeight: FontWeight.w700,
-                                fontFamily: 'Digital7',
-                                shadows: [
-                                  Shadow(
-                                    offset: Offset(1, 1),
-                                    blurRadius: 4,
-                                    color: Colors.black.withOpacity(0.5),
-                                  ),
-                                ],
+                              SizedBox(width: pointsSize * 0.4),
+                              Text(
+                                '${setData.redGames}',
+                                style: TextStyle(
+                                  color: textColor,
+                                  fontSize: pointsSize * 0.42,
+                                  fontWeight: FontWeight.w700,
+                                  fontFamily: 'Digital7',
+                                  shadows: [
+                                    Shadow(
+                                      offset: Offset(1, 1),
+                                      blurRadius: 4,
+                                      color: Colors.black.withOpacity(0.5),
+                                    ),
+                                  ],
+                                ),
                               ),
-                            ),
+                            ],
                           ),
                         ],
                       ),
-                    ],
+                    ),
                   )
                 : const SizedBox.shrink();
             },
           ),
         ),
         
-        // Lado NEGRO - 40% del espacio
+        // Lado NEGRO - 38% del espacio
         Expanded(
-          flex: 40,
+          flex: 38,
           child: Center(
             child: BlocSelector<ScoringBloc, ScoringState, String>(
               selector: (state) {
@@ -766,9 +700,6 @@ class _CurrentGamePointsRow extends StatelessWidget {
                 return mapPts(gp.red, gp.blue);
               },
               builder: (context, redPts) {
-                // ▲ TELEMETRÍA: Registrar rebuild de puntos rojos
-                _UITelemetry().recordRedPointsRebuild();
-
                 return _DigitalPoints(
                   text: redPts,
                   height: pointsSize,
@@ -806,15 +737,13 @@ class _GameStatusIndicator extends StatelessWidget {
         return _GameStatus(
           gp.isTieBreak, 
           isSuperTB, 
-          isInDeuce ? gp.blue : 0,  // Solo pasar puntos si está en deuce
-          isInDeuce ? gp.red : 0,   // De lo contrario, pasar 0 (no afecta rendering)
+          isInDeuce ? gp.blue : 0,
+          isInDeuce ? gp.red : 0,
           goldenPoint
         );
       },
       builder: (context, status) {
-        // ▲ TELEMETRÍA: Registrar rebuild del indicador de estado
-        _UITelemetry().recordStatusRebuild();
-
+        final l10n = AppLocalizations.of(context)!;
         return Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
@@ -823,7 +752,7 @@ class _GameStatusIndicator extends StatelessWidget {
                 text: TextSpan(
                   children: [
                     TextSpan(
-                      text: status.isSuperTieBreak ? 'SUPER TIE-BREAK' : 'TIE-BREAK',
+                      text: status.isSuperTieBreak ? l10n.superTieBreak.toUpperCase() : l10n.tieBreak.toUpperCase(),
                       style: TextStyle(
                         color: Colors.white,
                         fontWeight: FontWeight.bold,
@@ -846,7 +775,7 @@ class _GameStatusIndicator extends StatelessWidget {
               Row(
                 children: [
                   Text(
-                    'DEUCE',
+                    l10n.deuce.toUpperCase(),
                     style: TextStyle(
                       color: Colors.white,
                       fontWeight: FontWeight.bold,
@@ -857,7 +786,7 @@ class _GameStatusIndicator extends StatelessWidget {
                   if (status.goldenPoint) ...[
                     const SizedBox(width: 8),
                     Text(
-                      '· PUNTO DE ORO',
+                      '· ${l10n.goldenPoint.toUpperCase()}',
                       style: TextStyle(
                         color: Colors.white,
                         fontWeight: FontWeight.bold,

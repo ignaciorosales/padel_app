@@ -12,11 +12,7 @@ class ConfigLoader {
       final raw = await rootBundle.loadString(asset);
       return AppConfig.fromJson(jsonDecode(raw) as Map<String, dynamic>);
     } catch (e, st) {
-      // ▲ CRASH SAFETY: Si falla la carga del config, usar defaults
-      print('[CONFIG] ⚠️ Error loading config: $e');
-      print('[CONFIG] Stack trace: $st');
-      print('[CONFIG] Using default configuration...');
-      
+      // CRASH SAFETY: Si falla la carga del config, usar defaults silenciosamente
       // Retornar configuración mínima funcional
       return AppConfig(
         availableTeams: [

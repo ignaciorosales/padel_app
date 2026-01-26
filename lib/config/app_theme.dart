@@ -363,14 +363,19 @@ class PadelThemeExtension extends ThemeExtension<PadelThemeExtension> {
     required this.winnerOverlayBackground,
   });
 
-  /// Factory para crear desde AppConfig
-  factory PadelThemeExtension.fromConfig(dynamic config) {
-    // Extraer colores de equipos desde config si existen
+  /// Factory para crear desde AppConfig y TeamSelectionService
+  factory PadelThemeExtension.fromConfig(dynamic config, {dynamic teamService}) {
+    // Extraer colores de equipos desde TeamSelectionService si existe
     Color team1Color = PadelColors.blueTeamLight;
     Color team2Color = PadelColors.redTeamLight;
     
     try {
-      if (config != null && config.teams != null && config.teams.isNotEmpty) {
+      // Priorizar TeamSelectionService para colores de equipos seleccionados
+      if (teamService != null) {
+        team1Color = teamService.getColor1();
+        team2Color = teamService.getColor2();
+      } else if (config != null && config.teams != null && config.teams.isNotEmpty) {
+        // Fallback a config.teams si no hay teamService
         if (config.teams.length > 0 && config.teams[0].colorHex != null) {
           team1Color = _hexToColor(config.teams[0].colorHex);
         }

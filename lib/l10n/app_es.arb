@@ -1,0 +1,378 @@
+{
+  "@@locale": "es",
+  
+  "appTitle": "Puntazo",
+  "@appTitle": {
+    "description": "The application title"
+  },
+
+  "team1Default": "Equipo 1",
+  "@team1Default": {
+    "description": "Default name for team 1"
+  },
+
+  "team2Default": "Equipo 2",
+  "@team2Default": {
+    "description": "Default name for team 2"
+  },
+
+  "actionsSection": "ACCIONES",
+  "@actionsSection": {
+    "description": "Section title for actions"
+  },
+
+  "rulesSection": "REGLAS",
+  "@rulesSection": {
+    "description": "Section title for rules"
+  },
+
+  "undo": "Deshacer",
+  "@undo": {
+    "description": "Undo action label"
+  },
+
+  "undoPoint": "Deshacer punto",
+  "@undoPoint": {
+    "description": "Tooltip for undo point button"
+  },
+
+  "redo": "Rehacer",
+  "@redo": {
+    "description": "Redo action label"
+  },
+
+  "redoPoint": "Rehacer punto",
+  "@redoPoint": {
+    "description": "Tooltip for redo point button"
+  },
+
+  "serve": "Saque",
+  "@serve": {
+    "description": "Serve/service label"
+  },
+
+  "changeServer": "Cambiar servidor",
+  "@changeServer": {
+    "description": "Tooltip for change server button"
+  },
+
+  "goldenPointOn": "Punto Oro: ON",
+  "@goldenPointOn": {
+    "description": "Golden point enabled label"
+  },
+
+  "goldenPointOff": "Punto Oro: OFF",
+  "@goldenPointOff": {
+    "description": "Golden point disabled label"
+  },
+
+  "changeToAdvantage": "Cambiar a Ventaja/Desventaja",
+  "@changeToAdvantage": {
+    "description": "Tooltip to change to advantage mode"
+  },
+
+  "changeToGoldenPoint": "Cambiar a Punto de Oro",
+  "@changeToGoldenPoint": {
+    "description": "Tooltip to change to golden point mode"
+  },
+
+  "goldenPointExplanation": "En 40-40, un punto decide",
+  "@goldenPointExplanation": {
+    "description": "Explanation when golden point is enabled"
+  },
+
+  "advantageExplanation": "En 40-40, jugar ventajas",
+  "@advantageExplanation": {
+    "description": "Explanation when advantage mode is enabled"
+  },
+
+  "thirdSetSuperTB": "3er Set: Super TB",
+  "@thirdSetSuperTB": {
+    "description": "Label for super tie-break in third set"
+  },
+
+  "thirdSetComplete": "3er Set: Completo",
+  "@thirdSetComplete": {
+    "description": "Label for complete third set"
+  },
+
+  "changeToComplete": "Cambiar a set completo",
+  "@changeToComplete": {
+    "description": "Tooltip to change to complete set"
+  },
+
+  "changeToSuperTB": "Cambiar a Super TB",
+  "@changeToSuperTB": {
+    "description": "Tooltip to change to super tie-break"
+  },
+
+  "superTBExplanation": "Tie-break a 10 pts en vez de 3er set",
+  "@superTBExplanation": {
+    "description": "Explanation for super tie-break mode"
+  },
+
+  "completeSetExplanation": "Set normal con posible TB en 6-6",
+  "@completeSetExplanation": {
+    "description": "Explanation for complete set mode"
+  },
+
+  "tieBreakAt66": "En 6-6: Tie-break a 7 puntos",
+  "@tieBreakAt66": {
+    "description": "Info about tie-break at 6-6"
+  },
+
+  "newMatch": "Nuevo partido",
+  "@newMatch": {
+    "description": "New match button label"
+  },
+
+  "newMatchConfirmTitle": "Nuevo partido",
+  "@newMatchConfirmTitle": {
+    "description": "Title for new match confirmation dialog"
+  },
+
+  "newMatchConfirmMessage": "Esto reinicia el marcador. ¿Continuar?",
+  "@newMatchConfirmMessage": {
+    "description": "Message for new match confirmation dialog"
+  },
+
+  "cancel": "Cancelar",
+  "@cancel": {
+    "description": "Cancel button label"
+  },
+
+  "yesReset": "Sí, reiniciar",
+  "@yesReset": {
+    "description": "Confirm reset button label"
+  },
+
+  "advantage": "Ventaja",
+  "@advantage": {
+    "description": "Advantage label in score"
+  },
+
+  "deuce": "Iguales",
+  "@deuce": {
+    "description": "Deuce label in score"
+  },
+
+  "tieBreak": "Tie-Break",
+  "@tieBreak": {
+    "description": "Tie-break label"
+  },
+
+  "superTieBreak": "Super Tie-Break",
+  "@superTieBreak": {
+    "description": "Super tie-break label"
+  },
+
+  "matchPoint": "Punto de Partido",
+  "@matchPoint": {
+    "description": "Match point indicator"
+  },
+
+  "setPoint": "Punto de Set",
+  "@setPoint": {
+    "description": "Set point indicator"
+  },
+
+  "gamePoint": "Punto de Juego",
+  "@gamePoint": {
+    "description": "Game point indicator"
+  },
+
+  "breakPoint": "Punto de Break",
+  "@breakPoint": {
+    "description": "Break point indicator"
+  },
+
+  "set": "Set",
+  "@set": {
+    "description": "Set label"
+  },
+
+  "game": "Juego",
+  "@game": {
+    "description": "Game label"
+  },
+
+  "usbConnected": "USB conectado",
+  "@usbConnected": {
+    "description": "USB connected status"
+  },
+
+  "usbDisconnected": "USB desconectado",
+  "@usbDisconnected": {
+    "description": "USB disconnected status"
+  },
+
+  "goldenPoint": "Punto de Oro",
+  "@goldenPoint": {
+    "description": "Golden point label for display"
+  },
+
+  "pointFor": "Punto {teamName}",
+  "@pointFor": {
+    "description": "Point for team button label",
+    "placeholders": {
+      "teamName": {
+        "type": "String"
+      }
+    }
+  },
+
+  "serveToggle": "Saque (toggle)",
+  "@serveToggle": {
+    "description": "Serve toggle button label"
+  },
+
+  "goldOn": "Oro ON",
+  "@goldOn": {
+    "description": "Golden point ON chip label"
+  },
+
+  "goldOff": "Oro OFF",
+  "@goldOff": {
+    "description": "Golden point OFF chip label"
+  },
+
+  "tbAt66": "TB a 6–6",
+  "@tbAt66": {
+    "description": "Tie-break at 6-6 segment label"
+  },
+
+  "tbAt1212": "TB a 12–12",
+  "@tbAt1212": {
+    "description": "Tie-break at 12-12 segment label"
+  },
+
+  "green": "Verde",
+  "@green": {
+    "description": "Default green team name"
+  },
+
+  "black": "Negro",
+  "@black": {
+    "description": "Default black team name"
+  },
+
+  "settings": "AJUSTES",
+  "@settings": {
+    "description": "Settings section title"
+  },
+
+  "darkTheme": "Tema oscuro",
+  "@darkTheme": {
+    "description": "Dark theme label"
+  },
+
+  "lightTheme": "Tema claro",
+  "@lightTheme": {
+    "description": "Light theme label"
+  },
+
+  "toggleTheme": "Cambiar tema",
+  "@toggleTheme": {
+    "description": "Toggle theme tooltip"
+  },
+
+  "teamsSection": "EQUIPOS",
+  "@teamsSection": {
+    "description": "Teams section title"
+  },
+
+  "selectTeam1": "Equipo 1",
+  "@selectTeam1": {
+    "description": "Select team 1 label"
+  },
+
+  "selectTeam2": "Equipo 2",
+  "@selectTeam2": {
+    "description": "Select team 2 label"
+  },
+
+  "changeTeams": "Cambiar equipos",
+  "@changeTeams": {
+    "description": "Change teams button label"
+  },
+
+  "selectTeamColor": "Seleccionar color de equipo",
+  "@selectTeamColor": {
+    "description": "Select team color dialog title"
+  },
+
+  "team1Color": "Color Equipo 1",
+  "@team1Color": {
+    "description": "Team 1 color label"
+  },
+
+  "team2Color": "Color Equipo 2",
+  "@team2Color": {
+    "description": "Team 2 color label"
+  },
+
+  "confirm": "Confirmar",
+  "@confirm": {
+    "description": "Confirm button label"
+  },
+
+  "settingsTitle": "Configuración",
+  "@settingsTitle": {
+    "description": "Settings screen title"
+  },
+
+  "tabTeams": "Equipos",
+  "@tabTeams": {
+    "description": "Teams tab label"
+  },
+
+  "tabRules": "Reglas",
+  "@tabRules": {
+    "description": "Rules tab label"
+  },
+
+  "tabDisplay": "Pantalla",
+  "@tabDisplay": {
+    "description": "Display tab label"
+  },
+
+  "openSettings": "Abrir configuración",
+  "@openSettings": {
+    "description": "Open settings button tooltip"
+  },
+
+  "close": "Cerrar",
+  "@close": {
+    "description": "Close button label"
+  },
+
+  "selectColor": "Seleccionar color",
+  "@selectColor": {
+    "description": "Select color label"
+  },
+
+  "rulesDescription": "Configura las reglas del partido",
+  "@rulesDescription": {
+    "description": "Rules section description"
+  },
+
+  "displayDescription": "Ajustes de visualización",
+  "@displayDescription": {
+    "description": "Display section description"
+  },
+
+  "themeMode": "Modo de tema",
+  "@themeMode": {
+    "description": "Theme mode label"
+  },
+
+  "pressToSelect": "Pulsa OK para seleccionar",
+  "@pressToSelect": {
+    "description": "TV remote hint"
+  },
+
+  "settingsSelected": "Seleccionado",
+  "@settingsSelected": {
+    "description": "Label for selected items in settings"
+  }
+}
