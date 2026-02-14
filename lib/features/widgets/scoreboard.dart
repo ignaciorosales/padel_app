@@ -344,8 +344,8 @@ class _TeamHeaderRow extends StatelessWidget {
         final finishedSets = <SetScore>[];
         
         // ========== TEST DATA - UNCOMMENT TO TEST ==========
-         finishedSets.add(SetScore(6, 4));
-         finishedSets.add(SetScore(4, 6));
+        //  finishedSets.add(SetScore(6, 4));
+        //  finishedSets.add(SetScore(4, 6));
         // ===================================================
         
         for (int i = 0; i < sets.length; i++) {

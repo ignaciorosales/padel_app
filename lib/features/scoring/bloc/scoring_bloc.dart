@@ -884,67 +884,44 @@ class ScoringBloc extends Bloc<ScoringEvent, ScoringState> {
   }
 
   void _onUndoForTeam(UndoForTeamEvent e, Emitter<ScoringState> emit) {
-    // Undo only the most recent point action for a specific team
-    // WITHOUT affecting the other team's points
+    // UNDO_A solo funciona si la ÚLTIMA acción fue del equipo A
+    // UNDO_B solo funciona si la ÚLTIMA acción fue del equipo B
+    // Esto evita que un equipo deshaga los puntos del contrario
     
-    final m = state.match;
-    final idx = m.currentSetIndex;
-    final currentSet = m.sets[idx];
-    final gp = currentSet.currentGame;
-    
-    // Check if there are points to undo for this team in the current game
-    final teamPoints = e.team == Team.blue ? gp.blue : gp.red;
-    
-    if (teamPoints > 0) {
-      // Simple case: just reduce the team's points in the current game
-      final newBlue = e.team == Team.blue ? gp.blue - 1 : gp.blue;
-      final newRed = e.team == Team.red ? gp.red - 1 : gp.red;
-      
-      final updatedGame = gp.copyWith(blue: newBlue, red: newRed);
-      final updatedSet = currentSet.copyWith(currentGame: updatedGame);
-      final updatedSets = m.sets.toList()..[idx] = updatedSet;
-      
-      final next = m.copyWith(sets: updatedSets);
-      
-      emit(state.copyWith(
-        undoStack: [...state.undoStack, state.match],
-        redoStack: const [],
-        match: next,
-        lastActionLabel: 'Deshacer punto ${e.team == Team.blue ? "A" : "B"}',
-      ));
-      
-      _undoMeta.add(_ActionMeta(e.team, 'undo-team-point'));
-      return;
-    }
-    
-    // Complex case: if no points in current game, we need to look back 
-    // at the history for a game won by this team
-    // For now, fall back to the original undo-to-previous behavior
-    // but only if we find a matching action
     if (state.undoStack.isEmpty || _undoMeta.isEmpty) return;
-
-    // Find the most recent scoring action from that team
+    
+    // Buscar la última acción de puntos (ignorando configuraciones)
     int metaIdx = _undoMeta.length - 1;
     while (metaIdx >= 0) {
       final meta = _undoMeta[metaIdx];
-      // Only undo point-related actions, not config changes
-      if (meta.team == e.team && 
-          (meta.type == 'point' || meta.type.contains('Punto'))) {
+      if (!_isConfigEvent(meta.type)) {
         break;
       }
       metaIdx--;
     }
     
-    if (metaIdx < 0) return; // nothing from that team to undo
+    if (metaIdx < 0) return; // No hay acciones de puntos
     
-    // Get the state before that action
+    final lastMeta = _undoMeta[metaIdx];
+    
+    // Solo permitir deshacer si la última acción fue de ESTE equipo
+    if (lastMeta.team != e.team) {
+      // La última acción no fue de este equipo, no hacer nada
+      return;
+    }
+    
+    // Deshacer la última acción (que es de este equipo)
     if (metaIdx >= state.undoStack.length) return;
     
     final target = state.undoStack[metaIdx];
     final newUndo = state.undoStack.take(metaIdx).toList();
+    
+    // Mantener configuraciones actuales
+    final currentSettings = state.match.settings;
+    final updatedTarget = target.copyWith(settings: currentSettings);
 
     emit(state.copyWith(
-      match: target,
+      match: updatedTarget,
       undoStack: newUndo,
       redoStack: [...state.redoStack, state.match],
       lastActionLabel: 'Deshacer (${e.team == Team.blue ? 'A' : 'B'})',
