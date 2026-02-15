@@ -25,7 +25,9 @@ mixin _$ScoringState {
       throw _privateConstructorUsedError; // Campos para mostrar el ganador del partido
   Team? get matchWinner => throw _privateConstructorUsedError;
   String get matchWinnerName => throw _privateConstructorUsedError;
-  bool get matchCompleted => throw _privateConstructorUsedError;
+  bool get matchCompleted =>
+      throw _privateConstructorUsedError; // Indica si los equipos han intercambiado lados (para visualización)
+  bool get isSwapped => throw _privateConstructorUsedError;
 
   /// Create a copy of ScoringState
   /// with the given fields replaced by the non-null parameter values.
@@ -50,6 +52,7 @@ abstract class $ScoringStateCopyWith<$Res> {
     Team? matchWinner,
     String matchWinnerName,
     bool matchCompleted,
+    bool isSwapped,
   });
 
   $MatchScoreCopyWith<$Res> get match;
@@ -78,6 +81,7 @@ class _$ScoringStateCopyWithImpl<$Res, $Val extends ScoringState>
     Object? matchWinner = freezed,
     Object? matchWinnerName = null,
     Object? matchCompleted = null,
+    Object? isSwapped = null,
   }) {
     return _then(
       _value.copyWith(
@@ -121,6 +125,11 @@ class _$ScoringStateCopyWithImpl<$Res, $Val extends ScoringState>
                     ? _value.matchCompleted
                     : matchCompleted // ignore: cast_nullable_to_non_nullable
                         as bool,
+            isSwapped:
+                null == isSwapped
+                    ? _value.isSwapped
+                    : isSwapped // ignore: cast_nullable_to_non_nullable
+                        as bool,
           )
           as $Val,
     );
@@ -155,6 +164,7 @@ abstract class _$$ScoringStateImplCopyWith<$Res>
     Team? matchWinner,
     String matchWinnerName,
     bool matchCompleted,
+    bool isSwapped,
   });
 
   @override
@@ -183,6 +193,7 @@ class __$$ScoringStateImplCopyWithImpl<$Res>
     Object? matchWinner = freezed,
     Object? matchWinnerName = null,
     Object? matchCompleted = null,
+    Object? isSwapped = null,
   }) {
     return _then(
       _$ScoringStateImpl(
@@ -226,6 +237,11 @@ class __$$ScoringStateImplCopyWithImpl<$Res>
                 ? _value.matchCompleted
                 : matchCompleted // ignore: cast_nullable_to_non_nullable
                     as bool,
+        isSwapped:
+            null == isSwapped
+                ? _value.isSwapped
+                : isSwapped // ignore: cast_nullable_to_non_nullable
+                    as bool,
       ),
     );
   }
@@ -243,6 +259,7 @@ class _$ScoringStateImpl implements _ScoringState {
     this.matchWinner,
     this.matchWinnerName = '',
     this.matchCompleted = false,
+    this.isSwapped = false,
   }) : _undoStack = undoStack,
        _redoStack = redoStack;
 
@@ -281,10 +298,14 @@ class _$ScoringStateImpl implements _ScoringState {
   @override
   @JsonKey()
   final bool matchCompleted;
+  // Indica si los equipos han intercambiado lados (para visualización)
+  @override
+  @JsonKey()
+  final bool isSwapped;
 
   @override
   String toString() {
-    return 'ScoringState(match: $match, undoStack: $undoStack, redoStack: $redoStack, lastActionLabel: $lastActionLabel, lastAnnouncement: $lastAnnouncement, matchWinner: $matchWinner, matchWinnerName: $matchWinnerName, matchCompleted: $matchCompleted)';
+    return 'ScoringState(match: $match, undoStack: $undoStack, redoStack: $redoStack, lastActionLabel: $lastActionLabel, lastAnnouncement: $lastAnnouncement, matchWinner: $matchWinner, matchWinnerName: $matchWinnerName, matchCompleted: $matchCompleted, isSwapped: $isSwapped)';
   }
 
   @override
@@ -310,7 +331,9 @@ class _$ScoringStateImpl implements _ScoringState {
             (identical(other.matchWinnerName, matchWinnerName) ||
                 other.matchWinnerName == matchWinnerName) &&
             (identical(other.matchCompleted, matchCompleted) ||
-                other.matchCompleted == matchCompleted));
+                other.matchCompleted == matchCompleted) &&
+            (identical(other.isSwapped, isSwapped) ||
+                other.isSwapped == isSwapped));
   }
 
   @override
@@ -324,6 +347,7 @@ class _$ScoringStateImpl implements _ScoringState {
     matchWinner,
     matchWinnerName,
     matchCompleted,
+    isSwapped,
   );
 
   /// Create a copy of ScoringState
@@ -345,6 +369,7 @@ abstract class _ScoringState implements ScoringState {
     final Team? matchWinner,
     final String matchWinnerName,
     final bool matchCompleted,
+    final bool isSwapped,
   }) = _$ScoringStateImpl;
 
   @override
@@ -362,7 +387,9 @@ abstract class _ScoringState implements ScoringState {
   @override
   String get matchWinnerName;
   @override
-  bool get matchCompleted;
+  bool get matchCompleted; // Indica si los equipos han intercambiado lados (para visualización)
+  @override
+  bool get isSwapped;
 
   /// Create a copy of ScoringState
   /// with the given fields replaced by the non-null parameter values.

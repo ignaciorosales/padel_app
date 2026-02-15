@@ -172,19 +172,27 @@ class Scoreboard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final padelTheme = context.padelTheme;
+    final teamService = RepositoryProvider.of<TeamSelectionService>(context);
     
     return Container(
       color: Colors.black,
       child: Stack(
         children: [
-          // ▲ OPTIMIZACIÓN CRÍTICA: Fondo estático con RepaintBoundary
-          //   Este widget se dibuja UNA VEZ y NUNCA más se redibuja
-          _StaticBackground(
-            padelTheme: padelTheme,
-            // ▲ FALLBACK: Colores hardcoded como backup
-            blueColor: padelTheme.scoreboardBackgroundBlue,
-            redColor: padelTheme.scoreboardBackgroundRed,
-            hexColor: padelTheme.hexPatternColor,
+          // Fondo que reacciona al swap
+          BlocSelector<ScoringBloc, ScoringState, bool>(
+            selector: (state) => state.isSwapped,
+            builder: (context, isSwapped) {
+              // Obtener colores de los equipos seleccionados
+              final leftColor = isSwapped ? teamService.getColor2() : teamService.getColor1();
+              final rightColor = isSwapped ? teamService.getColor1() : teamService.getColor2();
+              
+              return _StaticBackground(
+                padelTheme: padelTheme,
+                leftColor: leftColor,
+                rightColor: rightColor,
+                hexColor: padelTheme.hexPatternColor,
+              );
+            },
           ),
           // Content
           _ScoreboardContent(),
@@ -194,70 +202,58 @@ class Scoreboard extends StatelessWidget {
   }
 }
 
-/// Static background that never redraws
-/// Uses RepaintBoundary for optimization
-class _StaticBackground extends StatefulWidget {
+/// Background that reacts to swap
+class _StaticBackground extends StatelessWidget {
   final PadelThemeExtension padelTheme;
-  final Color blueColor;
-  final Color redColor;
+  final Color leftColor;
+  final Color rightColor;
   final Color hexColor;
 
   const _StaticBackground({
     required this.padelTheme,
-    required this.blueColor,
-    required this.redColor,
+    required this.leftColor,
+    required this.rightColor,
     required this.hexColor,
   });
 
   @override
-  State<_StaticBackground> createState() => _StaticBackgroundState();
-}
-
-class _StaticBackgroundState extends State<_StaticBackground> {
-  @override
   Widget build(BuildContext context) {
-    final blueGrad = widget.blueColor;
-    final redGrad = widget.redColor;
-    final hexCol = widget.hexColor;
-    
     return Positioned.fill(
-      child: RepaintBoundary(
-        child: Stack(
-          children: [
-            // Left side (Team 1 gradient - color from config)
-            ClipPath(
-              clipper: _LeftDiagonalClipper(),
-              child: Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [blueGrad, _darkenColor(blueGrad)],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
+      child: Stack(
+        children: [
+          // Left side gradient
+          ClipPath(
+            clipper: _LeftDiagonalClipper(),
+            child: Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [leftColor, _darkenColor(leftColor)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
                 ),
               ),
             ),
-            // Right side (Team 2 gradient - color from config)
-            ClipPath(
-              clipper: _RightDiagonalClipper(),
-              child: Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [redGrad, _darkenColor(redGrad)],
-                    begin: Alignment.topRight,
-                    end: Alignment.bottomLeft,
-                  ),
+          ),
+          // Right side gradient
+          ClipPath(
+            clipper: _RightDiagonalClipper(),
+            child: Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [rightColor, _darkenColor(rightColor)],
+                  begin: Alignment.topRight,
+                  end: Alignment.bottomLeft,
                 ),
               ),
             ),
-            // Hexagonal hive pattern overlay
-            Positioned.fill(
-              child: CustomPaint(
-                painter: _HexagonalHivePainter(color: hexCol),
-              ),
+          ),
+          // Hexagonal hive pattern overlay
+          Positioned.fill(
+            child: CustomPaint(
+              painter: _HexagonalHivePainter(color: hexColor),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -274,9 +270,9 @@ class _ScoreboardContent extends StatelessWidget {
         child: LayoutBuilder(
           builder: (_, c) {
             final h = c.maxHeight;
-            final pointsSize = h * 0.34;
-            final labelSize  = h * 0.06;
-            final histFont   = h * 0.06;
+            final pointsSize = h * 0.42;
+            final labelSize  = h * 0.08;
+            final histFont   = h * 0.08;
             const textColor = Colors.white;
 
             return Stack(
@@ -321,7 +317,7 @@ class _ScoreboardContent extends StatelessWidget {
 }
 
 /// ▲ OPTIMIZACIÓN: Row de encabezados con BlocSelector para minimizar rebuilds
-///   Solo se reconstruye cuando cambia el servidor o los sets terminados
+///   Solo se reconstruye cuando cambia el servidor, sets terminados o isSwapped
 class _TeamHeaderRow extends StatelessWidget {
   final double labelSize;
   final double histFont;
@@ -343,11 +339,6 @@ class _TeamHeaderRow extends StatelessWidget {
         
         final finishedSets = <SetScore>[];
         
-        // ========== TEST DATA - UNCOMMENT TO TEST ==========
-        //  finishedSets.add(SetScore(6, 4));
-        //  finishedSets.add(SetScore(4, 6));
-        // ===================================================
-        
         for (int i = 0; i < sets.length; i++) {
           if (i == curIdx) continue;
           final sb = sets[i].blueGames;
@@ -356,28 +347,30 @@ class _TeamHeaderRow extends StatelessWidget {
           finishedSets.add(SetScore(sb, sr));
         }
         
-        return _HeaderData(m.server, finishedSets);
+        return _HeaderData(m.server, finishedSets, state.isSwapped);
       },
       builder: (context, headerData) {
         final server = headerData.server;
         final finishedSets = headerData.finishedSets;
+        final isSwapped = headerData.isSwapped;
         
         return Row(
-          children: [
-            // VERDE (left side)
-            Expanded(
-              flex: 25,
-              child: Row(
+              children: [
+                // VERDE (left side)
+                Expanded(
+                  flex: 25,
+                  child: Row(
                 mainAxisAlignment: MainAxisAlignment.start,
                 children: [
-                  // Indicador de saque
+                  // Indicador de saque - debe aparecer en el lado donde está el servidor
+                  // Si isSwapped: izquierda = Team.red, derecha = Team.blue
                   SizedBox(
-                    width: labelSize * 0.9 + 8.0,
-                    child: server == Team.blue
+                    width: labelSize * 1.3 + 8.0,
+                    child: server == (isSwapped ? Team.red : Team.blue)
                         ? Image.asset(
                             'assets/images/padel_ball.png',
-                            width: labelSize * 0.9,
-                            height: labelSize * 0.9,
+                            width: labelSize * 1.3,
+                            height: labelSize * 1.3,
                             fit: BoxFit.contain,
                           )
                         : null,
@@ -385,7 +378,8 @@ class _TeamHeaderRow extends StatelessWidget {
                   Builder(
                     builder: (ctx) {
                       final teamService = RepositoryProvider.of<TeamSelectionService>(ctx);
-                      final team = teamService.getTeam1();
+                      // Si isSwapped, el equipo de la izquierda es getTeam2() (original derecha)
+                      final team = isSwapped ? teamService.getTeam2() : teamService.getTeam1();
                       final teamName = team?.displayName.toUpperCase() ?? 'EQUIPO 1';
                       return Text(
                         teamName,
@@ -431,8 +425,9 @@ class _TeamHeaderRow extends StatelessWidget {
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           for (int i = 0; i < finishedSets.length; i++) ...[
+                            // Si isSwapped, invertir: mostrar red a la izquierda, blue a la derecha
                             Text(
-                              '${finishedSets[i].blue}',
+                              '${isSwapped ? finishedSets[i].red : finishedSets[i].blue}',
                               style: TextStyle(
                                 color: textColor,
                                 fontSize: histFont * 1.2,
@@ -459,7 +454,7 @@ class _TeamHeaderRow extends StatelessWidget {
                               ),
                             ),
                             Text(
-                              '${finishedSets[i].red}',
+                              '${isSwapped ? finishedSets[i].blue : finishedSets[i].red}',
                               style: TextStyle(
                                 color: textColor,
                                 fontSize: histFont * 1.2,
@@ -502,7 +497,8 @@ class _TeamHeaderRow extends StatelessWidget {
                   Builder(
                     builder: (ctx) {
                       final teamService = RepositoryProvider.of<TeamSelectionService>(ctx);
-                      final team = teamService.getTeam2();
+                      // Si isSwapped, el equipo de la derecha es getTeam1() (original izquierda)
+                      final team = isSwapped ? teamService.getTeam1() : teamService.getTeam2();
                       final teamName = team?.displayName.toUpperCase() ?? 'EQUIPO 2';
                       return Text(
                         teamName,
@@ -523,14 +519,15 @@ class _TeamHeaderRow extends StatelessWidget {
                       );
                     },
                   ),
-                  // Indicador de saque
+                  // Indicador de saque - debe aparecer en el lado donde está el servidor
+                  // Si isSwapped: derecha = Team.blue, izquierda = Team.red
                   SizedBox(
-                    width: labelSize * 0.9 + 8.0,
-                    child: server == Team.red
+                    width: labelSize * 1.3 + 8.0,
+                    child: server == (isSwapped ? Team.blue : Team.red)
                         ? Image.asset(
                             'assets/images/padel_ball.png',
-                            width: labelSize * 0.9,
-                            height: labelSize * 0.9,
+                            width: labelSize * 1.3,
+                            height: labelSize * 1.3,
                             fit: BoxFit.contain,
                           )
                         : null,
@@ -545,8 +542,8 @@ class _TeamHeaderRow extends StatelessWidget {
   }
 }
 
-/// ▲ OPTIMIZACIÓN: Row de puntos actuales con BlocSelector para cada lado
-///   Solo se reconstruye el lado que cambió (azul o rojo)
+/// ▲ OPTIMIZACIÓN: Row de puntos actuales con BlocSelector único
+///   USA isSwapped del estado del bloc para invertir la visualización
 class _CurrentGamePointsRow extends StatelessWidget {
   final double pointsSize;
   final Color textColor;
@@ -556,56 +553,60 @@ class _CurrentGamePointsRow extends StatelessWidget {
     required this.textColor,
   });
 
+  static String _mapPoints(int us, int them, bool isTieBreak) {
+    if (isTieBreak) return '$us';
+    if (us >= 3 && them >= 3) {
+      if (us == them) return '40';
+      if (us == them + 1) return 'AD';
+    }
+    const labels = ['0', '15', '30', '40'];
+    return labels[min(us, 3)];
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: [
-        // Lado VERDE - 38% del espacio
-        Expanded(
-          flex: 38,
-          child: Center(
-            child: BlocSelector<ScoringBloc, ScoringState, String>(
-              selector: (state) {
-                final gp = state.match.currentSet.currentGame;
-                
-                // ▼ LÓGICA ORIGINAL DE PUNTUACIÓN (NO MODIFICADA)
-                String mapPts(int us, int them) {
-                  if (gp.isTieBreak) return '$us';
-                  if (us >= 3 && them >= 3) {
-                    if (us == them) return '40';
-                    if (us == them + 1) return 'AD';
-                  }
-                  const L = ['0', '15', '30', '40'];
-                  return L[min(us, 3)];
-                }
-                
-                return mapPts(gp.blue, gp.red);
-              },
-              builder: (context, bluePts) {
-                return _DigitalPoints(
-                  text: bluePts,
+    return BlocSelector<ScoringBloc, ScoringState, _GamePointsData>(
+      selector: (state) {
+        final m = state.match;
+        final s = m.currentSet;
+        final gp = s.currentGame;
+        final isSwapped = state.isSwapped;
+        
+        // Calcular puntos basados en si está swapped
+        final leftPts = isSwapped ? gp.red : gp.blue;
+        final rightPts = isSwapped ? gp.blue : gp.red;
+        final leftGames = isSwapped ? s.redGames : s.blueGames;
+        final rightGames = isSwapped ? s.blueGames : s.redGames;
+        final isSuperTB = m.currentSetIndex == 2 && m.settings.tbGames == 1 && gp.isTieBreak;
+        
+        return _GamePointsData(
+          leftPoints: _mapPoints(leftPts, rightPts, gp.isTieBreak),
+          rightPoints: _mapPoints(rightPts, leftPts, gp.isTieBreak),
+          leftGames: leftGames,
+          rightGames: rightGames,
+          isSuperTB: isSuperTB,
+        );
+      },
+      builder: (context, data) {
+        return Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            // Lado IZQUIERDO - 38%
+            Expanded(
+              flex: 38,
+              child: Center(
+                child: _DigitalPoints(
+                  text: data.leftPoints,
                   height: pointsSize,
                   color: textColor,
-                );
-              },
+                ),
+              ),
             ),
-          ),
-        ),
-        
-        // Center - CURRENT SET
-        Expanded(
-          flex: 24,
-          child: BlocSelector<ScoringBloc, ScoringState, _SetGamesData>(
-            selector: (state) {
-              final m = state.match;
-              final s = m.currentSet;
-              final gp = s.currentGame;
-              final isSuperTB = m.currentSetIndex == 2 && m.settings.tbGames == 1 && gp.isTieBreak;
-              return _SetGamesData(s.blueGames, s.redGames, isSuperTB);
-            },
-            builder: (context, setData) {
-              return !setData.isSuperTB
+            
+            // Centro - SET ACTUAL - 24%
+            Expanded(
+              flex: 24,
+              child: !data.isSuperTB
                 ? Center(
                     child: Padding(
                       padding: const EdgeInsets.only(bottom: 60),
@@ -635,10 +636,10 @@ class _CurrentGamePointsRow extends StatelessWidget {
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
                               Text(
-                                '${setData.blueGames}',
+                                '${data.leftGames}',
                                 style: TextStyle(
                                   color: textColor,
-                                  fontSize: pointsSize * 0.42,
+                                  fontSize: pointsSize * 0.50,
                                   fontWeight: FontWeight.w700,
                                   fontFamily: 'Digital7',
                                   shadows: [
@@ -652,10 +653,10 @@ class _CurrentGamePointsRow extends StatelessWidget {
                               ),
                               SizedBox(width: pointsSize * 0.4),
                               Text(
-                                '${setData.redGames}',
+                                '${data.rightGames}',
                                 style: TextStyle(
                                   color: textColor,
-                                  fontSize: pointsSize * 0.42,
+                                  fontSize: pointsSize * 0.50,
                                   fontWeight: FontWeight.w700,
                                   fontFamily: 'Digital7',
                                   shadows: [
@@ -673,44 +674,24 @@ class _CurrentGamePointsRow extends StatelessWidget {
                       ),
                     ),
                   )
-                : const SizedBox.shrink();
-            },
-          ),
-        ),
-        
-        // Lado NEGRO - 38% del espacio
-        Expanded(
-          flex: 38,
-          child: Center(
-            child: BlocSelector<ScoringBloc, ScoringState, String>(
-              selector: (state) {
-                final gp = state.match.currentSet.currentGame;
-                
-                // ▼ LÓGICA ORIGINAL DE PUNTUACIÓN (NO MODIFICADA)
-                String mapPts(int us, int them) {
-                  if (gp.isTieBreak) return '$us';
-                  if (us >= 3 && them >= 3) {
-                    if (us == them) return '40';
-                    if (us == them + 1) return 'AD';
-                  }
-                  const L = ['0', '15', '30', '40'];
-                  return L[min(us, 3)];
-                }
-                
-                return mapPts(gp.red, gp.blue);
-              },
-              builder: (context, redPts) {
-                return _DigitalPoints(
-                  text: redPts,
+                : const SizedBox.shrink(),
+            ),
+            
+            // Lado DERECHO - 38%
+            Expanded(
+              flex: 38,
+              child: Center(
+                child: _DigitalPoints(
+                  text: data.rightPoints,
                   height: pointsSize,
                   color: textColor,
                   alignRight: true,
-                );
-              },
+                ),
+              ),
             ),
-          ),
-        ),
-      ],
+          ],
+        );
+      },
     );
   }
 }
@@ -808,8 +789,9 @@ class _GameStatusIndicator extends StatelessWidget {
 class _HeaderData {
   final Team server;
   final List<SetScore> finishedSets;
+  final bool isSwapped;
 
-  _HeaderData(this.server, this.finishedSets);
+  _HeaderData(this.server, this.finishedSets, this.isSwapped);
 
   @override
   bool operator ==(Object other) =>
@@ -817,10 +799,11 @@ class _HeaderData {
       other is _HeaderData &&
           runtimeType == other.runtimeType &&
           server == other.server &&
+          isSwapped == other.isSwapped &&
           _listsEqual(finishedSets, other.finishedSets);
 
   @override
-  int get hashCode => server.hashCode ^ finishedSets.length.hashCode;
+  int get hashCode => server.hashCode ^ finishedSets.length.hashCode ^ isSwapped.hashCode;
 
   bool _listsEqual(List a, List b) {
     if (a.length != b.length) return false;
@@ -829,26 +812,6 @@ class _HeaderData {
     }
     return true;
   }
-}
-
-class _SetGamesData {
-  final int blueGames;
-  final int redGames;
-  final bool isSuperTB;
-
-  _SetGamesData(this.blueGames, this.redGames, this.isSuperTB);
-
-  @override
-  bool operator ==(Object other) =>
-      identical(this, other) ||
-      other is _SetGamesData &&
-          runtimeType == other.runtimeType &&
-          blueGames == other.blueGames &&
-          redGames == other.redGames &&
-          isSuperTB == other.isSuperTB;
-
-  @override
-  int get hashCode => blueGames.hashCode ^ redGames.hashCode ^ isSuperTB.hashCode;
 }
 
 class _GameStatus {
@@ -878,6 +841,42 @@ class _GameStatus {
       blue.hashCode ^
       red.hashCode ^
       goldenPoint.hashCode;
+}
+
+/// Datos para los puntos y games del juego actual
+class _GamePointsData {
+  final String leftPoints;
+  final String rightPoints;
+  final int leftGames;
+  final int rightGames;
+  final bool isSuperTB;
+
+  _GamePointsData({
+    required this.leftPoints,
+    required this.rightPoints,
+    required this.leftGames,
+    required this.rightGames,
+    required this.isSuperTB,
+  });
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is _GamePointsData &&
+          runtimeType == other.runtimeType &&
+          leftPoints == other.leftPoints &&
+          rightPoints == other.rightPoints &&
+          leftGames == other.leftGames &&
+          rightGames == other.rightGames &&
+          isSuperTB == other.isSuperTB;
+
+  @override
+  int get hashCode =>
+      leftPoints.hashCode ^
+      rightPoints.hashCode ^
+      leftGames.hashCode ^
+      rightGames.hashCode ^
+      isSuperTB.hashCode;
 }
 
 // ▲ ELIMINADO: _ClockWidget (consumía recursos innecesarios)

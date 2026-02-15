@@ -35,4 +35,8 @@ class ScoringEvent with _$ScoringEvent {
   const factory ScoringEvent.undo() = UndoEvent;
   const factory ScoringEvent.redo() = RedoEvent;
   const factory ScoringEvent.undoForTeam(Team team) = UndoForTeamEvent;
+  
+  /// Intercambio de lados (swap)
+  const factory ScoringEvent.swapSides() = SwapSidesEvent;
+  const factory ScoringEvent.resetSwap() = ResetSwapEvent;
 }

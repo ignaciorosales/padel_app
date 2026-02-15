@@ -16,5 +16,8 @@ class ScoringState with _$ScoringState {
     Team? matchWinner,
     @Default('') String matchWinnerName,
     @Default(false) bool matchCompleted,
+    
+    // Indica si los equipos han intercambiado lados (para visualización)
+    @Default(false) bool isSwapped,
   }) = _ScoringState;
 }

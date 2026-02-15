@@ -101,6 +101,10 @@ class ScoringBloc extends Bloc<ScoringEvent, ScoringState> {
     on<UndoEvent>(_onUndo);
     on<RedoEvent>(_onRedo);
     on<UndoForTeamEvent>(_onUndoForTeam);
+    
+    // Swap sides
+    on<SwapSidesEvent>(_onSwapSides);
+    on<ResetSwapEvent>(_onResetSwap);
   }
 
   final List<_ActionMeta> _undoMeta = [];
@@ -971,6 +975,16 @@ class ScoringBloc extends Bloc<ScoringEvent, ScoringState> {
       lastActionLabel: label,
     ));
     _undoMeta.add(_ActionMeta(actorTeam, actionType ?? label));
+  }
+  
+  // ============ SWAP SIDES ============
+  
+  void _onSwapSides(SwapSidesEvent event, Emitter<ScoringState> emit) {
+    emit(state.copyWith(isSwapped: !state.isSwapped));
+  }
+  
+  void _onResetSwap(ResetSwapEvent event, Emitter<ScoringState> emit) {
+    emit(state.copyWith(isSwapped: false));
   }
 }
 

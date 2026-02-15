@@ -12,6 +12,7 @@ import 'package:Puntazo/config/theme_cubit.dart';
 import 'package:Puntazo/features/models/scoring_models.dart';
 import 'package:Puntazo/features/scoring/bloc/scoring_bloc.dart';
 import 'package:Puntazo/features/scoring/bloc/scoring_event.dart';
+import 'package:Puntazo/features/scoring/bloc/scoring_state.dart';
 import 'package:Puntazo/features/usb_serial/simple_usb_serial_listener.dart';
 import 'package:Puntazo/features/usb_serial/usb_connection_cubit.dart';
 import 'package:Puntazo/features/widgets/scoreboard.dart';
@@ -175,6 +176,9 @@ class _MatchScreenState extends State<MatchScreen> {
   SimpleUsbSerialListener? _usbListener;
   StreamSubscription<String>? _commandSub;
   StreamSubscription<bool>? _connectionSub;
+  
+  // ▼ TESTING: Deshabilitado temporalmente
+  // bool _showTestingOverlay = false;
 
   @override
   void initState() {
@@ -210,18 +214,26 @@ class _MatchScreenState extends State<MatchScreen> {
       if (cleanCmd.isEmpty) return;
 
       final bloc = context.read<ScoringBloc>();
+      final isSwapped = bloc.state.isSwapped;
+      
+      // Determinar qué equipo está en cada lado físico
+      // P_A = Botonera IZQUIERDA física
+      // P_B = Botonera DERECHA física
+      final leftTeam = isSwapped ? Team.red : Team.blue;
+      final rightTeam = isSwapped ? Team.blue : Team.red;
 
       switch (cleanCmd) {
         case 'P_A':
-          bloc.add(const ScoringEvent.pointFor(Team.blue));
+          bloc.add(ScoringEvent.pointFor(leftTeam));
         case 'P_B':
-          bloc.add(const ScoringEvent.pointFor(Team.red));
+          bloc.add(ScoringEvent.pointFor(rightTeam));
         case 'UNDO_A':
-          bloc.add(const ScoringEvent.undoForTeam(Team.blue));
+          bloc.add(ScoringEvent.undoForTeam(leftTeam));
         case 'UNDO_B':
-          bloc.add(const ScoringEvent.undoForTeam(Team.red));
+          bloc.add(ScoringEvent.undoForTeam(rightTeam));
         case 'RESET':
         case 'RESET_GAME':
+          bloc.add(const ScoringEvent.resetSwap()); // Resetear swap al iniciar nuevo partido
           bloc.add(const ScoringEvent.newMatch());
         case 'PONG':
           break;
@@ -233,15 +245,24 @@ class _MatchScreenState extends State<MatchScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.black,
-      body: Stack(
-        children: [
-          // Marcador principal
-          const Scoreboard(),
+    return BlocListener<ScoringBloc, ScoringState>(
+      listenWhen: (previous, current) {
+        // Detectar cambio de set (avance, no retroceso por undo)
+        return current.match.currentSetIndex > previous.match.currentSetIndex;
+      },
+      listener: (context, state) {
+        // Cuando avanza el set, intercambiar equipos de lado
+        context.read<ScoringBloc>().add(const ScoringEvent.swapSides());
+      },
+      child: Scaffold(
+        backgroundColor: Colors.black,
+        body: Stack(
+          children: [
+            // Marcador principal
+            const Scoreboard(),
 
-          // Overlay de ganador
-          const WinnerOverlay(),
+            // Overlay de ganador
+            const WinnerOverlay(),
 
           // Indicador USB (solo cuando NO hay conexión)
           Positioned(
@@ -321,8 +342,107 @@ class _MatchScreenState extends State<MatchScreen> {
               ),
             ),
           ),
+          
+          // ▼ TESTING: Deshabilitado temporalmente
+          // Positioned(
+          //   bottom: 16,
+          //   left: 16,
+          //   child: Material(
+          //     color: Colors.transparent,
+          //     child: InkWell(
+          //       onTap: () => setState(() => _showTestingOverlay = !_showTestingOverlay),
+          //       borderRadius: BorderRadius.circular(12),
+          //       child: Container(
+          //         padding: const EdgeInsets.all(10),
+          //         decoration: BoxDecoration(
+          //           color: _showTestingOverlay 
+          //               ? Colors.orange.withOpacity(0.8)
+          //               : Colors.white.withOpacity(0.15),
+          //           borderRadius: BorderRadius.circular(12),
+          //           border: Border.all(
+          //             color: _showTestingOverlay ? Colors.orange : Colors.grey,
+          //             width: 2,
+          //           ),
+          //         ),
+          //         child: Icon(
+          //           Icons.bug_report,
+          //           color: _showTestingOverlay ? Colors.white : Colors.white70,
+          //           size: 20,
+          //         ),
+          //       ),
+          //     ),
+          //   ),
+          // ),
+          
+          // ▼ TESTING: Overlay deshabilitado temporalmente
+          // if (_showTestingOverlay)
+          //   Positioned(
+          //     bottom: 70,
+          //     left: 16,
+          //     child: BlocBuilder<ScoringBloc, ScoringState>(
+          //       builder: (context, scoringState) {
+          //         final teamService = RepositoryProvider.of<TeamSelectionService>(context);
+          //         final isSwapped = scoringState.isSwapped;
+          //         final leftTeam = isSwapped ? Team.red : Team.blue;
+          //         final rightTeam = isSwapped ? Team.blue : Team.red;
+          //         final leftColor = isSwapped ? teamService.getColor2() : teamService.getColor1();
+          //         final rightColor = isSwapped ? teamService.getColor1() : teamService.getColor2();
+          //         final leftName = isSwapped 
+          //             ? (teamService.getTeam2()?.displayName ?? 'Equipo 2')
+          //             : (teamService.getTeam1()?.displayName ?? 'Equipo 1');
+          //         final rightName = isSwapped 
+          //             ? (teamService.getTeam1()?.displayName ?? 'Equipo 1')
+          //             : (teamService.getTeam2()?.displayName ?? 'Equipo 2');
+          //         final match = scoringState.match;
+          //         final currentSet = match.currentSet;
+          //         final setIndex = match.currentSetIndex;
+          //         return Container(
+          //           // ... contenido del overlay
+          //         );
+          //       },
+          //     ),
+          //   ),
         ],
+        ),
       ),
     );
   }
 }
+
+// ▼ TESTING: Widget deshabilitado temporalmente
+// class _TestingButton extends StatelessWidget {
+//   final String label;
+//   final Color color;
+//   final VoidCallback onTap;
+//
+//   const _TestingButton({
+//     required this.label,
+//     required this.color,
+//     required this.onTap,
+//   });
+//
+//   @override
+//   Widget build(BuildContext context) {
+//     return Material(
+//       color: color,
+//       borderRadius: BorderRadius.circular(12),
+//       child: InkWell(
+//         onTap: onTap,
+//         borderRadius: BorderRadius.circular(12),
+//         child: Container(
+//           width: 60,
+//           height: 50,
+//           alignment: Alignment.center,
+//           child: Text(
+//             label,
+//             style: const TextStyle(
+//               color: Colors.white,
+//               fontSize: 20,
+//               fontWeight: FontWeight.bold,
+//             ),
+//           ),
+//         ),
+//       ),
+//     );
+//   }
+// }

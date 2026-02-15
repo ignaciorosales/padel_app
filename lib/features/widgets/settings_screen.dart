@@ -50,7 +50,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   int _currentTabIndex = 0;
 
   void _changeTab(int index) {
-    if (index >= 0 && index < 4) {
+    if (index >= 0 && index < 3) {
       setState(() => _currentTabIndex = index);
     }
   }
@@ -141,8 +141,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
         return const _RulesTab(key: ValueKey('rules'));
       case 2:
         return const _DisplayTab(key: ValueKey('display'));
-      case 3:
-        return const _ActionsTab(key: ValueKey('actions'));
       default:
         return const _TeamsTab(key: ValueKey('teams'));
     }
@@ -853,166 +851,6 @@ class _CompactThemeChipState extends State<_CompactThemeChip> {
                 const SizedBox(width: 6),
                 Icon(Icons.check, size: 16, color: primaryColor),
               ],
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-// ============================================================================
-// TAB: ACCIONES
-// ============================================================================
-
-class _ActionsTab extends StatelessWidget {
-  const _ActionsTab({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
-    final bloc = context.read<ScoringBloc>();
-
-    return ListView(
-      padding: const EdgeInsets.all(24),
-      children: [
-        _SectionCard(
-          title: l10n.actionsSection,
-          child: Column(
-            children: [
-              _FocusableActionButton(
-                icon: Icons.undo,
-                label: l10n.undoPoint,
-                onTap: () => bloc.add(const ScoringEvent.undo()),
-              ),
-              const SizedBox(height: 12),
-              _FocusableActionButton(
-                icon: Icons.redo,
-                label: l10n.redoPoint,
-                onTap: () => bloc.add(const ScoringEvent.redo()),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 24),
-        _SectionCard(
-          title: l10n.newMatch,
-          child: _FocusableActionButton(
-            icon: Icons.restart_alt,
-            label: l10n.newMatch,
-            color: Colors.red,
-            onTap: () => _confirmNewMatch(context, l10n, bloc),
-          ),
-        ),
-      ],
-    );
-  }
-
-  void _confirmNewMatch(
-    BuildContext context,
-    AppLocalizations l10n,
-    ScoringBloc bloc,
-  ) {
-    showDialog(
-      context: context,
-      builder:
-          (_) => AlertDialog(
-            title: Text(l10n.newMatchConfirmTitle),
-            content: Text(l10n.newMatchConfirmMessage),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: Text(l10n.cancel),
-              ),
-              FilledButton(
-                onPressed: () {
-                  bloc.add(const ScoringEvent.newMatch());
-                  Navigator.pop(context); // Cerrar diálogo
-                  Navigator.pop(context); // Volver al marcador
-                },
-                style: FilledButton.styleFrom(backgroundColor: Colors.red),
-                child: Text(l10n.yesReset),
-              ),
-            ],
-          ),
-    );
-  }
-}
-
-class _FocusableActionButton extends StatefulWidget {
-  final IconData icon;
-  final String label;
-  final VoidCallback onTap;
-  final Color? color;
-
-  const _FocusableActionButton({
-    required this.icon,
-    required this.label,
-    required this.onTap,
-    this.color,
-  });
-
-  @override
-  State<_FocusableActionButton> createState() => _FocusableActionButtonState();
-}
-
-class _FocusableActionButtonState extends State<_FocusableActionButton> {
-  bool _focused = false;
-
-  @override
-  Widget build(BuildContext context) {
-    final color = widget.color ?? Theme.of(context).colorScheme.primary;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
-    return Focus(
-      onFocusChange: (f) => setState(() => _focused = f),
-      onKeyEvent: (node, event) {
-        if (event is KeyDownEvent &&
-            (event.logicalKey == LogicalKeyboardKey.select ||
-                event.logicalKey == LogicalKeyboardKey.enter)) {
-          widget.onTap();
-          return KeyEventResult.handled;
-        }
-        return KeyEventResult.ignored;
-      },
-      child: GestureDetector(
-        onTap: widget.onTap,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 150),
-          padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(
-            color: isDark ? Colors.white10 : Colors.grey.shade100,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: _focused ? _focusBorderColor : Colors.transparent,
-              width: _focusBorderWidth,
-            ),
-            boxShadow:
-                _focused
-                    ? [
-                      BoxShadow(
-                        color: _focusBorderColor.withValues(alpha: 0.4),
-                        blurRadius: 10,
-                        spreadRadius: 1,
-                      ),
-                    ]
-                    : null,
-          ),
-          child: Row(
-            children: [
-              Icon(widget.icon, color: color, size: 28),
-              const SizedBox(width: 16),
-              Text(
-                widget.label,
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w500,
-                  color: widget.color != null ? color : null,
-                ),
-              ),
-              const Spacer(),
-              if (_focused)
-                const Icon(Icons.chevron_right, color: _focusBorderColor),
             ],
           ),
         ),

@@ -24,6 +24,7 @@ class TeamSelectionService {
       // Leer selecciones guardadas o usar defaults
       final team1Id = prefs.getString(_keyTeam1) ?? _getDefaultTeam1Id(config);
       final team2Id = prefs.getString(_keyTeam2) ?? _getDefaultTeam2Id(config);
+      // isSwapped siempre empieza en false al iniciar la app (nuevo partido)
       
       return TeamSelectionService._(
         config,

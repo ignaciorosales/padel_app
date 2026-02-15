@@ -566,6 +566,8 @@ Future<void> _confirmNewMatch(
         ),
   );
   if (ok == true) {
+    // Resetear estado de swap al iniciar nuevo partido
+    bloc.add(const ScoringEvent.resetSwap());
     bloc.add(const ScoringEvent.newMatch());
   }
 }

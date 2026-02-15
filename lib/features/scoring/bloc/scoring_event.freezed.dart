@@ -35,6 +35,8 @@ mixin _$ScoringEvent {
     required TResult Function() undo,
     required TResult Function() redo,
     required TResult Function(Team team) undoForTeam,
+    required TResult Function() swapSides,
+    required TResult Function() resetSwap,
   }) => throw _privateConstructorUsedError;
   @optionalTypeArgs
   TResult? whenOrNull<TResult extends Object?>({
@@ -53,6 +55,8 @@ mixin _$ScoringEvent {
     TResult? Function()? undo,
     TResult? Function()? redo,
     TResult? Function(Team team)? undoForTeam,
+    TResult? Function()? swapSides,
+    TResult? Function()? resetSwap,
   }) => throw _privateConstructorUsedError;
   @optionalTypeArgs
   TResult maybeWhen<TResult extends Object?>({
@@ -71,6 +75,8 @@ mixin _$ScoringEvent {
     TResult Function()? undo,
     TResult Function()? redo,
     TResult Function(Team team)? undoForTeam,
+    TResult Function()? swapSides,
+    TResult Function()? resetSwap,
     required TResult orElse(),
   }) => throw _privateConstructorUsedError;
   @optionalTypeArgs
@@ -93,6 +99,8 @@ mixin _$ScoringEvent {
     required TResult Function(UndoEvent value) undo,
     required TResult Function(RedoEvent value) redo,
     required TResult Function(UndoForTeamEvent value) undoForTeam,
+    required TResult Function(SwapSidesEvent value) swapSides,
+    required TResult Function(ResetSwapEvent value) resetSwap,
   }) => throw _privateConstructorUsedError;
   @optionalTypeArgs
   TResult? mapOrNull<TResult extends Object?>({
@@ -111,6 +119,8 @@ mixin _$ScoringEvent {
     TResult? Function(UndoEvent value)? undo,
     TResult? Function(RedoEvent value)? redo,
     TResult? Function(UndoForTeamEvent value)? undoForTeam,
+    TResult? Function(SwapSidesEvent value)? swapSides,
+    TResult? Function(ResetSwapEvent value)? resetSwap,
   }) => throw _privateConstructorUsedError;
   @optionalTypeArgs
   TResult maybeMap<TResult extends Object?>({
@@ -129,6 +139,8 @@ mixin _$ScoringEvent {
     TResult Function(UndoEvent value)? undo,
     TResult Function(RedoEvent value)? redo,
     TResult Function(UndoForTeamEvent value)? undoForTeam,
+    TResult Function(SwapSidesEvent value)? swapSides,
+    TResult Function(ResetSwapEvent value)? resetSwap,
     required TResult orElse(),
   }) => throw _privateConstructorUsedError;
 }
@@ -268,6 +280,8 @@ class _$NewMatchEventImpl implements NewMatchEvent {
     required TResult Function() undo,
     required TResult Function() redo,
     required TResult Function(Team team) undoForTeam,
+    required TResult Function() swapSides,
+    required TResult Function() resetSwap,
   }) {
     return newMatch(settings, startingServer);
   }
@@ -290,6 +304,8 @@ class _$NewMatchEventImpl implements NewMatchEvent {
     TResult? Function()? undo,
     TResult? Function()? redo,
     TResult? Function(Team team)? undoForTeam,
+    TResult? Function()? swapSides,
+    TResult? Function()? resetSwap,
   }) {
     return newMatch?.call(settings, startingServer);
   }
@@ -312,6 +328,8 @@ class _$NewMatchEventImpl implements NewMatchEvent {
     TResult Function()? undo,
     TResult Function()? redo,
     TResult Function(Team team)? undoForTeam,
+    TResult Function()? swapSides,
+    TResult Function()? resetSwap,
     required TResult orElse(),
   }) {
     if (newMatch != null) {
@@ -341,6 +359,8 @@ class _$NewMatchEventImpl implements NewMatchEvent {
     required TResult Function(UndoEvent value) undo,
     required TResult Function(RedoEvent value) redo,
     required TResult Function(UndoForTeamEvent value) undoForTeam,
+    required TResult Function(SwapSidesEvent value) swapSides,
+    required TResult Function(ResetSwapEvent value) resetSwap,
   }) {
     return newMatch(this);
   }
@@ -363,6 +383,8 @@ class _$NewMatchEventImpl implements NewMatchEvent {
     TResult? Function(UndoEvent value)? undo,
     TResult? Function(RedoEvent value)? redo,
     TResult? Function(UndoForTeamEvent value)? undoForTeam,
+    TResult? Function(SwapSidesEvent value)? swapSides,
+    TResult? Function(ResetSwapEvent value)? resetSwap,
   }) {
     return newMatch?.call(this);
   }
@@ -385,6 +407,8 @@ class _$NewMatchEventImpl implements NewMatchEvent {
     TResult Function(UndoEvent value)? undo,
     TResult Function(RedoEvent value)? redo,
     TResult Function(UndoForTeamEvent value)? undoForTeam,
+    TResult Function(SwapSidesEvent value)? swapSides,
+    TResult Function(ResetSwapEvent value)? resetSwap,
     required TResult orElse(),
   }) {
     if (newMatch != null) {
@@ -469,6 +493,8 @@ class _$NewSetEventImpl implements NewSetEvent {
     required TResult Function() undo,
     required TResult Function() redo,
     required TResult Function(Team team) undoForTeam,
+    required TResult Function() swapSides,
+    required TResult Function() resetSwap,
   }) {
     return newSet();
   }
@@ -491,6 +517,8 @@ class _$NewSetEventImpl implements NewSetEvent {
     TResult? Function()? undo,
     TResult? Function()? redo,
     TResult? Function(Team team)? undoForTeam,
+    TResult? Function()? swapSides,
+    TResult? Function()? resetSwap,
   }) {
     return newSet?.call();
   }
@@ -513,6 +541,8 @@ class _$NewSetEventImpl implements NewSetEvent {
     TResult Function()? undo,
     TResult Function()? redo,
     TResult Function(Team team)? undoForTeam,
+    TResult Function()? swapSides,
+    TResult Function()? resetSwap,
     required TResult orElse(),
   }) {
     if (newSet != null) {
@@ -542,6 +572,8 @@ class _$NewSetEventImpl implements NewSetEvent {
     required TResult Function(UndoEvent value) undo,
     required TResult Function(RedoEvent value) redo,
     required TResult Function(UndoForTeamEvent value) undoForTeam,
+    required TResult Function(SwapSidesEvent value) swapSides,
+    required TResult Function(ResetSwapEvent value) resetSwap,
   }) {
     return newSet(this);
   }
@@ -564,6 +596,8 @@ class _$NewSetEventImpl implements NewSetEvent {
     TResult? Function(UndoEvent value)? undo,
     TResult? Function(RedoEvent value)? redo,
     TResult? Function(UndoForTeamEvent value)? undoForTeam,
+    TResult? Function(SwapSidesEvent value)? swapSides,
+    TResult? Function(ResetSwapEvent value)? resetSwap,
   }) {
     return newSet?.call(this);
   }
@@ -586,6 +620,8 @@ class _$NewSetEventImpl implements NewSetEvent {
     TResult Function(UndoEvent value)? undo,
     TResult Function(RedoEvent value)? redo,
     TResult Function(UndoForTeamEvent value)? undoForTeam,
+    TResult Function(SwapSidesEvent value)? swapSides,
+    TResult Function(ResetSwapEvent value)? resetSwap,
     required TResult orElse(),
   }) {
     if (newSet != null) {
@@ -658,6 +694,8 @@ class _$NewGameEventImpl implements NewGameEvent {
     required TResult Function() undo,
     required TResult Function() redo,
     required TResult Function(Team team) undoForTeam,
+    required TResult Function() swapSides,
+    required TResult Function() resetSwap,
   }) {
     return newGame();
   }
@@ -680,6 +718,8 @@ class _$NewGameEventImpl implements NewGameEvent {
     TResult? Function()? undo,
     TResult? Function()? redo,
     TResult? Function(Team team)? undoForTeam,
+    TResult? Function()? swapSides,
+    TResult? Function()? resetSwap,
   }) {
     return newGame?.call();
   }
@@ -702,6 +742,8 @@ class _$NewGameEventImpl implements NewGameEvent {
     TResult Function()? undo,
     TResult Function()? redo,
     TResult Function(Team team)? undoForTeam,
+    TResult Function()? swapSides,
+    TResult Function()? resetSwap,
     required TResult orElse(),
   }) {
     if (newGame != null) {
@@ -731,6 +773,8 @@ class _$NewGameEventImpl implements NewGameEvent {
     required TResult Function(UndoEvent value) undo,
     required TResult Function(RedoEvent value) redo,
     required TResult Function(UndoForTeamEvent value) undoForTeam,
+    required TResult Function(SwapSidesEvent value) swapSides,
+    required TResult Function(ResetSwapEvent value) resetSwap,
   }) {
     return newGame(this);
   }
@@ -753,6 +797,8 @@ class _$NewGameEventImpl implements NewGameEvent {
     TResult? Function(UndoEvent value)? undo,
     TResult? Function(RedoEvent value)? redo,
     TResult? Function(UndoForTeamEvent value)? undoForTeam,
+    TResult? Function(SwapSidesEvent value)? swapSides,
+    TResult? Function(ResetSwapEvent value)? resetSwap,
   }) {
     return newGame?.call(this);
   }
@@ -775,6 +821,8 @@ class _$NewGameEventImpl implements NewGameEvent {
     TResult Function(UndoEvent value)? undo,
     TResult Function(RedoEvent value)? redo,
     TResult Function(UndoForTeamEvent value)? undoForTeam,
+    TResult Function(SwapSidesEvent value)? swapSides,
+    TResult Function(ResetSwapEvent value)? resetSwap,
     required TResult orElse(),
   }) {
     if (newGame != null) {
@@ -874,6 +922,8 @@ class _$PointForEventImpl implements PointForEvent {
     required TResult Function() undo,
     required TResult Function() redo,
     required TResult Function(Team team) undoForTeam,
+    required TResult Function() swapSides,
+    required TResult Function() resetSwap,
   }) {
     return pointFor(team);
   }
@@ -896,6 +946,8 @@ class _$PointForEventImpl implements PointForEvent {
     TResult? Function()? undo,
     TResult? Function()? redo,
     TResult? Function(Team team)? undoForTeam,
+    TResult? Function()? swapSides,
+    TResult? Function()? resetSwap,
   }) {
     return pointFor?.call(team);
   }
@@ -918,6 +970,8 @@ class _$PointForEventImpl implements PointForEvent {
     TResult Function()? undo,
     TResult Function()? redo,
     TResult Function(Team team)? undoForTeam,
+    TResult Function()? swapSides,
+    TResult Function()? resetSwap,
     required TResult orElse(),
   }) {
     if (pointFor != null) {
@@ -947,6 +1001,8 @@ class _$PointForEventImpl implements PointForEvent {
     required TResult Function(UndoEvent value) undo,
     required TResult Function(RedoEvent value) redo,
     required TResult Function(UndoForTeamEvent value) undoForTeam,
+    required TResult Function(SwapSidesEvent value) swapSides,
+    required TResult Function(ResetSwapEvent value) resetSwap,
   }) {
     return pointFor(this);
   }
@@ -969,6 +1025,8 @@ class _$PointForEventImpl implements PointForEvent {
     TResult? Function(UndoEvent value)? undo,
     TResult? Function(RedoEvent value)? redo,
     TResult? Function(UndoForTeamEvent value)? undoForTeam,
+    TResult? Function(SwapSidesEvent value)? swapSides,
+    TResult? Function(ResetSwapEvent value)? resetSwap,
   }) {
     return pointFor?.call(this);
   }
@@ -991,6 +1049,8 @@ class _$PointForEventImpl implements PointForEvent {
     TResult Function(UndoEvent value)? undo,
     TResult Function(RedoEvent value)? redo,
     TResult Function(UndoForTeamEvent value)? undoForTeam,
+    TResult Function(SwapSidesEvent value)? swapSides,
+    TResult Function(ResetSwapEvent value)? resetSwap,
     required TResult orElse(),
   }) {
     if (pointFor != null) {
@@ -1101,6 +1161,8 @@ class _$RemovePointEventImpl implements RemovePointEvent {
     required TResult Function() undo,
     required TResult Function() redo,
     required TResult Function(Team team) undoForTeam,
+    required TResult Function() swapSides,
+    required TResult Function() resetSwap,
   }) {
     return removePoint(team);
   }
@@ -1123,6 +1185,8 @@ class _$RemovePointEventImpl implements RemovePointEvent {
     TResult? Function()? undo,
     TResult? Function()? redo,
     TResult? Function(Team team)? undoForTeam,
+    TResult? Function()? swapSides,
+    TResult? Function()? resetSwap,
   }) {
     return removePoint?.call(team);
   }
@@ -1145,6 +1209,8 @@ class _$RemovePointEventImpl implements RemovePointEvent {
     TResult Function()? undo,
     TResult Function()? redo,
     TResult Function(Team team)? undoForTeam,
+    TResult Function()? swapSides,
+    TResult Function()? resetSwap,
     required TResult orElse(),
   }) {
     if (removePoint != null) {
@@ -1174,6 +1240,8 @@ class _$RemovePointEventImpl implements RemovePointEvent {
     required TResult Function(UndoEvent value) undo,
     required TResult Function(RedoEvent value) redo,
     required TResult Function(UndoForTeamEvent value) undoForTeam,
+    required TResult Function(SwapSidesEvent value) swapSides,
+    required TResult Function(ResetSwapEvent value) resetSwap,
   }) {
     return removePoint(this);
   }
@@ -1196,6 +1264,8 @@ class _$RemovePointEventImpl implements RemovePointEvent {
     TResult? Function(UndoEvent value)? undo,
     TResult? Function(RedoEvent value)? redo,
     TResult? Function(UndoForTeamEvent value)? undoForTeam,
+    TResult? Function(SwapSidesEvent value)? swapSides,
+    TResult? Function(ResetSwapEvent value)? resetSwap,
   }) {
     return removePoint?.call(this);
   }
@@ -1218,6 +1288,8 @@ class _$RemovePointEventImpl implements RemovePointEvent {
     TResult Function(UndoEvent value)? undo,
     TResult Function(RedoEvent value)? redo,
     TResult Function(UndoForTeamEvent value)? undoForTeam,
+    TResult Function(SwapSidesEvent value)? swapSides,
+    TResult Function(ResetSwapEvent value)? resetSwap,
     required TResult orElse(),
   }) {
     if (removePoint != null) {
@@ -1328,6 +1400,8 @@ class _$ForceGameForEventImpl implements ForceGameForEvent {
     required TResult Function() undo,
     required TResult Function() redo,
     required TResult Function(Team team) undoForTeam,
+    required TResult Function() swapSides,
+    required TResult Function() resetSwap,
   }) {
     return forceGameFor(team);
   }
@@ -1350,6 +1424,8 @@ class _$ForceGameForEventImpl implements ForceGameForEvent {
     TResult? Function()? undo,
     TResult? Function()? redo,
     TResult? Function(Team team)? undoForTeam,
+    TResult? Function()? swapSides,
+    TResult? Function()? resetSwap,
   }) {
     return forceGameFor?.call(team);
   }
@@ -1372,6 +1448,8 @@ class _$ForceGameForEventImpl implements ForceGameForEvent {
     TResult Function()? undo,
     TResult Function()? redo,
     TResult Function(Team team)? undoForTeam,
+    TResult Function()? swapSides,
+    TResult Function()? resetSwap,
     required TResult orElse(),
   }) {
     if (forceGameFor != null) {
@@ -1401,6 +1479,8 @@ class _$ForceGameForEventImpl implements ForceGameForEvent {
     required TResult Function(UndoEvent value) undo,
     required TResult Function(RedoEvent value) redo,
     required TResult Function(UndoForTeamEvent value) undoForTeam,
+    required TResult Function(SwapSidesEvent value) swapSides,
+    required TResult Function(ResetSwapEvent value) resetSwap,
   }) {
     return forceGameFor(this);
   }
@@ -1423,6 +1503,8 @@ class _$ForceGameForEventImpl implements ForceGameForEvent {
     TResult? Function(UndoEvent value)? undo,
     TResult? Function(RedoEvent value)? redo,
     TResult? Function(UndoForTeamEvent value)? undoForTeam,
+    TResult? Function(SwapSidesEvent value)? swapSides,
+    TResult? Function(ResetSwapEvent value)? resetSwap,
   }) {
     return forceGameFor?.call(this);
   }
@@ -1445,6 +1527,8 @@ class _$ForceGameForEventImpl implements ForceGameForEvent {
     TResult Function(UndoEvent value)? undo,
     TResult Function(RedoEvent value)? redo,
     TResult Function(UndoForTeamEvent value)? undoForTeam,
+    TResult Function(SwapSidesEvent value)? swapSides,
+    TResult Function(ResetSwapEvent value)? resetSwap,
     required TResult orElse(),
   }) {
     if (forceGameFor != null) {
@@ -1555,6 +1639,8 @@ class _$ForceSetForEventImpl implements ForceSetForEvent {
     required TResult Function() undo,
     required TResult Function() redo,
     required TResult Function(Team team) undoForTeam,
+    required TResult Function() swapSides,
+    required TResult Function() resetSwap,
   }) {
     return forceSetFor(team);
   }
@@ -1577,6 +1663,8 @@ class _$ForceSetForEventImpl implements ForceSetForEvent {
     TResult? Function()? undo,
     TResult? Function()? redo,
     TResult? Function(Team team)? undoForTeam,
+    TResult? Function()? swapSides,
+    TResult? Function()? resetSwap,
   }) {
     return forceSetFor?.call(team);
   }
@@ -1599,6 +1687,8 @@ class _$ForceSetForEventImpl implements ForceSetForEvent {
     TResult Function()? undo,
     TResult Function()? redo,
     TResult Function(Team team)? undoForTeam,
+    TResult Function()? swapSides,
+    TResult Function()? resetSwap,
     required TResult orElse(),
   }) {
     if (forceSetFor != null) {
@@ -1628,6 +1718,8 @@ class _$ForceSetForEventImpl implements ForceSetForEvent {
     required TResult Function(UndoEvent value) undo,
     required TResult Function(RedoEvent value) redo,
     required TResult Function(UndoForTeamEvent value) undoForTeam,
+    required TResult Function(SwapSidesEvent value) swapSides,
+    required TResult Function(ResetSwapEvent value) resetSwap,
   }) {
     return forceSetFor(this);
   }
@@ -1650,6 +1742,8 @@ class _$ForceSetForEventImpl implements ForceSetForEvent {
     TResult? Function(UndoEvent value)? undo,
     TResult? Function(RedoEvent value)? redo,
     TResult? Function(UndoForTeamEvent value)? undoForTeam,
+    TResult? Function(SwapSidesEvent value)? swapSides,
+    TResult? Function(ResetSwapEvent value)? resetSwap,
   }) {
     return forceSetFor?.call(this);
   }
@@ -1672,6 +1766,8 @@ class _$ForceSetForEventImpl implements ForceSetForEvent {
     TResult Function(UndoEvent value)? undo,
     TResult Function(RedoEvent value)? redo,
     TResult Function(UndoForTeamEvent value)? undoForTeam,
+    TResult Function(SwapSidesEvent value)? swapSides,
+    TResult Function(ResetSwapEvent value)? resetSwap,
     required TResult orElse(),
   }) {
     if (forceSetFor != null) {
@@ -1793,6 +1889,8 @@ class _$SetExplicitGamePointsEventImpl implements SetExplicitGamePointsEvent {
     required TResult Function() undo,
     required TResult Function() redo,
     required TResult Function(Team team) undoForTeam,
+    required TResult Function() swapSides,
+    required TResult Function() resetSwap,
   }) {
     return setExplicitGamePoints(blue, red);
   }
@@ -1815,6 +1913,8 @@ class _$SetExplicitGamePointsEventImpl implements SetExplicitGamePointsEvent {
     TResult? Function()? undo,
     TResult? Function()? redo,
     TResult? Function(Team team)? undoForTeam,
+    TResult? Function()? swapSides,
+    TResult? Function()? resetSwap,
   }) {
     return setExplicitGamePoints?.call(blue, red);
   }
@@ -1837,6 +1937,8 @@ class _$SetExplicitGamePointsEventImpl implements SetExplicitGamePointsEvent {
     TResult Function()? undo,
     TResult Function()? redo,
     TResult Function(Team team)? undoForTeam,
+    TResult Function()? swapSides,
+    TResult Function()? resetSwap,
     required TResult orElse(),
   }) {
     if (setExplicitGamePoints != null) {
@@ -1866,6 +1968,8 @@ class _$SetExplicitGamePointsEventImpl implements SetExplicitGamePointsEvent {
     required TResult Function(UndoEvent value) undo,
     required TResult Function(RedoEvent value) redo,
     required TResult Function(UndoForTeamEvent value) undoForTeam,
+    required TResult Function(SwapSidesEvent value) swapSides,
+    required TResult Function(ResetSwapEvent value) resetSwap,
   }) {
     return setExplicitGamePoints(this);
   }
@@ -1888,6 +1992,8 @@ class _$SetExplicitGamePointsEventImpl implements SetExplicitGamePointsEvent {
     TResult? Function(UndoEvent value)? undo,
     TResult? Function(RedoEvent value)? redo,
     TResult? Function(UndoForTeamEvent value)? undoForTeam,
+    TResult? Function(SwapSidesEvent value)? swapSides,
+    TResult? Function(ResetSwapEvent value)? resetSwap,
   }) {
     return setExplicitGamePoints?.call(this);
   }
@@ -1910,6 +2016,8 @@ class _$SetExplicitGamePointsEventImpl implements SetExplicitGamePointsEvent {
     TResult Function(UndoEvent value)? undo,
     TResult Function(RedoEvent value)? redo,
     TResult Function(UndoForTeamEvent value)? undoForTeam,
+    TResult Function(SwapSidesEvent value)? swapSides,
+    TResult Function(ResetSwapEvent value)? resetSwap,
     required TResult orElse(),
   }) {
     if (setExplicitGamePoints != null) {
@@ -2023,6 +2131,8 @@ class _$ToggleTieBreakGamesEventImpl implements ToggleTieBreakGamesEvent {
     required TResult Function() undo,
     required TResult Function() redo,
     required TResult Function(Team team) undoForTeam,
+    required TResult Function() swapSides,
+    required TResult Function() resetSwap,
   }) {
     return toggleTieBreakGames(games);
   }
@@ -2045,6 +2155,8 @@ class _$ToggleTieBreakGamesEventImpl implements ToggleTieBreakGamesEvent {
     TResult? Function()? undo,
     TResult? Function()? redo,
     TResult? Function(Team team)? undoForTeam,
+    TResult? Function()? swapSides,
+    TResult? Function()? resetSwap,
   }) {
     return toggleTieBreakGames?.call(games);
   }
@@ -2067,6 +2179,8 @@ class _$ToggleTieBreakGamesEventImpl implements ToggleTieBreakGamesEvent {
     TResult Function()? undo,
     TResult Function()? redo,
     TResult Function(Team team)? undoForTeam,
+    TResult Function()? swapSides,
+    TResult Function()? resetSwap,
     required TResult orElse(),
   }) {
     if (toggleTieBreakGames != null) {
@@ -2096,6 +2210,8 @@ class _$ToggleTieBreakGamesEventImpl implements ToggleTieBreakGamesEvent {
     required TResult Function(UndoEvent value) undo,
     required TResult Function(RedoEvent value) redo,
     required TResult Function(UndoForTeamEvent value) undoForTeam,
+    required TResult Function(SwapSidesEvent value) swapSides,
+    required TResult Function(ResetSwapEvent value) resetSwap,
   }) {
     return toggleTieBreakGames(this);
   }
@@ -2118,6 +2234,8 @@ class _$ToggleTieBreakGamesEventImpl implements ToggleTieBreakGamesEvent {
     TResult? Function(UndoEvent value)? undo,
     TResult? Function(RedoEvent value)? redo,
     TResult? Function(UndoForTeamEvent value)? undoForTeam,
+    TResult? Function(SwapSidesEvent value)? swapSides,
+    TResult? Function(ResetSwapEvent value)? resetSwap,
   }) {
     return toggleTieBreakGames?.call(this);
   }
@@ -2140,6 +2258,8 @@ class _$ToggleTieBreakGamesEventImpl implements ToggleTieBreakGamesEvent {
     TResult Function(UndoEvent value)? undo,
     TResult Function(RedoEvent value)? redo,
     TResult Function(UndoForTeamEvent value)? undoForTeam,
+    TResult Function(SwapSidesEvent value)? swapSides,
+    TResult Function(ResetSwapEvent value)? resetSwap,
     required TResult orElse(),
   }) {
     if (toggleTieBreakGames != null) {
@@ -2250,6 +2370,8 @@ class _$ToggleTieBreakTargetEventImpl implements ToggleTieBreakTargetEvent {
     required TResult Function() undo,
     required TResult Function() redo,
     required TResult Function(Team team) undoForTeam,
+    required TResult Function() swapSides,
+    required TResult Function() resetSwap,
   }) {
     return toggleTieBreakTarget(target);
   }
@@ -2272,6 +2394,8 @@ class _$ToggleTieBreakTargetEventImpl implements ToggleTieBreakTargetEvent {
     TResult? Function()? undo,
     TResult? Function()? redo,
     TResult? Function(Team team)? undoForTeam,
+    TResult? Function()? swapSides,
+    TResult? Function()? resetSwap,
   }) {
     return toggleTieBreakTarget?.call(target);
   }
@@ -2294,6 +2418,8 @@ class _$ToggleTieBreakTargetEventImpl implements ToggleTieBreakTargetEvent {
     TResult Function()? undo,
     TResult Function()? redo,
     TResult Function(Team team)? undoForTeam,
+    TResult Function()? swapSides,
+    TResult Function()? resetSwap,
     required TResult orElse(),
   }) {
     if (toggleTieBreakTarget != null) {
@@ -2323,6 +2449,8 @@ class _$ToggleTieBreakTargetEventImpl implements ToggleTieBreakTargetEvent {
     required TResult Function(UndoEvent value) undo,
     required TResult Function(RedoEvent value) redo,
     required TResult Function(UndoForTeamEvent value) undoForTeam,
+    required TResult Function(SwapSidesEvent value) swapSides,
+    required TResult Function(ResetSwapEvent value) resetSwap,
   }) {
     return toggleTieBreakTarget(this);
   }
@@ -2345,6 +2473,8 @@ class _$ToggleTieBreakTargetEventImpl implements ToggleTieBreakTargetEvent {
     TResult? Function(UndoEvent value)? undo,
     TResult? Function(RedoEvent value)? redo,
     TResult? Function(UndoForTeamEvent value)? undoForTeam,
+    TResult? Function(SwapSidesEvent value)? swapSides,
+    TResult? Function(ResetSwapEvent value)? resetSwap,
   }) {
     return toggleTieBreakTarget?.call(this);
   }
@@ -2367,6 +2497,8 @@ class _$ToggleTieBreakTargetEventImpl implements ToggleTieBreakTargetEvent {
     TResult Function(UndoEvent value)? undo,
     TResult Function(RedoEvent value)? redo,
     TResult Function(UndoForTeamEvent value)? undoForTeam,
+    TResult Function(SwapSidesEvent value)? swapSides,
+    TResult Function(ResetSwapEvent value)? resetSwap,
     required TResult orElse(),
   }) {
     if (toggleTieBreakTarget != null) {
@@ -2479,6 +2611,8 @@ class _$ToggleGoldenPointEventImpl implements ToggleGoldenPointEvent {
     required TResult Function() undo,
     required TResult Function() redo,
     required TResult Function(Team team) undoForTeam,
+    required TResult Function() swapSides,
+    required TResult Function() resetSwap,
   }) {
     return toggleGoldenPoint(enabled);
   }
@@ -2501,6 +2635,8 @@ class _$ToggleGoldenPointEventImpl implements ToggleGoldenPointEvent {
     TResult? Function()? undo,
     TResult? Function()? redo,
     TResult? Function(Team team)? undoForTeam,
+    TResult? Function()? swapSides,
+    TResult? Function()? resetSwap,
   }) {
     return toggleGoldenPoint?.call(enabled);
   }
@@ -2523,6 +2659,8 @@ class _$ToggleGoldenPointEventImpl implements ToggleGoldenPointEvent {
     TResult Function()? undo,
     TResult Function()? redo,
     TResult Function(Team team)? undoForTeam,
+    TResult Function()? swapSides,
+    TResult Function()? resetSwap,
     required TResult orElse(),
   }) {
     if (toggleGoldenPoint != null) {
@@ -2552,6 +2690,8 @@ class _$ToggleGoldenPointEventImpl implements ToggleGoldenPointEvent {
     required TResult Function(UndoEvent value) undo,
     required TResult Function(RedoEvent value) redo,
     required TResult Function(UndoForTeamEvent value) undoForTeam,
+    required TResult Function(SwapSidesEvent value) swapSides,
+    required TResult Function(ResetSwapEvent value) resetSwap,
   }) {
     return toggleGoldenPoint(this);
   }
@@ -2574,6 +2714,8 @@ class _$ToggleGoldenPointEventImpl implements ToggleGoldenPointEvent {
     TResult? Function(UndoEvent value)? undo,
     TResult? Function(RedoEvent value)? redo,
     TResult? Function(UndoForTeamEvent value)? undoForTeam,
+    TResult? Function(SwapSidesEvent value)? swapSides,
+    TResult? Function(ResetSwapEvent value)? resetSwap,
   }) {
     return toggleGoldenPoint?.call(this);
   }
@@ -2596,6 +2738,8 @@ class _$ToggleGoldenPointEventImpl implements ToggleGoldenPointEvent {
     TResult Function(UndoEvent value)? undo,
     TResult Function(RedoEvent value)? redo,
     TResult Function(UndoForTeamEvent value)? undoForTeam,
+    TResult Function(SwapSidesEvent value)? swapSides,
+    TResult Function(ResetSwapEvent value)? resetSwap,
     required TResult orElse(),
   }) {
     if (toggleGoldenPoint != null) {
@@ -2677,6 +2821,8 @@ class _$AnnounceScoreEventImpl implements AnnounceScoreEvent {
     required TResult Function() undo,
     required TResult Function() redo,
     required TResult Function(Team team) undoForTeam,
+    required TResult Function() swapSides,
+    required TResult Function() resetSwap,
   }) {
     return announceScore();
   }
@@ -2699,6 +2845,8 @@ class _$AnnounceScoreEventImpl implements AnnounceScoreEvent {
     TResult? Function()? undo,
     TResult? Function()? redo,
     TResult? Function(Team team)? undoForTeam,
+    TResult? Function()? swapSides,
+    TResult? Function()? resetSwap,
   }) {
     return announceScore?.call();
   }
@@ -2721,6 +2869,8 @@ class _$AnnounceScoreEventImpl implements AnnounceScoreEvent {
     TResult Function()? undo,
     TResult Function()? redo,
     TResult Function(Team team)? undoForTeam,
+    TResult Function()? swapSides,
+    TResult Function()? resetSwap,
     required TResult orElse(),
   }) {
     if (announceScore != null) {
@@ -2750,6 +2900,8 @@ class _$AnnounceScoreEventImpl implements AnnounceScoreEvent {
     required TResult Function(UndoEvent value) undo,
     required TResult Function(RedoEvent value) redo,
     required TResult Function(UndoForTeamEvent value) undoForTeam,
+    required TResult Function(SwapSidesEvent value) swapSides,
+    required TResult Function(ResetSwapEvent value) resetSwap,
   }) {
     return announceScore(this);
   }
@@ -2772,6 +2924,8 @@ class _$AnnounceScoreEventImpl implements AnnounceScoreEvent {
     TResult? Function(UndoEvent value)? undo,
     TResult? Function(RedoEvent value)? redo,
     TResult? Function(UndoForTeamEvent value)? undoForTeam,
+    TResult? Function(SwapSidesEvent value)? swapSides,
+    TResult? Function(ResetSwapEvent value)? resetSwap,
   }) {
     return announceScore?.call(this);
   }
@@ -2794,6 +2948,8 @@ class _$AnnounceScoreEventImpl implements AnnounceScoreEvent {
     TResult Function(UndoEvent value)? undo,
     TResult Function(RedoEvent value)? redo,
     TResult Function(UndoForTeamEvent value)? undoForTeam,
+    TResult Function(SwapSidesEvent value)? swapSides,
+    TResult Function(ResetSwapEvent value)? resetSwap,
     required TResult orElse(),
   }) {
     if (announceScore != null) {
@@ -2866,6 +3022,8 @@ class _$UndoEventImpl implements UndoEvent {
     required TResult Function() undo,
     required TResult Function() redo,
     required TResult Function(Team team) undoForTeam,
+    required TResult Function() swapSides,
+    required TResult Function() resetSwap,
   }) {
     return undo();
   }
@@ -2888,6 +3046,8 @@ class _$UndoEventImpl implements UndoEvent {
     TResult? Function()? undo,
     TResult? Function()? redo,
     TResult? Function(Team team)? undoForTeam,
+    TResult? Function()? swapSides,
+    TResult? Function()? resetSwap,
   }) {
     return undo?.call();
   }
@@ -2910,6 +3070,8 @@ class _$UndoEventImpl implements UndoEvent {
     TResult Function()? undo,
     TResult Function()? redo,
     TResult Function(Team team)? undoForTeam,
+    TResult Function()? swapSides,
+    TResult Function()? resetSwap,
     required TResult orElse(),
   }) {
     if (undo != null) {
@@ -2939,6 +3101,8 @@ class _$UndoEventImpl implements UndoEvent {
     required TResult Function(UndoEvent value) undo,
     required TResult Function(RedoEvent value) redo,
     required TResult Function(UndoForTeamEvent value) undoForTeam,
+    required TResult Function(SwapSidesEvent value) swapSides,
+    required TResult Function(ResetSwapEvent value) resetSwap,
   }) {
     return undo(this);
   }
@@ -2961,6 +3125,8 @@ class _$UndoEventImpl implements UndoEvent {
     TResult? Function(UndoEvent value)? undo,
     TResult? Function(RedoEvent value)? redo,
     TResult? Function(UndoForTeamEvent value)? undoForTeam,
+    TResult? Function(SwapSidesEvent value)? swapSides,
+    TResult? Function(ResetSwapEvent value)? resetSwap,
   }) {
     return undo?.call(this);
   }
@@ -2983,6 +3149,8 @@ class _$UndoEventImpl implements UndoEvent {
     TResult Function(UndoEvent value)? undo,
     TResult Function(RedoEvent value)? redo,
     TResult Function(UndoForTeamEvent value)? undoForTeam,
+    TResult Function(SwapSidesEvent value)? swapSides,
+    TResult Function(ResetSwapEvent value)? resetSwap,
     required TResult orElse(),
   }) {
     if (undo != null) {
@@ -3055,6 +3223,8 @@ class _$RedoEventImpl implements RedoEvent {
     required TResult Function() undo,
     required TResult Function() redo,
     required TResult Function(Team team) undoForTeam,
+    required TResult Function() swapSides,
+    required TResult Function() resetSwap,
   }) {
     return redo();
   }
@@ -3077,6 +3247,8 @@ class _$RedoEventImpl implements RedoEvent {
     TResult? Function()? undo,
     TResult? Function()? redo,
     TResult? Function(Team team)? undoForTeam,
+    TResult? Function()? swapSides,
+    TResult? Function()? resetSwap,
   }) {
     return redo?.call();
   }
@@ -3099,6 +3271,8 @@ class _$RedoEventImpl implements RedoEvent {
     TResult Function()? undo,
     TResult Function()? redo,
     TResult Function(Team team)? undoForTeam,
+    TResult Function()? swapSides,
+    TResult Function()? resetSwap,
     required TResult orElse(),
   }) {
     if (redo != null) {
@@ -3128,6 +3302,8 @@ class _$RedoEventImpl implements RedoEvent {
     required TResult Function(UndoEvent value) undo,
     required TResult Function(RedoEvent value) redo,
     required TResult Function(UndoForTeamEvent value) undoForTeam,
+    required TResult Function(SwapSidesEvent value) swapSides,
+    required TResult Function(ResetSwapEvent value) resetSwap,
   }) {
     return redo(this);
   }
@@ -3150,6 +3326,8 @@ class _$RedoEventImpl implements RedoEvent {
     TResult? Function(UndoEvent value)? undo,
     TResult? Function(RedoEvent value)? redo,
     TResult? Function(UndoForTeamEvent value)? undoForTeam,
+    TResult? Function(SwapSidesEvent value)? swapSides,
+    TResult? Function(ResetSwapEvent value)? resetSwap,
   }) {
     return redo?.call(this);
   }
@@ -3172,6 +3350,8 @@ class _$RedoEventImpl implements RedoEvent {
     TResult Function(UndoEvent value)? undo,
     TResult Function(RedoEvent value)? redo,
     TResult Function(UndoForTeamEvent value)? undoForTeam,
+    TResult Function(SwapSidesEvent value)? swapSides,
+    TResult Function(ResetSwapEvent value)? resetSwap,
     required TResult orElse(),
   }) {
     if (redo != null) {
@@ -3274,6 +3454,8 @@ class _$UndoForTeamEventImpl implements UndoForTeamEvent {
     required TResult Function() undo,
     required TResult Function() redo,
     required TResult Function(Team team) undoForTeam,
+    required TResult Function() swapSides,
+    required TResult Function() resetSwap,
   }) {
     return undoForTeam(team);
   }
@@ -3296,6 +3478,8 @@ class _$UndoForTeamEventImpl implements UndoForTeamEvent {
     TResult? Function()? undo,
     TResult? Function()? redo,
     TResult? Function(Team team)? undoForTeam,
+    TResult? Function()? swapSides,
+    TResult? Function()? resetSwap,
   }) {
     return undoForTeam?.call(team);
   }
@@ -3318,6 +3502,8 @@ class _$UndoForTeamEventImpl implements UndoForTeamEvent {
     TResult Function()? undo,
     TResult Function()? redo,
     TResult Function(Team team)? undoForTeam,
+    TResult Function()? swapSides,
+    TResult Function()? resetSwap,
     required TResult orElse(),
   }) {
     if (undoForTeam != null) {
@@ -3347,6 +3533,8 @@ class _$UndoForTeamEventImpl implements UndoForTeamEvent {
     required TResult Function(UndoEvent value) undo,
     required TResult Function(RedoEvent value) redo,
     required TResult Function(UndoForTeamEvent value) undoForTeam,
+    required TResult Function(SwapSidesEvent value) swapSides,
+    required TResult Function(ResetSwapEvent value) resetSwap,
   }) {
     return undoForTeam(this);
   }
@@ -3369,6 +3557,8 @@ class _$UndoForTeamEventImpl implements UndoForTeamEvent {
     TResult? Function(UndoEvent value)? undo,
     TResult? Function(RedoEvent value)? redo,
     TResult? Function(UndoForTeamEvent value)? undoForTeam,
+    TResult? Function(SwapSidesEvent value)? swapSides,
+    TResult? Function(ResetSwapEvent value)? resetSwap,
   }) {
     return undoForTeam?.call(this);
   }
@@ -3391,6 +3581,8 @@ class _$UndoForTeamEventImpl implements UndoForTeamEvent {
     TResult Function(UndoEvent value)? undo,
     TResult Function(RedoEvent value)? redo,
     TResult Function(UndoForTeamEvent value)? undoForTeam,
+    TResult Function(SwapSidesEvent value)? swapSides,
+    TResult Function(ResetSwapEvent value)? resetSwap,
     required TResult orElse(),
   }) {
     if (undoForTeam != null) {
@@ -3410,4 +3602,406 @@ abstract class UndoForTeamEvent implements ScoringEvent {
   @JsonKey(includeFromJson: false, includeToJson: false)
   _$$UndoForTeamEventImplCopyWith<_$UndoForTeamEventImpl> get copyWith =>
       throw _privateConstructorUsedError;
+}
+
+/// @nodoc
+abstract class _$$SwapSidesEventImplCopyWith<$Res> {
+  factory _$$SwapSidesEventImplCopyWith(
+    _$SwapSidesEventImpl value,
+    $Res Function(_$SwapSidesEventImpl) then,
+  ) = __$$SwapSidesEventImplCopyWithImpl<$Res>;
+}
+
+/// @nodoc
+class __$$SwapSidesEventImplCopyWithImpl<$Res>
+    extends _$ScoringEventCopyWithImpl<$Res, _$SwapSidesEventImpl>
+    implements _$$SwapSidesEventImplCopyWith<$Res> {
+  __$$SwapSidesEventImplCopyWithImpl(
+    _$SwapSidesEventImpl _value,
+    $Res Function(_$SwapSidesEventImpl) _then,
+  ) : super(_value, _then);
+
+  /// Create a copy of ScoringEvent
+  /// with the given fields replaced by the non-null parameter values.
+}
+
+/// @nodoc
+
+class _$SwapSidesEventImpl implements SwapSidesEvent {
+  const _$SwapSidesEventImpl();
+
+  @override
+  String toString() {
+    return 'ScoringEvent.swapSides()';
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType && other is _$SwapSidesEventImpl);
+  }
+
+  @override
+  int get hashCode => runtimeType.hashCode;
+
+  @override
+  @optionalTypeArgs
+  TResult when<TResult extends Object?>({
+    required TResult Function(MatchSettings? settings, Team? startingServer)
+    newMatch,
+    required TResult Function() newSet,
+    required TResult Function() newGame,
+    required TResult Function(Team team) pointFor,
+    required TResult Function(Team team) removePoint,
+    required TResult Function(Team team) forceGameFor,
+    required TResult Function(Team team) forceSetFor,
+    required TResult Function(int blue, int red) setExplicitGamePoints,
+    required TResult Function(int games) toggleTieBreakGames,
+    required TResult Function(int target) toggleTieBreakTarget,
+    required TResult Function(bool enabled) toggleGoldenPoint,
+    required TResult Function() announceScore,
+    required TResult Function() undo,
+    required TResult Function() redo,
+    required TResult Function(Team team) undoForTeam,
+    required TResult Function() swapSides,
+    required TResult Function() resetSwap,
+  }) {
+    return swapSides();
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult? whenOrNull<TResult extends Object?>({
+    TResult? Function(MatchSettings? settings, Team? startingServer)? newMatch,
+    TResult? Function()? newSet,
+    TResult? Function()? newGame,
+    TResult? Function(Team team)? pointFor,
+    TResult? Function(Team team)? removePoint,
+    TResult? Function(Team team)? forceGameFor,
+    TResult? Function(Team team)? forceSetFor,
+    TResult? Function(int blue, int red)? setExplicitGamePoints,
+    TResult? Function(int games)? toggleTieBreakGames,
+    TResult? Function(int target)? toggleTieBreakTarget,
+    TResult? Function(bool enabled)? toggleGoldenPoint,
+    TResult? Function()? announceScore,
+    TResult? Function()? undo,
+    TResult? Function()? redo,
+    TResult? Function(Team team)? undoForTeam,
+    TResult? Function()? swapSides,
+    TResult? Function()? resetSwap,
+  }) {
+    return swapSides?.call();
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult maybeWhen<TResult extends Object?>({
+    TResult Function(MatchSettings? settings, Team? startingServer)? newMatch,
+    TResult Function()? newSet,
+    TResult Function()? newGame,
+    TResult Function(Team team)? pointFor,
+    TResult Function(Team team)? removePoint,
+    TResult Function(Team team)? forceGameFor,
+    TResult Function(Team team)? forceSetFor,
+    TResult Function(int blue, int red)? setExplicitGamePoints,
+    TResult Function(int games)? toggleTieBreakGames,
+    TResult Function(int target)? toggleTieBreakTarget,
+    TResult Function(bool enabled)? toggleGoldenPoint,
+    TResult Function()? announceScore,
+    TResult Function()? undo,
+    TResult Function()? redo,
+    TResult Function(Team team)? undoForTeam,
+    TResult Function()? swapSides,
+    TResult Function()? resetSwap,
+    required TResult orElse(),
+  }) {
+    if (swapSides != null) {
+      return swapSides();
+    }
+    return orElse();
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult map<TResult extends Object?>({
+    required TResult Function(NewMatchEvent value) newMatch,
+    required TResult Function(NewSetEvent value) newSet,
+    required TResult Function(NewGameEvent value) newGame,
+    required TResult Function(PointForEvent value) pointFor,
+    required TResult Function(RemovePointEvent value) removePoint,
+    required TResult Function(ForceGameForEvent value) forceGameFor,
+    required TResult Function(ForceSetForEvent value) forceSetFor,
+    required TResult Function(SetExplicitGamePointsEvent value)
+    setExplicitGamePoints,
+    required TResult Function(ToggleTieBreakGamesEvent value)
+    toggleTieBreakGames,
+    required TResult Function(ToggleTieBreakTargetEvent value)
+    toggleTieBreakTarget,
+    required TResult Function(ToggleGoldenPointEvent value) toggleGoldenPoint,
+    required TResult Function(AnnounceScoreEvent value) announceScore,
+    required TResult Function(UndoEvent value) undo,
+    required TResult Function(RedoEvent value) redo,
+    required TResult Function(UndoForTeamEvent value) undoForTeam,
+    required TResult Function(SwapSidesEvent value) swapSides,
+    required TResult Function(ResetSwapEvent value) resetSwap,
+  }) {
+    return swapSides(this);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult? mapOrNull<TResult extends Object?>({
+    TResult? Function(NewMatchEvent value)? newMatch,
+    TResult? Function(NewSetEvent value)? newSet,
+    TResult? Function(NewGameEvent value)? newGame,
+    TResult? Function(PointForEvent value)? pointFor,
+    TResult? Function(RemovePointEvent value)? removePoint,
+    TResult? Function(ForceGameForEvent value)? forceGameFor,
+    TResult? Function(ForceSetForEvent value)? forceSetFor,
+    TResult? Function(SetExplicitGamePointsEvent value)? setExplicitGamePoints,
+    TResult? Function(ToggleTieBreakGamesEvent value)? toggleTieBreakGames,
+    TResult? Function(ToggleTieBreakTargetEvent value)? toggleTieBreakTarget,
+    TResult? Function(ToggleGoldenPointEvent value)? toggleGoldenPoint,
+    TResult? Function(AnnounceScoreEvent value)? announceScore,
+    TResult? Function(UndoEvent value)? undo,
+    TResult? Function(RedoEvent value)? redo,
+    TResult? Function(UndoForTeamEvent value)? undoForTeam,
+    TResult? Function(SwapSidesEvent value)? swapSides,
+    TResult? Function(ResetSwapEvent value)? resetSwap,
+  }) {
+    return swapSides?.call(this);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult maybeMap<TResult extends Object?>({
+    TResult Function(NewMatchEvent value)? newMatch,
+    TResult Function(NewSetEvent value)? newSet,
+    TResult Function(NewGameEvent value)? newGame,
+    TResult Function(PointForEvent value)? pointFor,
+    TResult Function(RemovePointEvent value)? removePoint,
+    TResult Function(ForceGameForEvent value)? forceGameFor,
+    TResult Function(ForceSetForEvent value)? forceSetFor,
+    TResult Function(SetExplicitGamePointsEvent value)? setExplicitGamePoints,
+    TResult Function(ToggleTieBreakGamesEvent value)? toggleTieBreakGames,
+    TResult Function(ToggleTieBreakTargetEvent value)? toggleTieBreakTarget,
+    TResult Function(ToggleGoldenPointEvent value)? toggleGoldenPoint,
+    TResult Function(AnnounceScoreEvent value)? announceScore,
+    TResult Function(UndoEvent value)? undo,
+    TResult Function(RedoEvent value)? redo,
+    TResult Function(UndoForTeamEvent value)? undoForTeam,
+    TResult Function(SwapSidesEvent value)? swapSides,
+    TResult Function(ResetSwapEvent value)? resetSwap,
+    required TResult orElse(),
+  }) {
+    if (swapSides != null) {
+      return swapSides(this);
+    }
+    return orElse();
+  }
+}
+
+abstract class SwapSidesEvent implements ScoringEvent {
+  const factory SwapSidesEvent() = _$SwapSidesEventImpl;
+}
+
+/// @nodoc
+abstract class _$$ResetSwapEventImplCopyWith<$Res> {
+  factory _$$ResetSwapEventImplCopyWith(
+    _$ResetSwapEventImpl value,
+    $Res Function(_$ResetSwapEventImpl) then,
+  ) = __$$ResetSwapEventImplCopyWithImpl<$Res>;
+}
+
+/// @nodoc
+class __$$ResetSwapEventImplCopyWithImpl<$Res>
+    extends _$ScoringEventCopyWithImpl<$Res, _$ResetSwapEventImpl>
+    implements _$$ResetSwapEventImplCopyWith<$Res> {
+  __$$ResetSwapEventImplCopyWithImpl(
+    _$ResetSwapEventImpl _value,
+    $Res Function(_$ResetSwapEventImpl) _then,
+  ) : super(_value, _then);
+
+  /// Create a copy of ScoringEvent
+  /// with the given fields replaced by the non-null parameter values.
+}
+
+/// @nodoc
+
+class _$ResetSwapEventImpl implements ResetSwapEvent {
+  const _$ResetSwapEventImpl();
+
+  @override
+  String toString() {
+    return 'ScoringEvent.resetSwap()';
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType && other is _$ResetSwapEventImpl);
+  }
+
+  @override
+  int get hashCode => runtimeType.hashCode;
+
+  @override
+  @optionalTypeArgs
+  TResult when<TResult extends Object?>({
+    required TResult Function(MatchSettings? settings, Team? startingServer)
+    newMatch,
+    required TResult Function() newSet,
+    required TResult Function() newGame,
+    required TResult Function(Team team) pointFor,
+    required TResult Function(Team team) removePoint,
+    required TResult Function(Team team) forceGameFor,
+    required TResult Function(Team team) forceSetFor,
+    required TResult Function(int blue, int red) setExplicitGamePoints,
+    required TResult Function(int games) toggleTieBreakGames,
+    required TResult Function(int target) toggleTieBreakTarget,
+    required TResult Function(bool enabled) toggleGoldenPoint,
+    required TResult Function() announceScore,
+    required TResult Function() undo,
+    required TResult Function() redo,
+    required TResult Function(Team team) undoForTeam,
+    required TResult Function() swapSides,
+    required TResult Function() resetSwap,
+  }) {
+    return resetSwap();
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult? whenOrNull<TResult extends Object?>({
+    TResult? Function(MatchSettings? settings, Team? startingServer)? newMatch,
+    TResult? Function()? newSet,
+    TResult? Function()? newGame,
+    TResult? Function(Team team)? pointFor,
+    TResult? Function(Team team)? removePoint,
+    TResult? Function(Team team)? forceGameFor,
+    TResult? Function(Team team)? forceSetFor,
+    TResult? Function(int blue, int red)? setExplicitGamePoints,
+    TResult? Function(int games)? toggleTieBreakGames,
+    TResult? Function(int target)? toggleTieBreakTarget,
+    TResult? Function(bool enabled)? toggleGoldenPoint,
+    TResult? Function()? announceScore,
+    TResult? Function()? undo,
+    TResult? Function()? redo,
+    TResult? Function(Team team)? undoForTeam,
+    TResult? Function()? swapSides,
+    TResult? Function()? resetSwap,
+  }) {
+    return resetSwap?.call();
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult maybeWhen<TResult extends Object?>({
+    TResult Function(MatchSettings? settings, Team? startingServer)? newMatch,
+    TResult Function()? newSet,
+    TResult Function()? newGame,
+    TResult Function(Team team)? pointFor,
+    TResult Function(Team team)? removePoint,
+    TResult Function(Team team)? forceGameFor,
+    TResult Function(Team team)? forceSetFor,
+    TResult Function(int blue, int red)? setExplicitGamePoints,
+    TResult Function(int games)? toggleTieBreakGames,
+    TResult Function(int target)? toggleTieBreakTarget,
+    TResult Function(bool enabled)? toggleGoldenPoint,
+    TResult Function()? announceScore,
+    TResult Function()? undo,
+    TResult Function()? redo,
+    TResult Function(Team team)? undoForTeam,
+    TResult Function()? swapSides,
+    TResult Function()? resetSwap,
+    required TResult orElse(),
+  }) {
+    if (resetSwap != null) {
+      return resetSwap();
+    }
+    return orElse();
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult map<TResult extends Object?>({
+    required TResult Function(NewMatchEvent value) newMatch,
+    required TResult Function(NewSetEvent value) newSet,
+    required TResult Function(NewGameEvent value) newGame,
+    required TResult Function(PointForEvent value) pointFor,
+    required TResult Function(RemovePointEvent value) removePoint,
+    required TResult Function(ForceGameForEvent value) forceGameFor,
+    required TResult Function(ForceSetForEvent value) forceSetFor,
+    required TResult Function(SetExplicitGamePointsEvent value)
+    setExplicitGamePoints,
+    required TResult Function(ToggleTieBreakGamesEvent value)
+    toggleTieBreakGames,
+    required TResult Function(ToggleTieBreakTargetEvent value)
+    toggleTieBreakTarget,
+    required TResult Function(ToggleGoldenPointEvent value) toggleGoldenPoint,
+    required TResult Function(AnnounceScoreEvent value) announceScore,
+    required TResult Function(UndoEvent value) undo,
+    required TResult Function(RedoEvent value) redo,
+    required TResult Function(UndoForTeamEvent value) undoForTeam,
+    required TResult Function(SwapSidesEvent value) swapSides,
+    required TResult Function(ResetSwapEvent value) resetSwap,
+  }) {
+    return resetSwap(this);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult? mapOrNull<TResult extends Object?>({
+    TResult? Function(NewMatchEvent value)? newMatch,
+    TResult? Function(NewSetEvent value)? newSet,
+    TResult? Function(NewGameEvent value)? newGame,
+    TResult? Function(PointForEvent value)? pointFor,
+    TResult? Function(RemovePointEvent value)? removePoint,
+    TResult? Function(ForceGameForEvent value)? forceGameFor,
+    TResult? Function(ForceSetForEvent value)? forceSetFor,
+    TResult? Function(SetExplicitGamePointsEvent value)? setExplicitGamePoints,
+    TResult? Function(ToggleTieBreakGamesEvent value)? toggleTieBreakGames,
+    TResult? Function(ToggleTieBreakTargetEvent value)? toggleTieBreakTarget,
+    TResult? Function(ToggleGoldenPointEvent value)? toggleGoldenPoint,
+    TResult? Function(AnnounceScoreEvent value)? announceScore,
+    TResult? Function(UndoEvent value)? undo,
+    TResult? Function(RedoEvent value)? redo,
+    TResult? Function(UndoForTeamEvent value)? undoForTeam,
+    TResult? Function(SwapSidesEvent value)? swapSides,
+    TResult? Function(ResetSwapEvent value)? resetSwap,
+  }) {
+    return resetSwap?.call(this);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult maybeMap<TResult extends Object?>({
+    TResult Function(NewMatchEvent value)? newMatch,
+    TResult Function(NewSetEvent value)? newSet,
+    TResult Function(NewGameEvent value)? newGame,
+    TResult Function(PointForEvent value)? pointFor,
+    TResult Function(RemovePointEvent value)? removePoint,
+    TResult Function(ForceGameForEvent value)? forceGameFor,
+    TResult Function(ForceSetForEvent value)? forceSetFor,
+    TResult Function(SetExplicitGamePointsEvent value)? setExplicitGamePoints,
+    TResult Function(ToggleTieBreakGamesEvent value)? toggleTieBreakGames,
+    TResult Function(ToggleTieBreakTargetEvent value)? toggleTieBreakTarget,
+    TResult Function(ToggleGoldenPointEvent value)? toggleGoldenPoint,
+    TResult Function(AnnounceScoreEvent value)? announceScore,
+    TResult Function(UndoEvent value)? undo,
+    TResult Function(RedoEvent value)? redo,
+    TResult Function(UndoForTeamEvent value)? undoForTeam,
+    TResult Function(SwapSidesEvent value)? swapSides,
+    TResult Function(ResetSwapEvent value)? resetSwap,
+    required TResult orElse(),
+  }) {
+    if (resetSwap != null) {
+      return resetSwap(this);
+    }
+    return orElse();
+  }
+}
+
+abstract class ResetSwapEvent implements ScoringEvent {
+  const factory ResetSwapEvent() = _$ResetSwapEventImpl;
 }
