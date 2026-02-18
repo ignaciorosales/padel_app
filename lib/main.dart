@@ -265,48 +265,48 @@ class _MatchScreenState extends State<MatchScreen> {
             const WinnerOverlay(),
 
           // Indicador USB (solo cuando NO hay conexión)
-          Positioned(
-            left: 12,
-            top: 12,
-            child: BlocBuilder<UsbConnectionCubit, UsbConnectionState>(
-              builder: (context, state) {
-                if (state.isConnected) return const SizedBox.shrink();
+          // Positioned(
+          //   left: 12,
+          //   top: 12,
+          //   child: BlocBuilder<UsbConnectionCubit, UsbConnectionState>(
+          //     builder: (context, state) {
+          //       if (state.isConnected) return const SizedBox.shrink();
 
-                return Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 6,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.red.withOpacity(0.85),
-                    borderRadius: BorderRadius.circular(16),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.3),
-                        blurRadius: 4,
-                        offset: const Offset(0, 2),
-                      ),
-                    ],
-                  ),
-                  child: const Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(Icons.usb_off, color: Colors.white, size: 18),
-                      SizedBox(width: 6),
-                      Text(
-                        'Sin USB',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ],
-                  ),
-                );
-              },
-            ),
-          ),
+          //       return Container(
+          //         padding: const EdgeInsets.symmetric(
+          //           horizontal: 10,
+          //           vertical: 6,
+          //         ),
+          //         decoration: BoxDecoration(
+          //           color: Colors.red.withOpacity(0.85),
+          //           borderRadius: BorderRadius.circular(16),
+          //           boxShadow: [
+          //             BoxShadow(
+          //               color: Colors.black.withOpacity(0.3),
+          //               blurRadius: 4,
+          //               offset: const Offset(0, 2),
+          //             ),
+          //           ],
+          //         ),
+          //         child: const Row(
+          //           mainAxisSize: MainAxisSize.min,
+          //           children: [
+          //             Icon(Icons.usb_off, color: Colors.white, size: 18),
+          //             SizedBox(width: 6),
+          //             Text(
+          //               'Sin USB',
+          //               style: TextStyle(
+          //                 color: Colors.white,
+          //                 fontSize: 12,
+          //                 fontWeight: FontWeight.w600,
+          //               ),
+          //             ),
+          //           ],
+          //         ),
+          //       );
+          //     },
+          //   ),
+          // ),
 
           // Botón de configuración → abre pantalla completa
           Positioned(
