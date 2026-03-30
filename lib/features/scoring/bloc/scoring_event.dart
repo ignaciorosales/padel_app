@@ -27,6 +27,9 @@ class ScoringEvent with _$ScoringEvent {
   const factory ScoringEvent.toggleTieBreakGames(int games) = ToggleTieBreakGamesEvent; // 6 or 12
   const factory ScoringEvent.toggleTieBreakTarget(int target) = ToggleTieBreakTargetEvent; // 7 or 10
   const factory ScoringEvent.toggleGoldenPoint(bool enabled) = ToggleGoldenPointEvent;
+  
+  /// Modo de partido (Amateur/Campeonato)
+  const factory ScoringEvent.setMatchMode(MatchMode mode) = SetMatchModeEvent;
 
   /// Optional announcer text (kept for compatibility)
   const factory ScoringEvent.announceScore() = AnnounceScoreEvent;

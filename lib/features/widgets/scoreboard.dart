@@ -9,6 +9,9 @@ import 'package:Puntazo/features/scoring/bloc/scoring_state.dart';
 import 'package:Puntazo/features/widgets/set_score.dart';
 import 'package:Puntazo/l10n/app_localizations.dart';
 
+// Re-export Server and PlayerPosition from scoring_models
+import 'package:Puntazo/features/models/scoring_models.dart' show Server, PlayerPosition;
+
 /// Helper to create darker color for gradient
 Color _darkenColor(Color color, [double amount = 0.3]) {
   final hsl = HSLColor.fromColor(color);
@@ -270,9 +273,10 @@ class _ScoreboardContent extends StatelessWidget {
         child: LayoutBuilder(
           builder: (_, c) {
             final h = c.maxHeight;
-            final pointsSize = h * 0.42;
-            final labelSize  = h * 0.08;
-            final histFont   = h * 0.08;
+            // Tamaños aumentados para mejor visibilidad
+            final pointsSize = h * 0.52;  // Puntos grandes del juego actual
+            final labelSize  = h * 0.10;  // Etiquetas de equipo
+            final histFont   = h * 0.10;  // Historial de sets
             const textColor = Colors.white;
 
             return Stack(
@@ -347,12 +351,14 @@ class _TeamHeaderRow extends StatelessWidget {
           finishedSets.add(SetScore(sb, sr));
         }
         
-        return _HeaderData(m.server, finishedSets, state.isSwapped);
+        return _HeaderData(m.server, m.currentServer, finishedSets, state.isSwapped);
       },
       builder: (context, headerData) {
         final server = headerData.server;
+        final currentServer = headerData.currentServer;
         final finishedSets = headerData.finishedSets;
         final isSwapped = headerData.isSwapped;
+        final positionLabel = headerData.serverPositionLabel;
         
         return Row(
               children: [
@@ -362,16 +368,31 @@ class _TeamHeaderRow extends StatelessWidget {
                   child: Row(
                 mainAxisAlignment: MainAxisAlignment.start,
                 children: [
-                  // Indicador de saque - debe aparecer en el lado donde está el servidor
+                  // Indicador de saque con posición del jugador (DRY/REV)
                   // Si isSwapped: izquierda = Team.red, derecha = Team.blue
                   SizedBox(
-                    width: labelSize * 1.3 + 8.0,
+                    width: labelSize * 2.2 + 8.0,
                     child: server == (isSwapped ? Team.red : Team.blue)
-                        ? Image.asset(
-                            'assets/images/padel_ball.png',
-                            width: labelSize * 1.3,
-                            height: labelSize * 1.3,
-                            fit: BoxFit.contain,
+                        ? Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Image.asset(
+                                'assets/images/padel_ball.png',
+                                width: labelSize * 1.1,
+                                height: labelSize * 1.1,
+                                fit: BoxFit.contain,
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                positionLabel,
+                                style: TextStyle(
+                                  color: textColor.withOpacity(0.85),
+                                  fontSize: labelSize * 0.7,
+                                  fontWeight: FontWeight.bold,
+                                  fontFamily: 'Digital7',
+                                ),
+                              ),
+                            ],
                           )
                         : null,
                   ),
@@ -519,16 +540,32 @@ class _TeamHeaderRow extends StatelessWidget {
                       );
                     },
                   ),
-                  // Indicador de saque - debe aparecer en el lado donde está el servidor
+                  // Indicador de saque con posición del jugador (DRY/REV)
                   // Si isSwapped: derecha = Team.blue, izquierda = Team.red
                   SizedBox(
-                    width: labelSize * 1.3 + 8.0,
+                    width: labelSize * 2.2 + 8.0,
                     child: server == (isSwapped ? Team.blue : Team.red)
-                        ? Image.asset(
-                            'assets/images/padel_ball.png',
-                            width: labelSize * 1.3,
-                            height: labelSize * 1.3,
-                            fit: BoxFit.contain,
+                        ? Row(
+                            mainAxisSize: MainAxisSize.min,
+                            mainAxisAlignment: MainAxisAlignment.end,
+                            children: [
+                              Text(
+                                positionLabel,
+                                style: TextStyle(
+                                  color: textColor.withOpacity(0.85),
+                                  fontSize: labelSize * 0.7,
+                                  fontWeight: FontWeight.bold,
+                                  fontFamily: 'Digital7',
+                                ),
+                              ),
+                              const SizedBox(width: 4),
+                              Image.asset(
+                                'assets/images/padel_ball.png',
+                                width: labelSize * 1.1,
+                                height: labelSize * 1.1,
+                                fit: BoxFit.contain,
+                              ),
+                            ],
                           )
                         : null,
                   ),
@@ -788,10 +825,11 @@ class _GameStatusIndicator extends StatelessWidget {
 // ▲ OPTIMIZACIÓN: Clases de datos para comparación eficiente en BlocSelector
 class _HeaderData {
   final Team server;
+  final Server currentServer;  // Servidor actual con posición (DRY/REVÉS)
   final List<SetScore> finishedSets;
   final bool isSwapped;
 
-  _HeaderData(this.server, this.finishedSets, this.isSwapped);
+  _HeaderData(this.server, this.currentServer, this.finishedSets, this.isSwapped);
 
   @override
   bool operator ==(Object other) =>
@@ -799,11 +837,12 @@ class _HeaderData {
       other is _HeaderData &&
           runtimeType == other.runtimeType &&
           server == other.server &&
+          currentServer == other.currentServer &&
           isSwapped == other.isSwapped &&
           _listsEqual(finishedSets, other.finishedSets);
 
   @override
-  int get hashCode => server.hashCode ^ finishedSets.length.hashCode ^ isSwapped.hashCode;
+  int get hashCode => server.hashCode ^ currentServer.hashCode ^ finishedSets.length.hashCode ^ isSwapped.hashCode;
 
   bool _listsEqual(List a, List b) {
     if (a.length != b.length) return false;
@@ -811,6 +850,11 @@ class _HeaderData {
       if (a[i].blue != b[i].blue || a[i].red != b[i].red) return false;
     }
     return true;
+  }
+  
+  /// Obtiene el nombre de la posición del servidor actual
+  String get serverPositionLabel {
+    return currentServer.position == PlayerPosition.drive ? 'DRY' : 'REV';
   }
 }
 

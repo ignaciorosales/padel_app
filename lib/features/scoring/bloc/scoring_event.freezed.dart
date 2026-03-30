@@ -31,6 +31,7 @@ mixin _$ScoringEvent {
     required TResult Function(int games) toggleTieBreakGames,
     required TResult Function(int target) toggleTieBreakTarget,
     required TResult Function(bool enabled) toggleGoldenPoint,
+    required TResult Function(MatchMode mode) setMatchMode,
     required TResult Function() announceScore,
     required TResult Function() undo,
     required TResult Function() redo,
@@ -51,6 +52,7 @@ mixin _$ScoringEvent {
     TResult? Function(int games)? toggleTieBreakGames,
     TResult? Function(int target)? toggleTieBreakTarget,
     TResult? Function(bool enabled)? toggleGoldenPoint,
+    TResult? Function(MatchMode mode)? setMatchMode,
     TResult? Function()? announceScore,
     TResult? Function()? undo,
     TResult? Function()? redo,
@@ -71,6 +73,7 @@ mixin _$ScoringEvent {
     TResult Function(int games)? toggleTieBreakGames,
     TResult Function(int target)? toggleTieBreakTarget,
     TResult Function(bool enabled)? toggleGoldenPoint,
+    TResult Function(MatchMode mode)? setMatchMode,
     TResult Function()? announceScore,
     TResult Function()? undo,
     TResult Function()? redo,
@@ -95,6 +98,7 @@ mixin _$ScoringEvent {
     required TResult Function(ToggleTieBreakTargetEvent value)
     toggleTieBreakTarget,
     required TResult Function(ToggleGoldenPointEvent value) toggleGoldenPoint,
+    required TResult Function(SetMatchModeEvent value) setMatchMode,
     required TResult Function(AnnounceScoreEvent value) announceScore,
     required TResult Function(UndoEvent value) undo,
     required TResult Function(RedoEvent value) redo,
@@ -115,6 +119,7 @@ mixin _$ScoringEvent {
     TResult? Function(ToggleTieBreakGamesEvent value)? toggleTieBreakGames,
     TResult? Function(ToggleTieBreakTargetEvent value)? toggleTieBreakTarget,
     TResult? Function(ToggleGoldenPointEvent value)? toggleGoldenPoint,
+    TResult? Function(SetMatchModeEvent value)? setMatchMode,
     TResult? Function(AnnounceScoreEvent value)? announceScore,
     TResult? Function(UndoEvent value)? undo,
     TResult? Function(RedoEvent value)? redo,
@@ -135,6 +140,7 @@ mixin _$ScoringEvent {
     TResult Function(ToggleTieBreakGamesEvent value)? toggleTieBreakGames,
     TResult Function(ToggleTieBreakTargetEvent value)? toggleTieBreakTarget,
     TResult Function(ToggleGoldenPointEvent value)? toggleGoldenPoint,
+    TResult Function(SetMatchModeEvent value)? setMatchMode,
     TResult Function(AnnounceScoreEvent value)? announceScore,
     TResult Function(UndoEvent value)? undo,
     TResult Function(RedoEvent value)? redo,
@@ -276,6 +282,7 @@ class _$NewMatchEventImpl implements NewMatchEvent {
     required TResult Function(int games) toggleTieBreakGames,
     required TResult Function(int target) toggleTieBreakTarget,
     required TResult Function(bool enabled) toggleGoldenPoint,
+    required TResult Function(MatchMode mode) setMatchMode,
     required TResult Function() announceScore,
     required TResult Function() undo,
     required TResult Function() redo,
@@ -300,6 +307,7 @@ class _$NewMatchEventImpl implements NewMatchEvent {
     TResult? Function(int games)? toggleTieBreakGames,
     TResult? Function(int target)? toggleTieBreakTarget,
     TResult? Function(bool enabled)? toggleGoldenPoint,
+    TResult? Function(MatchMode mode)? setMatchMode,
     TResult? Function()? announceScore,
     TResult? Function()? undo,
     TResult? Function()? redo,
@@ -324,6 +332,7 @@ class _$NewMatchEventImpl implements NewMatchEvent {
     TResult Function(int games)? toggleTieBreakGames,
     TResult Function(int target)? toggleTieBreakTarget,
     TResult Function(bool enabled)? toggleGoldenPoint,
+    TResult Function(MatchMode mode)? setMatchMode,
     TResult Function()? announceScore,
     TResult Function()? undo,
     TResult Function()? redo,
@@ -355,6 +364,7 @@ class _$NewMatchEventImpl implements NewMatchEvent {
     required TResult Function(ToggleTieBreakTargetEvent value)
     toggleTieBreakTarget,
     required TResult Function(ToggleGoldenPointEvent value) toggleGoldenPoint,
+    required TResult Function(SetMatchModeEvent value) setMatchMode,
     required TResult Function(AnnounceScoreEvent value) announceScore,
     required TResult Function(UndoEvent value) undo,
     required TResult Function(RedoEvent value) redo,
@@ -379,6 +389,7 @@ class _$NewMatchEventImpl implements NewMatchEvent {
     TResult? Function(ToggleTieBreakGamesEvent value)? toggleTieBreakGames,
     TResult? Function(ToggleTieBreakTargetEvent value)? toggleTieBreakTarget,
     TResult? Function(ToggleGoldenPointEvent value)? toggleGoldenPoint,
+    TResult? Function(SetMatchModeEvent value)? setMatchMode,
     TResult? Function(AnnounceScoreEvent value)? announceScore,
     TResult? Function(UndoEvent value)? undo,
     TResult? Function(RedoEvent value)? redo,
@@ -403,6 +414,7 @@ class _$NewMatchEventImpl implements NewMatchEvent {
     TResult Function(ToggleTieBreakGamesEvent value)? toggleTieBreakGames,
     TResult Function(ToggleTieBreakTargetEvent value)? toggleTieBreakTarget,
     TResult Function(ToggleGoldenPointEvent value)? toggleGoldenPoint,
+    TResult Function(SetMatchModeEvent value)? setMatchMode,
     TResult Function(AnnounceScoreEvent value)? announceScore,
     TResult Function(UndoEvent value)? undo,
     TResult Function(RedoEvent value)? redo,
@@ -489,6 +501,7 @@ class _$NewSetEventImpl implements NewSetEvent {
     required TResult Function(int games) toggleTieBreakGames,
     required TResult Function(int target) toggleTieBreakTarget,
     required TResult Function(bool enabled) toggleGoldenPoint,
+    required TResult Function(MatchMode mode) setMatchMode,
     required TResult Function() announceScore,
     required TResult Function() undo,
     required TResult Function() redo,
@@ -513,6 +526,7 @@ class _$NewSetEventImpl implements NewSetEvent {
     TResult? Function(int games)? toggleTieBreakGames,
     TResult? Function(int target)? toggleTieBreakTarget,
     TResult? Function(bool enabled)? toggleGoldenPoint,
+    TResult? Function(MatchMode mode)? setMatchMode,
     TResult? Function()? announceScore,
     TResult? Function()? undo,
     TResult? Function()? redo,
@@ -537,6 +551,7 @@ class _$NewSetEventImpl implements NewSetEvent {
     TResult Function(int games)? toggleTieBreakGames,
     TResult Function(int target)? toggleTieBreakTarget,
     TResult Function(bool enabled)? toggleGoldenPoint,
+    TResult Function(MatchMode mode)? setMatchMode,
     TResult Function()? announceScore,
     TResult Function()? undo,
     TResult Function()? redo,
@@ -568,6 +583,7 @@ class _$NewSetEventImpl implements NewSetEvent {
     required TResult Function(ToggleTieBreakTargetEvent value)
     toggleTieBreakTarget,
     required TResult Function(ToggleGoldenPointEvent value) toggleGoldenPoint,
+    required TResult Function(SetMatchModeEvent value) setMatchMode,
     required TResult Function(AnnounceScoreEvent value) announceScore,
     required TResult Function(UndoEvent value) undo,
     required TResult Function(RedoEvent value) redo,
@@ -592,6 +608,7 @@ class _$NewSetEventImpl implements NewSetEvent {
     TResult? Function(ToggleTieBreakGamesEvent value)? toggleTieBreakGames,
     TResult? Function(ToggleTieBreakTargetEvent value)? toggleTieBreakTarget,
     TResult? Function(ToggleGoldenPointEvent value)? toggleGoldenPoint,
+    TResult? Function(SetMatchModeEvent value)? setMatchMode,
     TResult? Function(AnnounceScoreEvent value)? announceScore,
     TResult? Function(UndoEvent value)? undo,
     TResult? Function(RedoEvent value)? redo,
@@ -616,6 +633,7 @@ class _$NewSetEventImpl implements NewSetEvent {
     TResult Function(ToggleTieBreakGamesEvent value)? toggleTieBreakGames,
     TResult Function(ToggleTieBreakTargetEvent value)? toggleTieBreakTarget,
     TResult Function(ToggleGoldenPointEvent value)? toggleGoldenPoint,
+    TResult Function(SetMatchModeEvent value)? setMatchMode,
     TResult Function(AnnounceScoreEvent value)? announceScore,
     TResult Function(UndoEvent value)? undo,
     TResult Function(RedoEvent value)? redo,
@@ -690,6 +708,7 @@ class _$NewGameEventImpl implements NewGameEvent {
     required TResult Function(int games) toggleTieBreakGames,
     required TResult Function(int target) toggleTieBreakTarget,
     required TResult Function(bool enabled) toggleGoldenPoint,
+    required TResult Function(MatchMode mode) setMatchMode,
     required TResult Function() announceScore,
     required TResult Function() undo,
     required TResult Function() redo,
@@ -714,6 +733,7 @@ class _$NewGameEventImpl implements NewGameEvent {
     TResult? Function(int games)? toggleTieBreakGames,
     TResult? Function(int target)? toggleTieBreakTarget,
     TResult? Function(bool enabled)? toggleGoldenPoint,
+    TResult? Function(MatchMode mode)? setMatchMode,
     TResult? Function()? announceScore,
     TResult? Function()? undo,
     TResult? Function()? redo,
@@ -738,6 +758,7 @@ class _$NewGameEventImpl implements NewGameEvent {
     TResult Function(int games)? toggleTieBreakGames,
     TResult Function(int target)? toggleTieBreakTarget,
     TResult Function(bool enabled)? toggleGoldenPoint,
+    TResult Function(MatchMode mode)? setMatchMode,
     TResult Function()? announceScore,
     TResult Function()? undo,
     TResult Function()? redo,
@@ -769,6 +790,7 @@ class _$NewGameEventImpl implements NewGameEvent {
     required TResult Function(ToggleTieBreakTargetEvent value)
     toggleTieBreakTarget,
     required TResult Function(ToggleGoldenPointEvent value) toggleGoldenPoint,
+    required TResult Function(SetMatchModeEvent value) setMatchMode,
     required TResult Function(AnnounceScoreEvent value) announceScore,
     required TResult Function(UndoEvent value) undo,
     required TResult Function(RedoEvent value) redo,
@@ -793,6 +815,7 @@ class _$NewGameEventImpl implements NewGameEvent {
     TResult? Function(ToggleTieBreakGamesEvent value)? toggleTieBreakGames,
     TResult? Function(ToggleTieBreakTargetEvent value)? toggleTieBreakTarget,
     TResult? Function(ToggleGoldenPointEvent value)? toggleGoldenPoint,
+    TResult? Function(SetMatchModeEvent value)? setMatchMode,
     TResult? Function(AnnounceScoreEvent value)? announceScore,
     TResult? Function(UndoEvent value)? undo,
     TResult? Function(RedoEvent value)? redo,
@@ -817,6 +840,7 @@ class _$NewGameEventImpl implements NewGameEvent {
     TResult Function(ToggleTieBreakGamesEvent value)? toggleTieBreakGames,
     TResult Function(ToggleTieBreakTargetEvent value)? toggleTieBreakTarget,
     TResult Function(ToggleGoldenPointEvent value)? toggleGoldenPoint,
+    TResult Function(SetMatchModeEvent value)? setMatchMode,
     TResult Function(AnnounceScoreEvent value)? announceScore,
     TResult Function(UndoEvent value)? undo,
     TResult Function(RedoEvent value)? redo,
@@ -918,6 +942,7 @@ class _$PointForEventImpl implements PointForEvent {
     required TResult Function(int games) toggleTieBreakGames,
     required TResult Function(int target) toggleTieBreakTarget,
     required TResult Function(bool enabled) toggleGoldenPoint,
+    required TResult Function(MatchMode mode) setMatchMode,
     required TResult Function() announceScore,
     required TResult Function() undo,
     required TResult Function() redo,
@@ -942,6 +967,7 @@ class _$PointForEventImpl implements PointForEvent {
     TResult? Function(int games)? toggleTieBreakGames,
     TResult? Function(int target)? toggleTieBreakTarget,
     TResult? Function(bool enabled)? toggleGoldenPoint,
+    TResult? Function(MatchMode mode)? setMatchMode,
     TResult? Function()? announceScore,
     TResult? Function()? undo,
     TResult? Function()? redo,
@@ -966,6 +992,7 @@ class _$PointForEventImpl implements PointForEvent {
     TResult Function(int games)? toggleTieBreakGames,
     TResult Function(int target)? toggleTieBreakTarget,
     TResult Function(bool enabled)? toggleGoldenPoint,
+    TResult Function(MatchMode mode)? setMatchMode,
     TResult Function()? announceScore,
     TResult Function()? undo,
     TResult Function()? redo,
@@ -997,6 +1024,7 @@ class _$PointForEventImpl implements PointForEvent {
     required TResult Function(ToggleTieBreakTargetEvent value)
     toggleTieBreakTarget,
     required TResult Function(ToggleGoldenPointEvent value) toggleGoldenPoint,
+    required TResult Function(SetMatchModeEvent value) setMatchMode,
     required TResult Function(AnnounceScoreEvent value) announceScore,
     required TResult Function(UndoEvent value) undo,
     required TResult Function(RedoEvent value) redo,
@@ -1021,6 +1049,7 @@ class _$PointForEventImpl implements PointForEvent {
     TResult? Function(ToggleTieBreakGamesEvent value)? toggleTieBreakGames,
     TResult? Function(ToggleTieBreakTargetEvent value)? toggleTieBreakTarget,
     TResult? Function(ToggleGoldenPointEvent value)? toggleGoldenPoint,
+    TResult? Function(SetMatchModeEvent value)? setMatchMode,
     TResult? Function(AnnounceScoreEvent value)? announceScore,
     TResult? Function(UndoEvent value)? undo,
     TResult? Function(RedoEvent value)? redo,
@@ -1045,6 +1074,7 @@ class _$PointForEventImpl implements PointForEvent {
     TResult Function(ToggleTieBreakGamesEvent value)? toggleTieBreakGames,
     TResult Function(ToggleTieBreakTargetEvent value)? toggleTieBreakTarget,
     TResult Function(ToggleGoldenPointEvent value)? toggleGoldenPoint,
+    TResult Function(SetMatchModeEvent value)? setMatchMode,
     TResult Function(AnnounceScoreEvent value)? announceScore,
     TResult Function(UndoEvent value)? undo,
     TResult Function(RedoEvent value)? redo,
@@ -1157,6 +1187,7 @@ class _$RemovePointEventImpl implements RemovePointEvent {
     required TResult Function(int games) toggleTieBreakGames,
     required TResult Function(int target) toggleTieBreakTarget,
     required TResult Function(bool enabled) toggleGoldenPoint,
+    required TResult Function(MatchMode mode) setMatchMode,
     required TResult Function() announceScore,
     required TResult Function() undo,
     required TResult Function() redo,
@@ -1181,6 +1212,7 @@ class _$RemovePointEventImpl implements RemovePointEvent {
     TResult? Function(int games)? toggleTieBreakGames,
     TResult? Function(int target)? toggleTieBreakTarget,
     TResult? Function(bool enabled)? toggleGoldenPoint,
+    TResult? Function(MatchMode mode)? setMatchMode,
     TResult? Function()? announceScore,
     TResult? Function()? undo,
     TResult? Function()? redo,
@@ -1205,6 +1237,7 @@ class _$RemovePointEventImpl implements RemovePointEvent {
     TResult Function(int games)? toggleTieBreakGames,
     TResult Function(int target)? toggleTieBreakTarget,
     TResult Function(bool enabled)? toggleGoldenPoint,
+    TResult Function(MatchMode mode)? setMatchMode,
     TResult Function()? announceScore,
     TResult Function()? undo,
     TResult Function()? redo,
@@ -1236,6 +1269,7 @@ class _$RemovePointEventImpl implements RemovePointEvent {
     required TResult Function(ToggleTieBreakTargetEvent value)
     toggleTieBreakTarget,
     required TResult Function(ToggleGoldenPointEvent value) toggleGoldenPoint,
+    required TResult Function(SetMatchModeEvent value) setMatchMode,
     required TResult Function(AnnounceScoreEvent value) announceScore,
     required TResult Function(UndoEvent value) undo,
     required TResult Function(RedoEvent value) redo,
@@ -1260,6 +1294,7 @@ class _$RemovePointEventImpl implements RemovePointEvent {
     TResult? Function(ToggleTieBreakGamesEvent value)? toggleTieBreakGames,
     TResult? Function(ToggleTieBreakTargetEvent value)? toggleTieBreakTarget,
     TResult? Function(ToggleGoldenPointEvent value)? toggleGoldenPoint,
+    TResult? Function(SetMatchModeEvent value)? setMatchMode,
     TResult? Function(AnnounceScoreEvent value)? announceScore,
     TResult? Function(UndoEvent value)? undo,
     TResult? Function(RedoEvent value)? redo,
@@ -1284,6 +1319,7 @@ class _$RemovePointEventImpl implements RemovePointEvent {
     TResult Function(ToggleTieBreakGamesEvent value)? toggleTieBreakGames,
     TResult Function(ToggleTieBreakTargetEvent value)? toggleTieBreakTarget,
     TResult Function(ToggleGoldenPointEvent value)? toggleGoldenPoint,
+    TResult Function(SetMatchModeEvent value)? setMatchMode,
     TResult Function(AnnounceScoreEvent value)? announceScore,
     TResult Function(UndoEvent value)? undo,
     TResult Function(RedoEvent value)? redo,
@@ -1396,6 +1432,7 @@ class _$ForceGameForEventImpl implements ForceGameForEvent {
     required TResult Function(int games) toggleTieBreakGames,
     required TResult Function(int target) toggleTieBreakTarget,
     required TResult Function(bool enabled) toggleGoldenPoint,
+    required TResult Function(MatchMode mode) setMatchMode,
     required TResult Function() announceScore,
     required TResult Function() undo,
     required TResult Function() redo,
@@ -1420,6 +1457,7 @@ class _$ForceGameForEventImpl implements ForceGameForEvent {
     TResult? Function(int games)? toggleTieBreakGames,
     TResult? Function(int target)? toggleTieBreakTarget,
     TResult? Function(bool enabled)? toggleGoldenPoint,
+    TResult? Function(MatchMode mode)? setMatchMode,
     TResult? Function()? announceScore,
     TResult? Function()? undo,
     TResult? Function()? redo,
@@ -1444,6 +1482,7 @@ class _$ForceGameForEventImpl implements ForceGameForEvent {
     TResult Function(int games)? toggleTieBreakGames,
     TResult Function(int target)? toggleTieBreakTarget,
     TResult Function(bool enabled)? toggleGoldenPoint,
+    TResult Function(MatchMode mode)? setMatchMode,
     TResult Function()? announceScore,
     TResult Function()? undo,
     TResult Function()? redo,
@@ -1475,6 +1514,7 @@ class _$ForceGameForEventImpl implements ForceGameForEvent {
     required TResult Function(ToggleTieBreakTargetEvent value)
     toggleTieBreakTarget,
     required TResult Function(ToggleGoldenPointEvent value) toggleGoldenPoint,
+    required TResult Function(SetMatchModeEvent value) setMatchMode,
     required TResult Function(AnnounceScoreEvent value) announceScore,
     required TResult Function(UndoEvent value) undo,
     required TResult Function(RedoEvent value) redo,
@@ -1499,6 +1539,7 @@ class _$ForceGameForEventImpl implements ForceGameForEvent {
     TResult? Function(ToggleTieBreakGamesEvent value)? toggleTieBreakGames,
     TResult? Function(ToggleTieBreakTargetEvent value)? toggleTieBreakTarget,
     TResult? Function(ToggleGoldenPointEvent value)? toggleGoldenPoint,
+    TResult? Function(SetMatchModeEvent value)? setMatchMode,
     TResult? Function(AnnounceScoreEvent value)? announceScore,
     TResult? Function(UndoEvent value)? undo,
     TResult? Function(RedoEvent value)? redo,
@@ -1523,6 +1564,7 @@ class _$ForceGameForEventImpl implements ForceGameForEvent {
     TResult Function(ToggleTieBreakGamesEvent value)? toggleTieBreakGames,
     TResult Function(ToggleTieBreakTargetEvent value)? toggleTieBreakTarget,
     TResult Function(ToggleGoldenPointEvent value)? toggleGoldenPoint,
+    TResult Function(SetMatchModeEvent value)? setMatchMode,
     TResult Function(AnnounceScoreEvent value)? announceScore,
     TResult Function(UndoEvent value)? undo,
     TResult Function(RedoEvent value)? redo,
@@ -1635,6 +1677,7 @@ class _$ForceSetForEventImpl implements ForceSetForEvent {
     required TResult Function(int games) toggleTieBreakGames,
     required TResult Function(int target) toggleTieBreakTarget,
     required TResult Function(bool enabled) toggleGoldenPoint,
+    required TResult Function(MatchMode mode) setMatchMode,
     required TResult Function() announceScore,
     required TResult Function() undo,
     required TResult Function() redo,
@@ -1659,6 +1702,7 @@ class _$ForceSetForEventImpl implements ForceSetForEvent {
     TResult? Function(int games)? toggleTieBreakGames,
     TResult? Function(int target)? toggleTieBreakTarget,
     TResult? Function(bool enabled)? toggleGoldenPoint,
+    TResult? Function(MatchMode mode)? setMatchMode,
     TResult? Function()? announceScore,
     TResult? Function()? undo,
     TResult? Function()? redo,
@@ -1683,6 +1727,7 @@ class _$ForceSetForEventImpl implements ForceSetForEvent {
     TResult Function(int games)? toggleTieBreakGames,
     TResult Function(int target)? toggleTieBreakTarget,
     TResult Function(bool enabled)? toggleGoldenPoint,
+    TResult Function(MatchMode mode)? setMatchMode,
     TResult Function()? announceScore,
     TResult Function()? undo,
     TResult Function()? redo,
@@ -1714,6 +1759,7 @@ class _$ForceSetForEventImpl implements ForceSetForEvent {
     required TResult Function(ToggleTieBreakTargetEvent value)
     toggleTieBreakTarget,
     required TResult Function(ToggleGoldenPointEvent value) toggleGoldenPoint,
+    required TResult Function(SetMatchModeEvent value) setMatchMode,
     required TResult Function(AnnounceScoreEvent value) announceScore,
     required TResult Function(UndoEvent value) undo,
     required TResult Function(RedoEvent value) redo,
@@ -1738,6 +1784,7 @@ class _$ForceSetForEventImpl implements ForceSetForEvent {
     TResult? Function(ToggleTieBreakGamesEvent value)? toggleTieBreakGames,
     TResult? Function(ToggleTieBreakTargetEvent value)? toggleTieBreakTarget,
     TResult? Function(ToggleGoldenPointEvent value)? toggleGoldenPoint,
+    TResult? Function(SetMatchModeEvent value)? setMatchMode,
     TResult? Function(AnnounceScoreEvent value)? announceScore,
     TResult? Function(UndoEvent value)? undo,
     TResult? Function(RedoEvent value)? redo,
@@ -1762,6 +1809,7 @@ class _$ForceSetForEventImpl implements ForceSetForEvent {
     TResult Function(ToggleTieBreakGamesEvent value)? toggleTieBreakGames,
     TResult Function(ToggleTieBreakTargetEvent value)? toggleTieBreakTarget,
     TResult Function(ToggleGoldenPointEvent value)? toggleGoldenPoint,
+    TResult Function(SetMatchModeEvent value)? setMatchMode,
     TResult Function(AnnounceScoreEvent value)? announceScore,
     TResult Function(UndoEvent value)? undo,
     TResult Function(RedoEvent value)? redo,
@@ -1885,6 +1933,7 @@ class _$SetExplicitGamePointsEventImpl implements SetExplicitGamePointsEvent {
     required TResult Function(int games) toggleTieBreakGames,
     required TResult Function(int target) toggleTieBreakTarget,
     required TResult Function(bool enabled) toggleGoldenPoint,
+    required TResult Function(MatchMode mode) setMatchMode,
     required TResult Function() announceScore,
     required TResult Function() undo,
     required TResult Function() redo,
@@ -1909,6 +1958,7 @@ class _$SetExplicitGamePointsEventImpl implements SetExplicitGamePointsEvent {
     TResult? Function(int games)? toggleTieBreakGames,
     TResult? Function(int target)? toggleTieBreakTarget,
     TResult? Function(bool enabled)? toggleGoldenPoint,
+    TResult? Function(MatchMode mode)? setMatchMode,
     TResult? Function()? announceScore,
     TResult? Function()? undo,
     TResult? Function()? redo,
@@ -1933,6 +1983,7 @@ class _$SetExplicitGamePointsEventImpl implements SetExplicitGamePointsEvent {
     TResult Function(int games)? toggleTieBreakGames,
     TResult Function(int target)? toggleTieBreakTarget,
     TResult Function(bool enabled)? toggleGoldenPoint,
+    TResult Function(MatchMode mode)? setMatchMode,
     TResult Function()? announceScore,
     TResult Function()? undo,
     TResult Function()? redo,
@@ -1964,6 +2015,7 @@ class _$SetExplicitGamePointsEventImpl implements SetExplicitGamePointsEvent {
     required TResult Function(ToggleTieBreakTargetEvent value)
     toggleTieBreakTarget,
     required TResult Function(ToggleGoldenPointEvent value) toggleGoldenPoint,
+    required TResult Function(SetMatchModeEvent value) setMatchMode,
     required TResult Function(AnnounceScoreEvent value) announceScore,
     required TResult Function(UndoEvent value) undo,
     required TResult Function(RedoEvent value) redo,
@@ -1988,6 +2040,7 @@ class _$SetExplicitGamePointsEventImpl implements SetExplicitGamePointsEvent {
     TResult? Function(ToggleTieBreakGamesEvent value)? toggleTieBreakGames,
     TResult? Function(ToggleTieBreakTargetEvent value)? toggleTieBreakTarget,
     TResult? Function(ToggleGoldenPointEvent value)? toggleGoldenPoint,
+    TResult? Function(SetMatchModeEvent value)? setMatchMode,
     TResult? Function(AnnounceScoreEvent value)? announceScore,
     TResult? Function(UndoEvent value)? undo,
     TResult? Function(RedoEvent value)? redo,
@@ -2012,6 +2065,7 @@ class _$SetExplicitGamePointsEventImpl implements SetExplicitGamePointsEvent {
     TResult Function(ToggleTieBreakGamesEvent value)? toggleTieBreakGames,
     TResult Function(ToggleTieBreakTargetEvent value)? toggleTieBreakTarget,
     TResult Function(ToggleGoldenPointEvent value)? toggleGoldenPoint,
+    TResult Function(SetMatchModeEvent value)? setMatchMode,
     TResult Function(AnnounceScoreEvent value)? announceScore,
     TResult Function(UndoEvent value)? undo,
     TResult Function(RedoEvent value)? redo,
@@ -2127,6 +2181,7 @@ class _$ToggleTieBreakGamesEventImpl implements ToggleTieBreakGamesEvent {
     required TResult Function(int games) toggleTieBreakGames,
     required TResult Function(int target) toggleTieBreakTarget,
     required TResult Function(bool enabled) toggleGoldenPoint,
+    required TResult Function(MatchMode mode) setMatchMode,
     required TResult Function() announceScore,
     required TResult Function() undo,
     required TResult Function() redo,
@@ -2151,6 +2206,7 @@ class _$ToggleTieBreakGamesEventImpl implements ToggleTieBreakGamesEvent {
     TResult? Function(int games)? toggleTieBreakGames,
     TResult? Function(int target)? toggleTieBreakTarget,
     TResult? Function(bool enabled)? toggleGoldenPoint,
+    TResult? Function(MatchMode mode)? setMatchMode,
     TResult? Function()? announceScore,
     TResult? Function()? undo,
     TResult? Function()? redo,
@@ -2175,6 +2231,7 @@ class _$ToggleTieBreakGamesEventImpl implements ToggleTieBreakGamesEvent {
     TResult Function(int games)? toggleTieBreakGames,
     TResult Function(int target)? toggleTieBreakTarget,
     TResult Function(bool enabled)? toggleGoldenPoint,
+    TResult Function(MatchMode mode)? setMatchMode,
     TResult Function()? announceScore,
     TResult Function()? undo,
     TResult Function()? redo,
@@ -2206,6 +2263,7 @@ class _$ToggleTieBreakGamesEventImpl implements ToggleTieBreakGamesEvent {
     required TResult Function(ToggleTieBreakTargetEvent value)
     toggleTieBreakTarget,
     required TResult Function(ToggleGoldenPointEvent value) toggleGoldenPoint,
+    required TResult Function(SetMatchModeEvent value) setMatchMode,
     required TResult Function(AnnounceScoreEvent value) announceScore,
     required TResult Function(UndoEvent value) undo,
     required TResult Function(RedoEvent value) redo,
@@ -2230,6 +2288,7 @@ class _$ToggleTieBreakGamesEventImpl implements ToggleTieBreakGamesEvent {
     TResult? Function(ToggleTieBreakGamesEvent value)? toggleTieBreakGames,
     TResult? Function(ToggleTieBreakTargetEvent value)? toggleTieBreakTarget,
     TResult? Function(ToggleGoldenPointEvent value)? toggleGoldenPoint,
+    TResult? Function(SetMatchModeEvent value)? setMatchMode,
     TResult? Function(AnnounceScoreEvent value)? announceScore,
     TResult? Function(UndoEvent value)? undo,
     TResult? Function(RedoEvent value)? redo,
@@ -2254,6 +2313,7 @@ class _$ToggleTieBreakGamesEventImpl implements ToggleTieBreakGamesEvent {
     TResult Function(ToggleTieBreakGamesEvent value)? toggleTieBreakGames,
     TResult Function(ToggleTieBreakTargetEvent value)? toggleTieBreakTarget,
     TResult Function(ToggleGoldenPointEvent value)? toggleGoldenPoint,
+    TResult Function(SetMatchModeEvent value)? setMatchMode,
     TResult Function(AnnounceScoreEvent value)? announceScore,
     TResult Function(UndoEvent value)? undo,
     TResult Function(RedoEvent value)? redo,
@@ -2366,6 +2426,7 @@ class _$ToggleTieBreakTargetEventImpl implements ToggleTieBreakTargetEvent {
     required TResult Function(int games) toggleTieBreakGames,
     required TResult Function(int target) toggleTieBreakTarget,
     required TResult Function(bool enabled) toggleGoldenPoint,
+    required TResult Function(MatchMode mode) setMatchMode,
     required TResult Function() announceScore,
     required TResult Function() undo,
     required TResult Function() redo,
@@ -2390,6 +2451,7 @@ class _$ToggleTieBreakTargetEventImpl implements ToggleTieBreakTargetEvent {
     TResult? Function(int games)? toggleTieBreakGames,
     TResult? Function(int target)? toggleTieBreakTarget,
     TResult? Function(bool enabled)? toggleGoldenPoint,
+    TResult? Function(MatchMode mode)? setMatchMode,
     TResult? Function()? announceScore,
     TResult? Function()? undo,
     TResult? Function()? redo,
@@ -2414,6 +2476,7 @@ class _$ToggleTieBreakTargetEventImpl implements ToggleTieBreakTargetEvent {
     TResult Function(int games)? toggleTieBreakGames,
     TResult Function(int target)? toggleTieBreakTarget,
     TResult Function(bool enabled)? toggleGoldenPoint,
+    TResult Function(MatchMode mode)? setMatchMode,
     TResult Function()? announceScore,
     TResult Function()? undo,
     TResult Function()? redo,
@@ -2445,6 +2508,7 @@ class _$ToggleTieBreakTargetEventImpl implements ToggleTieBreakTargetEvent {
     required TResult Function(ToggleTieBreakTargetEvent value)
     toggleTieBreakTarget,
     required TResult Function(ToggleGoldenPointEvent value) toggleGoldenPoint,
+    required TResult Function(SetMatchModeEvent value) setMatchMode,
     required TResult Function(AnnounceScoreEvent value) announceScore,
     required TResult Function(UndoEvent value) undo,
     required TResult Function(RedoEvent value) redo,
@@ -2469,6 +2533,7 @@ class _$ToggleTieBreakTargetEventImpl implements ToggleTieBreakTargetEvent {
     TResult? Function(ToggleTieBreakGamesEvent value)? toggleTieBreakGames,
     TResult? Function(ToggleTieBreakTargetEvent value)? toggleTieBreakTarget,
     TResult? Function(ToggleGoldenPointEvent value)? toggleGoldenPoint,
+    TResult? Function(SetMatchModeEvent value)? setMatchMode,
     TResult? Function(AnnounceScoreEvent value)? announceScore,
     TResult? Function(UndoEvent value)? undo,
     TResult? Function(RedoEvent value)? redo,
@@ -2493,6 +2558,7 @@ class _$ToggleTieBreakTargetEventImpl implements ToggleTieBreakTargetEvent {
     TResult Function(ToggleTieBreakGamesEvent value)? toggleTieBreakGames,
     TResult Function(ToggleTieBreakTargetEvent value)? toggleTieBreakTarget,
     TResult Function(ToggleGoldenPointEvent value)? toggleGoldenPoint,
+    TResult Function(SetMatchModeEvent value)? setMatchMode,
     TResult Function(AnnounceScoreEvent value)? announceScore,
     TResult Function(UndoEvent value)? undo,
     TResult Function(RedoEvent value)? redo,
@@ -2607,6 +2673,7 @@ class _$ToggleGoldenPointEventImpl implements ToggleGoldenPointEvent {
     required TResult Function(int games) toggleTieBreakGames,
     required TResult Function(int target) toggleTieBreakTarget,
     required TResult Function(bool enabled) toggleGoldenPoint,
+    required TResult Function(MatchMode mode) setMatchMode,
     required TResult Function() announceScore,
     required TResult Function() undo,
     required TResult Function() redo,
@@ -2631,6 +2698,7 @@ class _$ToggleGoldenPointEventImpl implements ToggleGoldenPointEvent {
     TResult? Function(int games)? toggleTieBreakGames,
     TResult? Function(int target)? toggleTieBreakTarget,
     TResult? Function(bool enabled)? toggleGoldenPoint,
+    TResult? Function(MatchMode mode)? setMatchMode,
     TResult? Function()? announceScore,
     TResult? Function()? undo,
     TResult? Function()? redo,
@@ -2655,6 +2723,7 @@ class _$ToggleGoldenPointEventImpl implements ToggleGoldenPointEvent {
     TResult Function(int games)? toggleTieBreakGames,
     TResult Function(int target)? toggleTieBreakTarget,
     TResult Function(bool enabled)? toggleGoldenPoint,
+    TResult Function(MatchMode mode)? setMatchMode,
     TResult Function()? announceScore,
     TResult Function()? undo,
     TResult Function()? redo,
@@ -2686,6 +2755,7 @@ class _$ToggleGoldenPointEventImpl implements ToggleGoldenPointEvent {
     required TResult Function(ToggleTieBreakTargetEvent value)
     toggleTieBreakTarget,
     required TResult Function(ToggleGoldenPointEvent value) toggleGoldenPoint,
+    required TResult Function(SetMatchModeEvent value) setMatchMode,
     required TResult Function(AnnounceScoreEvent value) announceScore,
     required TResult Function(UndoEvent value) undo,
     required TResult Function(RedoEvent value) redo,
@@ -2710,6 +2780,7 @@ class _$ToggleGoldenPointEventImpl implements ToggleGoldenPointEvent {
     TResult? Function(ToggleTieBreakGamesEvent value)? toggleTieBreakGames,
     TResult? Function(ToggleTieBreakTargetEvent value)? toggleTieBreakTarget,
     TResult? Function(ToggleGoldenPointEvent value)? toggleGoldenPoint,
+    TResult? Function(SetMatchModeEvent value)? setMatchMode,
     TResult? Function(AnnounceScoreEvent value)? announceScore,
     TResult? Function(UndoEvent value)? undo,
     TResult? Function(RedoEvent value)? redo,
@@ -2734,6 +2805,7 @@ class _$ToggleGoldenPointEventImpl implements ToggleGoldenPointEvent {
     TResult Function(ToggleTieBreakGamesEvent value)? toggleTieBreakGames,
     TResult Function(ToggleTieBreakTargetEvent value)? toggleTieBreakTarget,
     TResult Function(ToggleGoldenPointEvent value)? toggleGoldenPoint,
+    TResult Function(SetMatchModeEvent value)? setMatchMode,
     TResult Function(AnnounceScoreEvent value)? announceScore,
     TResult Function(UndoEvent value)? undo,
     TResult Function(RedoEvent value)? redo,
@@ -2760,6 +2832,252 @@ abstract class ToggleGoldenPointEvent implements ScoringEvent {
   @JsonKey(includeFromJson: false, includeToJson: false)
   _$$ToggleGoldenPointEventImplCopyWith<_$ToggleGoldenPointEventImpl>
   get copyWith => throw _privateConstructorUsedError;
+}
+
+/// @nodoc
+abstract class _$$SetMatchModeEventImplCopyWith<$Res> {
+  factory _$$SetMatchModeEventImplCopyWith(
+    _$SetMatchModeEventImpl value,
+    $Res Function(_$SetMatchModeEventImpl) then,
+  ) = __$$SetMatchModeEventImplCopyWithImpl<$Res>;
+  @useResult
+  $Res call({MatchMode mode});
+}
+
+/// @nodoc
+class __$$SetMatchModeEventImplCopyWithImpl<$Res>
+    extends _$ScoringEventCopyWithImpl<$Res, _$SetMatchModeEventImpl>
+    implements _$$SetMatchModeEventImplCopyWith<$Res> {
+  __$$SetMatchModeEventImplCopyWithImpl(
+    _$SetMatchModeEventImpl _value,
+    $Res Function(_$SetMatchModeEventImpl) _then,
+  ) : super(_value, _then);
+
+  /// Create a copy of ScoringEvent
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({Object? mode = null}) {
+    return _then(
+      _$SetMatchModeEventImpl(
+        null == mode
+            ? _value.mode
+            : mode // ignore: cast_nullable_to_non_nullable
+                as MatchMode,
+      ),
+    );
+  }
+}
+
+/// @nodoc
+
+class _$SetMatchModeEventImpl implements SetMatchModeEvent {
+  const _$SetMatchModeEventImpl(this.mode);
+
+  @override
+  final MatchMode mode;
+
+  @override
+  String toString() {
+    return 'ScoringEvent.setMatchMode(mode: $mode)';
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType &&
+            other is _$SetMatchModeEventImpl &&
+            (identical(other.mode, mode) || other.mode == mode));
+  }
+
+  @override
+  int get hashCode => Object.hash(runtimeType, mode);
+
+  /// Create a copy of ScoringEvent
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  @pragma('vm:prefer-inline')
+  _$$SetMatchModeEventImplCopyWith<_$SetMatchModeEventImpl> get copyWith =>
+      __$$SetMatchModeEventImplCopyWithImpl<_$SetMatchModeEventImpl>(
+        this,
+        _$identity,
+      );
+
+  @override
+  @optionalTypeArgs
+  TResult when<TResult extends Object?>({
+    required TResult Function(MatchSettings? settings, Team? startingServer)
+    newMatch,
+    required TResult Function() newSet,
+    required TResult Function() newGame,
+    required TResult Function(Team team) pointFor,
+    required TResult Function(Team team) removePoint,
+    required TResult Function(Team team) forceGameFor,
+    required TResult Function(Team team) forceSetFor,
+    required TResult Function(int blue, int red) setExplicitGamePoints,
+    required TResult Function(int games) toggleTieBreakGames,
+    required TResult Function(int target) toggleTieBreakTarget,
+    required TResult Function(bool enabled) toggleGoldenPoint,
+    required TResult Function(MatchMode mode) setMatchMode,
+    required TResult Function() announceScore,
+    required TResult Function() undo,
+    required TResult Function() redo,
+    required TResult Function(Team team) undoForTeam,
+    required TResult Function() swapSides,
+    required TResult Function() resetSwap,
+  }) {
+    return setMatchMode(mode);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult? whenOrNull<TResult extends Object?>({
+    TResult? Function(MatchSettings? settings, Team? startingServer)? newMatch,
+    TResult? Function()? newSet,
+    TResult? Function()? newGame,
+    TResult? Function(Team team)? pointFor,
+    TResult? Function(Team team)? removePoint,
+    TResult? Function(Team team)? forceGameFor,
+    TResult? Function(Team team)? forceSetFor,
+    TResult? Function(int blue, int red)? setExplicitGamePoints,
+    TResult? Function(int games)? toggleTieBreakGames,
+    TResult? Function(int target)? toggleTieBreakTarget,
+    TResult? Function(bool enabled)? toggleGoldenPoint,
+    TResult? Function(MatchMode mode)? setMatchMode,
+    TResult? Function()? announceScore,
+    TResult? Function()? undo,
+    TResult? Function()? redo,
+    TResult? Function(Team team)? undoForTeam,
+    TResult? Function()? swapSides,
+    TResult? Function()? resetSwap,
+  }) {
+    return setMatchMode?.call(mode);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult maybeWhen<TResult extends Object?>({
+    TResult Function(MatchSettings? settings, Team? startingServer)? newMatch,
+    TResult Function()? newSet,
+    TResult Function()? newGame,
+    TResult Function(Team team)? pointFor,
+    TResult Function(Team team)? removePoint,
+    TResult Function(Team team)? forceGameFor,
+    TResult Function(Team team)? forceSetFor,
+    TResult Function(int blue, int red)? setExplicitGamePoints,
+    TResult Function(int games)? toggleTieBreakGames,
+    TResult Function(int target)? toggleTieBreakTarget,
+    TResult Function(bool enabled)? toggleGoldenPoint,
+    TResult Function(MatchMode mode)? setMatchMode,
+    TResult Function()? announceScore,
+    TResult Function()? undo,
+    TResult Function()? redo,
+    TResult Function(Team team)? undoForTeam,
+    TResult Function()? swapSides,
+    TResult Function()? resetSwap,
+    required TResult orElse(),
+  }) {
+    if (setMatchMode != null) {
+      return setMatchMode(mode);
+    }
+    return orElse();
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult map<TResult extends Object?>({
+    required TResult Function(NewMatchEvent value) newMatch,
+    required TResult Function(NewSetEvent value) newSet,
+    required TResult Function(NewGameEvent value) newGame,
+    required TResult Function(PointForEvent value) pointFor,
+    required TResult Function(RemovePointEvent value) removePoint,
+    required TResult Function(ForceGameForEvent value) forceGameFor,
+    required TResult Function(ForceSetForEvent value) forceSetFor,
+    required TResult Function(SetExplicitGamePointsEvent value)
+    setExplicitGamePoints,
+    required TResult Function(ToggleTieBreakGamesEvent value)
+    toggleTieBreakGames,
+    required TResult Function(ToggleTieBreakTargetEvent value)
+    toggleTieBreakTarget,
+    required TResult Function(ToggleGoldenPointEvent value) toggleGoldenPoint,
+    required TResult Function(SetMatchModeEvent value) setMatchMode,
+    required TResult Function(AnnounceScoreEvent value) announceScore,
+    required TResult Function(UndoEvent value) undo,
+    required TResult Function(RedoEvent value) redo,
+    required TResult Function(UndoForTeamEvent value) undoForTeam,
+    required TResult Function(SwapSidesEvent value) swapSides,
+    required TResult Function(ResetSwapEvent value) resetSwap,
+  }) {
+    return setMatchMode(this);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult? mapOrNull<TResult extends Object?>({
+    TResult? Function(NewMatchEvent value)? newMatch,
+    TResult? Function(NewSetEvent value)? newSet,
+    TResult? Function(NewGameEvent value)? newGame,
+    TResult? Function(PointForEvent value)? pointFor,
+    TResult? Function(RemovePointEvent value)? removePoint,
+    TResult? Function(ForceGameForEvent value)? forceGameFor,
+    TResult? Function(ForceSetForEvent value)? forceSetFor,
+    TResult? Function(SetExplicitGamePointsEvent value)? setExplicitGamePoints,
+    TResult? Function(ToggleTieBreakGamesEvent value)? toggleTieBreakGames,
+    TResult? Function(ToggleTieBreakTargetEvent value)? toggleTieBreakTarget,
+    TResult? Function(ToggleGoldenPointEvent value)? toggleGoldenPoint,
+    TResult? Function(SetMatchModeEvent value)? setMatchMode,
+    TResult? Function(AnnounceScoreEvent value)? announceScore,
+    TResult? Function(UndoEvent value)? undo,
+    TResult? Function(RedoEvent value)? redo,
+    TResult? Function(UndoForTeamEvent value)? undoForTeam,
+    TResult? Function(SwapSidesEvent value)? swapSides,
+    TResult? Function(ResetSwapEvent value)? resetSwap,
+  }) {
+    return setMatchMode?.call(this);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult maybeMap<TResult extends Object?>({
+    TResult Function(NewMatchEvent value)? newMatch,
+    TResult Function(NewSetEvent value)? newSet,
+    TResult Function(NewGameEvent value)? newGame,
+    TResult Function(PointForEvent value)? pointFor,
+    TResult Function(RemovePointEvent value)? removePoint,
+    TResult Function(ForceGameForEvent value)? forceGameFor,
+    TResult Function(ForceSetForEvent value)? forceSetFor,
+    TResult Function(SetExplicitGamePointsEvent value)? setExplicitGamePoints,
+    TResult Function(ToggleTieBreakGamesEvent value)? toggleTieBreakGames,
+    TResult Function(ToggleTieBreakTargetEvent value)? toggleTieBreakTarget,
+    TResult Function(ToggleGoldenPointEvent value)? toggleGoldenPoint,
+    TResult Function(SetMatchModeEvent value)? setMatchMode,
+    TResult Function(AnnounceScoreEvent value)? announceScore,
+    TResult Function(UndoEvent value)? undo,
+    TResult Function(RedoEvent value)? redo,
+    TResult Function(UndoForTeamEvent value)? undoForTeam,
+    TResult Function(SwapSidesEvent value)? swapSides,
+    TResult Function(ResetSwapEvent value)? resetSwap,
+    required TResult orElse(),
+  }) {
+    if (setMatchMode != null) {
+      return setMatchMode(this);
+    }
+    return orElse();
+  }
+}
+
+abstract class SetMatchModeEvent implements ScoringEvent {
+  const factory SetMatchModeEvent(final MatchMode mode) =
+      _$SetMatchModeEventImpl;
+
+  MatchMode get mode;
+
+  /// Create a copy of ScoringEvent
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  _$$SetMatchModeEventImplCopyWith<_$SetMatchModeEventImpl> get copyWith =>
+      throw _privateConstructorUsedError;
 }
 
 /// @nodoc
@@ -2817,6 +3135,7 @@ class _$AnnounceScoreEventImpl implements AnnounceScoreEvent {
     required TResult Function(int games) toggleTieBreakGames,
     required TResult Function(int target) toggleTieBreakTarget,
     required TResult Function(bool enabled) toggleGoldenPoint,
+    required TResult Function(MatchMode mode) setMatchMode,
     required TResult Function() announceScore,
     required TResult Function() undo,
     required TResult Function() redo,
@@ -2841,6 +3160,7 @@ class _$AnnounceScoreEventImpl implements AnnounceScoreEvent {
     TResult? Function(int games)? toggleTieBreakGames,
     TResult? Function(int target)? toggleTieBreakTarget,
     TResult? Function(bool enabled)? toggleGoldenPoint,
+    TResult? Function(MatchMode mode)? setMatchMode,
     TResult? Function()? announceScore,
     TResult? Function()? undo,
     TResult? Function()? redo,
@@ -2865,6 +3185,7 @@ class _$AnnounceScoreEventImpl implements AnnounceScoreEvent {
     TResult Function(int games)? toggleTieBreakGames,
     TResult Function(int target)? toggleTieBreakTarget,
     TResult Function(bool enabled)? toggleGoldenPoint,
+    TResult Function(MatchMode mode)? setMatchMode,
     TResult Function()? announceScore,
     TResult Function()? undo,
     TResult Function()? redo,
@@ -2896,6 +3217,7 @@ class _$AnnounceScoreEventImpl implements AnnounceScoreEvent {
     required TResult Function(ToggleTieBreakTargetEvent value)
     toggleTieBreakTarget,
     required TResult Function(ToggleGoldenPointEvent value) toggleGoldenPoint,
+    required TResult Function(SetMatchModeEvent value) setMatchMode,
     required TResult Function(AnnounceScoreEvent value) announceScore,
     required TResult Function(UndoEvent value) undo,
     required TResult Function(RedoEvent value) redo,
@@ -2920,6 +3242,7 @@ class _$AnnounceScoreEventImpl implements AnnounceScoreEvent {
     TResult? Function(ToggleTieBreakGamesEvent value)? toggleTieBreakGames,
     TResult? Function(ToggleTieBreakTargetEvent value)? toggleTieBreakTarget,
     TResult? Function(ToggleGoldenPointEvent value)? toggleGoldenPoint,
+    TResult? Function(SetMatchModeEvent value)? setMatchMode,
     TResult? Function(AnnounceScoreEvent value)? announceScore,
     TResult? Function(UndoEvent value)? undo,
     TResult? Function(RedoEvent value)? redo,
@@ -2944,6 +3267,7 @@ class _$AnnounceScoreEventImpl implements AnnounceScoreEvent {
     TResult Function(ToggleTieBreakGamesEvent value)? toggleTieBreakGames,
     TResult Function(ToggleTieBreakTargetEvent value)? toggleTieBreakTarget,
     TResult Function(ToggleGoldenPointEvent value)? toggleGoldenPoint,
+    TResult Function(SetMatchModeEvent value)? setMatchMode,
     TResult Function(AnnounceScoreEvent value)? announceScore,
     TResult Function(UndoEvent value)? undo,
     TResult Function(RedoEvent value)? redo,
@@ -3018,6 +3342,7 @@ class _$UndoEventImpl implements UndoEvent {
     required TResult Function(int games) toggleTieBreakGames,
     required TResult Function(int target) toggleTieBreakTarget,
     required TResult Function(bool enabled) toggleGoldenPoint,
+    required TResult Function(MatchMode mode) setMatchMode,
     required TResult Function() announceScore,
     required TResult Function() undo,
     required TResult Function() redo,
@@ -3042,6 +3367,7 @@ class _$UndoEventImpl implements UndoEvent {
     TResult? Function(int games)? toggleTieBreakGames,
     TResult? Function(int target)? toggleTieBreakTarget,
     TResult? Function(bool enabled)? toggleGoldenPoint,
+    TResult? Function(MatchMode mode)? setMatchMode,
     TResult? Function()? announceScore,
     TResult? Function()? undo,
     TResult? Function()? redo,
@@ -3066,6 +3392,7 @@ class _$UndoEventImpl implements UndoEvent {
     TResult Function(int games)? toggleTieBreakGames,
     TResult Function(int target)? toggleTieBreakTarget,
     TResult Function(bool enabled)? toggleGoldenPoint,
+    TResult Function(MatchMode mode)? setMatchMode,
     TResult Function()? announceScore,
     TResult Function()? undo,
     TResult Function()? redo,
@@ -3097,6 +3424,7 @@ class _$UndoEventImpl implements UndoEvent {
     required TResult Function(ToggleTieBreakTargetEvent value)
     toggleTieBreakTarget,
     required TResult Function(ToggleGoldenPointEvent value) toggleGoldenPoint,
+    required TResult Function(SetMatchModeEvent value) setMatchMode,
     required TResult Function(AnnounceScoreEvent value) announceScore,
     required TResult Function(UndoEvent value) undo,
     required TResult Function(RedoEvent value) redo,
@@ -3121,6 +3449,7 @@ class _$UndoEventImpl implements UndoEvent {
     TResult? Function(ToggleTieBreakGamesEvent value)? toggleTieBreakGames,
     TResult? Function(ToggleTieBreakTargetEvent value)? toggleTieBreakTarget,
     TResult? Function(ToggleGoldenPointEvent value)? toggleGoldenPoint,
+    TResult? Function(SetMatchModeEvent value)? setMatchMode,
     TResult? Function(AnnounceScoreEvent value)? announceScore,
     TResult? Function(UndoEvent value)? undo,
     TResult? Function(RedoEvent value)? redo,
@@ -3145,6 +3474,7 @@ class _$UndoEventImpl implements UndoEvent {
     TResult Function(ToggleTieBreakGamesEvent value)? toggleTieBreakGames,
     TResult Function(ToggleTieBreakTargetEvent value)? toggleTieBreakTarget,
     TResult Function(ToggleGoldenPointEvent value)? toggleGoldenPoint,
+    TResult Function(SetMatchModeEvent value)? setMatchMode,
     TResult Function(AnnounceScoreEvent value)? announceScore,
     TResult Function(UndoEvent value)? undo,
     TResult Function(RedoEvent value)? redo,
@@ -3219,6 +3549,7 @@ class _$RedoEventImpl implements RedoEvent {
     required TResult Function(int games) toggleTieBreakGames,
     required TResult Function(int target) toggleTieBreakTarget,
     required TResult Function(bool enabled) toggleGoldenPoint,
+    required TResult Function(MatchMode mode) setMatchMode,
     required TResult Function() announceScore,
     required TResult Function() undo,
     required TResult Function() redo,
@@ -3243,6 +3574,7 @@ class _$RedoEventImpl implements RedoEvent {
     TResult? Function(int games)? toggleTieBreakGames,
     TResult? Function(int target)? toggleTieBreakTarget,
     TResult? Function(bool enabled)? toggleGoldenPoint,
+    TResult? Function(MatchMode mode)? setMatchMode,
     TResult? Function()? announceScore,
     TResult? Function()? undo,
     TResult? Function()? redo,
@@ -3267,6 +3599,7 @@ class _$RedoEventImpl implements RedoEvent {
     TResult Function(int games)? toggleTieBreakGames,
     TResult Function(int target)? toggleTieBreakTarget,
     TResult Function(bool enabled)? toggleGoldenPoint,
+    TResult Function(MatchMode mode)? setMatchMode,
     TResult Function()? announceScore,
     TResult Function()? undo,
     TResult Function()? redo,
@@ -3298,6 +3631,7 @@ class _$RedoEventImpl implements RedoEvent {
     required TResult Function(ToggleTieBreakTargetEvent value)
     toggleTieBreakTarget,
     required TResult Function(ToggleGoldenPointEvent value) toggleGoldenPoint,
+    required TResult Function(SetMatchModeEvent value) setMatchMode,
     required TResult Function(AnnounceScoreEvent value) announceScore,
     required TResult Function(UndoEvent value) undo,
     required TResult Function(RedoEvent value) redo,
@@ -3322,6 +3656,7 @@ class _$RedoEventImpl implements RedoEvent {
     TResult? Function(ToggleTieBreakGamesEvent value)? toggleTieBreakGames,
     TResult? Function(ToggleTieBreakTargetEvent value)? toggleTieBreakTarget,
     TResult? Function(ToggleGoldenPointEvent value)? toggleGoldenPoint,
+    TResult? Function(SetMatchModeEvent value)? setMatchMode,
     TResult? Function(AnnounceScoreEvent value)? announceScore,
     TResult? Function(UndoEvent value)? undo,
     TResult? Function(RedoEvent value)? redo,
@@ -3346,6 +3681,7 @@ class _$RedoEventImpl implements RedoEvent {
     TResult Function(ToggleTieBreakGamesEvent value)? toggleTieBreakGames,
     TResult Function(ToggleTieBreakTargetEvent value)? toggleTieBreakTarget,
     TResult Function(ToggleGoldenPointEvent value)? toggleGoldenPoint,
+    TResult Function(SetMatchModeEvent value)? setMatchMode,
     TResult Function(AnnounceScoreEvent value)? announceScore,
     TResult Function(UndoEvent value)? undo,
     TResult Function(RedoEvent value)? redo,
@@ -3450,6 +3786,7 @@ class _$UndoForTeamEventImpl implements UndoForTeamEvent {
     required TResult Function(int games) toggleTieBreakGames,
     required TResult Function(int target) toggleTieBreakTarget,
     required TResult Function(bool enabled) toggleGoldenPoint,
+    required TResult Function(MatchMode mode) setMatchMode,
     required TResult Function() announceScore,
     required TResult Function() undo,
     required TResult Function() redo,
@@ -3474,6 +3811,7 @@ class _$UndoForTeamEventImpl implements UndoForTeamEvent {
     TResult? Function(int games)? toggleTieBreakGames,
     TResult? Function(int target)? toggleTieBreakTarget,
     TResult? Function(bool enabled)? toggleGoldenPoint,
+    TResult? Function(MatchMode mode)? setMatchMode,
     TResult? Function()? announceScore,
     TResult? Function()? undo,
     TResult? Function()? redo,
@@ -3498,6 +3836,7 @@ class _$UndoForTeamEventImpl implements UndoForTeamEvent {
     TResult Function(int games)? toggleTieBreakGames,
     TResult Function(int target)? toggleTieBreakTarget,
     TResult Function(bool enabled)? toggleGoldenPoint,
+    TResult Function(MatchMode mode)? setMatchMode,
     TResult Function()? announceScore,
     TResult Function()? undo,
     TResult Function()? redo,
@@ -3529,6 +3868,7 @@ class _$UndoForTeamEventImpl implements UndoForTeamEvent {
     required TResult Function(ToggleTieBreakTargetEvent value)
     toggleTieBreakTarget,
     required TResult Function(ToggleGoldenPointEvent value) toggleGoldenPoint,
+    required TResult Function(SetMatchModeEvent value) setMatchMode,
     required TResult Function(AnnounceScoreEvent value) announceScore,
     required TResult Function(UndoEvent value) undo,
     required TResult Function(RedoEvent value) redo,
@@ -3553,6 +3893,7 @@ class _$UndoForTeamEventImpl implements UndoForTeamEvent {
     TResult? Function(ToggleTieBreakGamesEvent value)? toggleTieBreakGames,
     TResult? Function(ToggleTieBreakTargetEvent value)? toggleTieBreakTarget,
     TResult? Function(ToggleGoldenPointEvent value)? toggleGoldenPoint,
+    TResult? Function(SetMatchModeEvent value)? setMatchMode,
     TResult? Function(AnnounceScoreEvent value)? announceScore,
     TResult? Function(UndoEvent value)? undo,
     TResult? Function(RedoEvent value)? redo,
@@ -3577,6 +3918,7 @@ class _$UndoForTeamEventImpl implements UndoForTeamEvent {
     TResult Function(ToggleTieBreakGamesEvent value)? toggleTieBreakGames,
     TResult Function(ToggleTieBreakTargetEvent value)? toggleTieBreakTarget,
     TResult Function(ToggleGoldenPointEvent value)? toggleGoldenPoint,
+    TResult Function(SetMatchModeEvent value)? setMatchMode,
     TResult Function(AnnounceScoreEvent value)? announceScore,
     TResult Function(UndoEvent value)? undo,
     TResult Function(RedoEvent value)? redo,
@@ -3659,6 +4001,7 @@ class _$SwapSidesEventImpl implements SwapSidesEvent {
     required TResult Function(int games) toggleTieBreakGames,
     required TResult Function(int target) toggleTieBreakTarget,
     required TResult Function(bool enabled) toggleGoldenPoint,
+    required TResult Function(MatchMode mode) setMatchMode,
     required TResult Function() announceScore,
     required TResult Function() undo,
     required TResult Function() redo,
@@ -3683,6 +4026,7 @@ class _$SwapSidesEventImpl implements SwapSidesEvent {
     TResult? Function(int games)? toggleTieBreakGames,
     TResult? Function(int target)? toggleTieBreakTarget,
     TResult? Function(bool enabled)? toggleGoldenPoint,
+    TResult? Function(MatchMode mode)? setMatchMode,
     TResult? Function()? announceScore,
     TResult? Function()? undo,
     TResult? Function()? redo,
@@ -3707,6 +4051,7 @@ class _$SwapSidesEventImpl implements SwapSidesEvent {
     TResult Function(int games)? toggleTieBreakGames,
     TResult Function(int target)? toggleTieBreakTarget,
     TResult Function(bool enabled)? toggleGoldenPoint,
+    TResult Function(MatchMode mode)? setMatchMode,
     TResult Function()? announceScore,
     TResult Function()? undo,
     TResult Function()? redo,
@@ -3738,6 +4083,7 @@ class _$SwapSidesEventImpl implements SwapSidesEvent {
     required TResult Function(ToggleTieBreakTargetEvent value)
     toggleTieBreakTarget,
     required TResult Function(ToggleGoldenPointEvent value) toggleGoldenPoint,
+    required TResult Function(SetMatchModeEvent value) setMatchMode,
     required TResult Function(AnnounceScoreEvent value) announceScore,
     required TResult Function(UndoEvent value) undo,
     required TResult Function(RedoEvent value) redo,
@@ -3762,6 +4108,7 @@ class _$SwapSidesEventImpl implements SwapSidesEvent {
     TResult? Function(ToggleTieBreakGamesEvent value)? toggleTieBreakGames,
     TResult? Function(ToggleTieBreakTargetEvent value)? toggleTieBreakTarget,
     TResult? Function(ToggleGoldenPointEvent value)? toggleGoldenPoint,
+    TResult? Function(SetMatchModeEvent value)? setMatchMode,
     TResult? Function(AnnounceScoreEvent value)? announceScore,
     TResult? Function(UndoEvent value)? undo,
     TResult? Function(RedoEvent value)? redo,
@@ -3786,6 +4133,7 @@ class _$SwapSidesEventImpl implements SwapSidesEvent {
     TResult Function(ToggleTieBreakGamesEvent value)? toggleTieBreakGames,
     TResult Function(ToggleTieBreakTargetEvent value)? toggleTieBreakTarget,
     TResult Function(ToggleGoldenPointEvent value)? toggleGoldenPoint,
+    TResult Function(SetMatchModeEvent value)? setMatchMode,
     TResult Function(AnnounceScoreEvent value)? announceScore,
     TResult Function(UndoEvent value)? undo,
     TResult Function(RedoEvent value)? redo,
@@ -3860,6 +4208,7 @@ class _$ResetSwapEventImpl implements ResetSwapEvent {
     required TResult Function(int games) toggleTieBreakGames,
     required TResult Function(int target) toggleTieBreakTarget,
     required TResult Function(bool enabled) toggleGoldenPoint,
+    required TResult Function(MatchMode mode) setMatchMode,
     required TResult Function() announceScore,
     required TResult Function() undo,
     required TResult Function() redo,
@@ -3884,6 +4233,7 @@ class _$ResetSwapEventImpl implements ResetSwapEvent {
     TResult? Function(int games)? toggleTieBreakGames,
     TResult? Function(int target)? toggleTieBreakTarget,
     TResult? Function(bool enabled)? toggleGoldenPoint,
+    TResult? Function(MatchMode mode)? setMatchMode,
     TResult? Function()? announceScore,
     TResult? Function()? undo,
     TResult? Function()? redo,
@@ -3908,6 +4258,7 @@ class _$ResetSwapEventImpl implements ResetSwapEvent {
     TResult Function(int games)? toggleTieBreakGames,
     TResult Function(int target)? toggleTieBreakTarget,
     TResult Function(bool enabled)? toggleGoldenPoint,
+    TResult Function(MatchMode mode)? setMatchMode,
     TResult Function()? announceScore,
     TResult Function()? undo,
     TResult Function()? redo,
@@ -3939,6 +4290,7 @@ class _$ResetSwapEventImpl implements ResetSwapEvent {
     required TResult Function(ToggleTieBreakTargetEvent value)
     toggleTieBreakTarget,
     required TResult Function(ToggleGoldenPointEvent value) toggleGoldenPoint,
+    required TResult Function(SetMatchModeEvent value) setMatchMode,
     required TResult Function(AnnounceScoreEvent value) announceScore,
     required TResult Function(UndoEvent value) undo,
     required TResult Function(RedoEvent value) redo,
@@ -3963,6 +4315,7 @@ class _$ResetSwapEventImpl implements ResetSwapEvent {
     TResult? Function(ToggleTieBreakGamesEvent value)? toggleTieBreakGames,
     TResult? Function(ToggleTieBreakTargetEvent value)? toggleTieBreakTarget,
     TResult? Function(ToggleGoldenPointEvent value)? toggleGoldenPoint,
+    TResult? Function(SetMatchModeEvent value)? setMatchMode,
     TResult? Function(AnnounceScoreEvent value)? announceScore,
     TResult? Function(UndoEvent value)? undo,
     TResult? Function(RedoEvent value)? redo,
@@ -3987,6 +4340,7 @@ class _$ResetSwapEventImpl implements ResetSwapEvent {
     TResult Function(ToggleTieBreakGamesEvent value)? toggleTieBreakGames,
     TResult Function(ToggleTieBreakTargetEvent value)? toggleTieBreakTarget,
     TResult Function(ToggleGoldenPointEvent value)? toggleGoldenPoint,
+    TResult Function(SetMatchModeEvent value)? setMatchMode,
     TResult Function(AnnounceScoreEvent value)? announceScore,
     TResult Function(UndoEvent value)? undo,
     TResult Function(RedoEvent value)? redo,

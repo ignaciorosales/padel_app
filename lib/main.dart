@@ -177,8 +177,8 @@ class _MatchScreenState extends State<MatchScreen> {
   StreamSubscription<String>? _commandSub;
   StreamSubscription<bool>? _connectionSub;
   
-  // ▼ TESTING: Deshabilitado temporalmente
-  // bool _showTestingOverlay = false;
+  // Overlay para testing manual de puntos
+  bool _showTestingOverlay = false;
 
   @override
   void initState() {
@@ -343,65 +343,123 @@ class _MatchScreenState extends State<MatchScreen> {
             ),
           ),
           
-          // ▼ TESTING: Deshabilitado temporalmente
-          // Positioned(
-          //   bottom: 16,
-          //   left: 16,
-          //   child: Material(
-          //     color: Colors.transparent,
-          //     child: InkWell(
-          //       onTap: () => setState(() => _showTestingOverlay = !_showTestingOverlay),
-          //       borderRadius: BorderRadius.circular(12),
-          //       child: Container(
-          //         padding: const EdgeInsets.all(10),
-          //         decoration: BoxDecoration(
-          //           color: _showTestingOverlay 
-          //               ? Colors.orange.withOpacity(0.8)
-          //               : Colors.white.withOpacity(0.15),
-          //           borderRadius: BorderRadius.circular(12),
-          //           border: Border.all(
-          //             color: _showTestingOverlay ? Colors.orange : Colors.grey,
-          //             width: 2,
-          //           ),
-          //         ),
-          //         child: Icon(
-          //           Icons.bug_report,
-          //           color: _showTestingOverlay ? Colors.white : Colors.white70,
-          //           size: 20,
-          //         ),
-          //       ),
-          //     ),
-          //   ),
-          // ),
+          // Botón para mostrar/ocultar overlay de testing
+          Positioned(
+            bottom: 16,
+            left: 16,
+            child: Material(
+              color: Colors.transparent,
+              child: InkWell(
+                onTap: () => setState(() => _showTestingOverlay = !_showTestingOverlay),
+                borderRadius: BorderRadius.circular(12),
+                child: Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: _showTestingOverlay 
+                        ? Colors.orange.withValues(alpha: 0.8)
+                        : Colors.white.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: _showTestingOverlay ? Colors.orange : Colors.grey,
+                      width: 2,
+                    ),
+                  ),
+                  child: Icon(
+                    Icons.bug_report,
+                    color: _showTestingOverlay ? Colors.white : Colors.white70,
+                    size: 20,
+                  ),
+                ),
+              ),
+            ),
+          ),
           
-          // ▼ TESTING: Overlay deshabilitado temporalmente
-          // if (_showTestingOverlay)
-          //   Positioned(
-          //     bottom: 70,
-          //     left: 16,
-          //     child: BlocBuilder<ScoringBloc, ScoringState>(
-          //       builder: (context, scoringState) {
-          //         final teamService = RepositoryProvider.of<TeamSelectionService>(context);
-          //         final isSwapped = scoringState.isSwapped;
-          //         final leftTeam = isSwapped ? Team.red : Team.blue;
-          //         final rightTeam = isSwapped ? Team.blue : Team.red;
-          //         final leftColor = isSwapped ? teamService.getColor2() : teamService.getColor1();
-          //         final rightColor = isSwapped ? teamService.getColor1() : teamService.getColor2();
-          //         final leftName = isSwapped 
-          //             ? (teamService.getTeam2()?.displayName ?? 'Equipo 2')
-          //             : (teamService.getTeam1()?.displayName ?? 'Equipo 1');
-          //         final rightName = isSwapped 
-          //             ? (teamService.getTeam1()?.displayName ?? 'Equipo 1')
-          //             : (teamService.getTeam2()?.displayName ?? 'Equipo 2');
-          //         final match = scoringState.match;
-          //         final currentSet = match.currentSet;
-          //         final setIndex = match.currentSetIndex;
-          //         return Container(
-          //           // ... contenido del overlay
-          //         );
-          //       },
-          //     ),
-          //   ),
+          // Overlay de testing para anotar puntos manualmente
+          if (_showTestingOverlay)
+            Positioned(
+              bottom: 70,
+              left: 16,
+              child: BlocBuilder<ScoringBloc, ScoringState>(
+                builder: (context, scoringState) {
+                  final teamService = RepositoryProvider.of<TeamSelectionService>(context);
+                  final isSwapped = scoringState.isSwapped;
+                  final leftTeam = isSwapped ? Team.red : Team.blue;
+                  final rightTeam = isSwapped ? Team.blue : Team.red;
+                  final leftColor = isSwapped ? teamService.getColor2() : teamService.getColor1();
+                  final rightColor = isSwapped ? teamService.getColor1() : teamService.getColor2();
+                  final match = scoringState.match;
+                  final currentServer = match.currentServer;
+                  final serverPos = currentServer.position == PlayerPosition.drive ? 'DRY' : 'REV';
+                  final serverTeam = currentServer.team == Team.blue ? 'Eq1' : 'Eq2';
+                  final settings = match.settings;
+                  final modeLabel = settings.matchMode == MatchMode.championship ? 'CAMPEONATO' : 'AMATEUR';
+                  
+                  return Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: 0.85),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.orange, width: 2),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        // Info del modo y servidor
+                        Text(
+                          'Modo: $modeLabel | Saque: $serverTeam $serverPos',
+                          style: const TextStyle(color: Colors.orange, fontSize: 12, fontWeight: FontWeight.bold),
+                        ),
+                        const SizedBox(height: 8),
+                        // Botones de puntos
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            _TestingButton(
+                              label: '+1',
+                              color: leftColor,
+                              onTap: () => context.read<ScoringBloc>().add(ScoringEvent.pointFor(leftTeam)),
+                            ),
+                            const SizedBox(width: 8),
+                            _TestingButton(
+                              label: '+1',
+                              color: rightColor,
+                              onTap: () => context.read<ScoringBloc>().add(ScoringEvent.pointFor(rightTeam)),
+                            ),
+                            const SizedBox(width: 16),
+                            _TestingButton(
+                              label: 'UNDO',
+                              color: Colors.grey.shade700,
+                              onTap: () => context.read<ScoringBloc>().add(const ScoringEvent.undo()),
+                            ),
+                            const SizedBox(width: 8),
+                            _TestingButton(
+                              label: 'RESET',
+                              color: Colors.red.shade700,
+                              onTap: () {
+                                context.read<ScoringBloc>().add(const ScoringEvent.resetSwap());
+                                context.read<ScoringBloc>().add(const ScoringEvent.newMatch());
+                              },
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        // Info del set actual
+                        Text(
+                          'Set ${match.currentSetIndex + 1} | Games: ${match.currentSet.blueGames}-${match.currentSet.redGames} | Pts: ${match.currentSet.currentGame.blue}-${match.currentSet.currentGame.red}',
+                          style: const TextStyle(color: Colors.white70, fontSize: 11),
+                        ),
+                        if (match.currentSet.currentGame.isTieBreak)
+                          Text(
+                            match.currentSet.isSuperTieBreak ? 'SUPER TIE-BREAK (a 11)' : 'TIE-BREAK (a 7)',
+                            style: const TextStyle(color: Colors.yellowAccent, fontSize: 11, fontWeight: FontWeight.bold),
+                          ),
+                      ],
+                    ),
+                  );
+                },
+              ),
+            ),
         ],
         ),
       ),
@@ -409,40 +467,39 @@ class _MatchScreenState extends State<MatchScreen> {
   }
 }
 
-// ▼ TESTING: Widget deshabilitado temporalmente
-// class _TestingButton extends StatelessWidget {
-//   final String label;
-//   final Color color;
-//   final VoidCallback onTap;
-//
-//   const _TestingButton({
-//     required this.label,
-//     required this.color,
-//     required this.onTap,
-//   });
-//
-//   @override
-//   Widget build(BuildContext context) {
-//     return Material(
-//       color: color,
-//       borderRadius: BorderRadius.circular(12),
-//       child: InkWell(
-//         onTap: onTap,
-//         borderRadius: BorderRadius.circular(12),
-//         child: Container(
-//           width: 60,
-//           height: 50,
-//           alignment: Alignment.center,
-//           child: Text(
-//             label,
-//             style: const TextStyle(
-//               color: Colors.white,
-//               fontSize: 20,
-//               fontWeight: FontWeight.bold,
-//             ),
-//           ),
-//         ),
-//       ),
-//     );
-//   }
-// }
+/// Botón de testing para anotar puntos manualmente
+class _TestingButton extends StatelessWidget {
+  final String label;
+  final Color color;
+  final VoidCallback onTap;
+
+  const _TestingButton({
+    required this.label,
+    required this.color,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: color,
+      borderRadius: BorderRadius.circular(8),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(8),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          alignment: Alignment.center,
+          child: Text(
+            label,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 14,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}

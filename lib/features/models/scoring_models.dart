@@ -5,6 +5,71 @@ part 'scoring_models.g.dart';
 /// Representa los dos equipos: verde y negro
 enum Team { blue, red }
 
+/// Modo de partido: Amateur (reglas flexibles) o Campeonato (reglas oficiales)
+enum MatchMode { 
+  /// Modo Amateur: Sets 5-5 se deciden con diferencia de 2, máximo 9-8
+  amateur, 
+  /// Modo Campeonato: Sets 5-5 → tie break a 7, empate 1-1 → Super tie break a 11
+  championship 
+}
+
+/// Posición del jugador en la pareja (para identificar quién saca)
+enum PlayerPosition {
+  /// Jugador de drive (DRY) - normalmente derecha de la pista
+  drive,
+  /// Jugador de revés - normalmente izquierda de la pista  
+  backhand
+}
+
+/// Identificador completo del servidor actual (equipo + posición)
+@freezed
+class Server with _$Server {
+  const factory Server({
+    /// Equipo que tiene el servicio
+    @Default(Team.blue) Team team,
+    /// Posición del jugador que saca (drive o revés)
+    @Default(PlayerPosition.drive) PlayerPosition position,
+  }) = _Server;
+  
+  const Server._();
+  
+  /// Retorna el siguiente servidor en la rotación:
+  /// DRY1 → DRY2 → REVÉS1 → REVÉS2 → DRY1...
+  Server next() {
+    // Rotación: drive blue → drive red → backhand blue → backhand red
+    if (team == Team.blue && position == PlayerPosition.drive) {
+      return const Server(team: Team.red, position: PlayerPosition.drive);
+    } else if (team == Team.red && position == PlayerPosition.drive) {
+      return const Server(team: Team.blue, position: PlayerPosition.backhand);
+    } else if (team == Team.blue && position == PlayerPosition.backhand) {
+      return const Server(team: Team.red, position: PlayerPosition.backhand);
+    } else {
+      return const Server(team: Team.blue, position: PlayerPosition.drive);
+    }
+  }
+  
+  /// Retorna el índice del servidor (0-3) para la rotación
+  int get index {
+    if (team == Team.blue && position == PlayerPosition.drive) return 0;
+    if (team == Team.red && position == PlayerPosition.drive) return 1;
+    if (team == Team.blue && position == PlayerPosition.backhand) return 2;
+    return 3; // red + backhand
+  }
+  
+  /// Crea un servidor a partir del índice (0-3)
+  factory Server.fromIndex(int index) {
+    switch (index % 4) {
+      case 0: return const Server(team: Team.blue, position: PlayerPosition.drive);
+      case 1: return const Server(team: Team.red, position: PlayerPosition.drive);
+      case 2: return const Server(team: Team.blue, position: PlayerPosition.backhand);
+      default: return const Server(team: Team.red, position: PlayerPosition.backhand);
+    }
+  }
+
+  factory Server.fromJson(Map<String, dynamic> json) =>
+      _$ServerFromJson(json);
+}
+
 /// Configuración del partido de pádel
 ///
 /// Los partidos de pádel estándar tienen las siguientes reglas:
@@ -32,6 +97,11 @@ class MatchSettings with _$MatchSettings {
     /// - 7: Para tie-breaks normales en 6-6
     /// - 10: Para Super Tie-Break en el tercer set
     @Default(7) int tieBreakTarget,
+    
+    /// Modo de partido: Amateur o Campeonato
+    /// - Amateur: Sets 5-5 se deciden con diferencia de 2, máximo 9-8
+    /// - Campeonato: Sets 5-5 → tie break a 7, empate 1-1 → Super tie break a 11
+    @Default(MatchMode.amateur) MatchMode matchMode,
   }) = _MatchSettings;
 
   factory MatchSettings.fromJson(Map<String, dynamic> json) =>
@@ -72,11 +142,14 @@ class SetScore with _$SetScore {
     @Default(GamePoints()) GamePoints currentGame,
     
     /// Servidor que comenzó el tie-break (para la rotación 1–2–2–2)
-    /// En tie-breaks, el servicio rota después de cada punto impar
+    /// En tie-breaks, el servicio rota después de cada punto
+    Server? tieBreakStartServer,
+    
+    /// @deprecated Mantener por compatibilidad con Team
     Team? tieBreakStarter,
     
-    /// Indica si este set es un Super Tie-Break (a 10 puntos)
-    /// - true: Es un Super Tie-Break (tercer set en formato 1)
+    /// Indica si este set es un Super Tie-Break (a 10/11 puntos)
+    /// - true: Es un Super Tie-Break (tercer set en formato campeonato o tradicional)
     /// - false: Es un set normal (con tie-break regular a 7 puntos)
     @Default(false) bool isSuperTieBreak,
   }) = _SetScore;
@@ -88,7 +161,6 @@ class SetScore with _$SetScore {
 /// Representa la puntuación completa del partido
 @freezed
 class MatchScore with _$MatchScore {
-  @JsonSerializable(explicitToJson: true) // necesario para nested toJson()
   const factory MatchScore({
     /// Lista de todos los sets del partido
     @Default(<SetScore>[]) List<SetScore> sets,
@@ -96,10 +168,14 @@ class MatchScore with _$MatchScore {
     /// Índice del set actual (0 = primer set, 1 = segundo set, 2 = tercer set)
     @Default(0) int currentSetIndex,
     
-    /// Equipo que tiene el servicio actualmente
+    /// Servidor actual: equipo + posición (drive/revés)
+    /// Rotación: DRY1 → DRY2 → REVÉS1 → REVÉS2 → repite
+    @Default(Server()) Server currentServer,
+    
+    /// @deprecated Mantener por compatibilidad - usar currentServer.team
     @Default(Team.blue) Team server,
     
-    /// Equipo que recibe actualmente
+    /// @deprecated Mantener por compatibilidad
     @Default(Team.red) Team receiver,
     
     /// Nombre del equipo verde
@@ -120,6 +196,9 @@ class MatchScore with _$MatchScore {
   /// Acceso rápido al set actual
   SetScore get currentSet =>
       sets.isEmpty ? const SetScore() : sets[currentSetIndex];
+
+  /// Equipo que saca actualmente (acceso directo)
+  Team get servingTeam => currentServer.team;
 
   factory MatchScore.fromJson(Map<String, dynamic> json) =>
       _$MatchScoreFromJson(json);

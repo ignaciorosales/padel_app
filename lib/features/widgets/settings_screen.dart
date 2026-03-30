@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:Puntazo/config/app_config.dart';
 import 'package:Puntazo/config/team_selection_service.dart';
 import 'package:Puntazo/config/theme_cubit.dart';
+import 'package:Puntazo/features/models/scoring_models.dart' show MatchMode;
 import 'package:Puntazo/features/scoring/bloc/scoring_bloc.dart';
 import 'package:Puntazo/features/scoring/bloc/scoring_event.dart';
 import 'package:Puntazo/features/scoring/bloc/scoring_state.dart';
@@ -485,72 +486,226 @@ class _RulesTab extends StatelessWidget {
       builder: (context, state) {
         final settings = state.match.settings;
         final bloc = context.read<ScoringBloc>();
+        final isChampionship = settings.matchMode == MatchMode.championship;
 
-        // Layout horizontal compacto sin tarjetas
-        return Padding(
+        // Layout vertical con secciones
+        return SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-          child: Row(
+          child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Golden Point
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      l10n.goldenPointOn.split(':')[0],
-                      style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
-                    ),
-                    const SizedBox(height: 8),
-                    _CompactSwitch(
-                      label: settings.goldenPoint ? 'ON' : 'OFF',
-                      value: settings.goldenPoint,
-                      onChanged: (v) => bloc.add(ScoringEvent.toggleGoldenPoint(v)),
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      l10n.goldenPointExplanation,
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
-                      ),
-                    ),
-                  ],
-                ),
+              // =============== MODO DE PARTIDO ===============
+              Text(
+                'Modo de Partido',
+                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
               ),
-              const SizedBox(width: 32),
-              // Tercer Set
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      l10n.thirdSetSuperTB.split(':')[0],
-                      style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  // Amateur
+                  Expanded(
+                    child: _ModeCard(
+                      title: 'AMATEUR',
+                      description: 'Sets 5-5 → diferencia de 2\nMáximo 9-8\nSin tie-break en sets',
+                      isSelected: !isChampionship,
+                      icon: Icons.sports_tennis,
+                      onTap: () => bloc.add(const ScoringEvent.setMatchMode(MatchMode.amateur)),
                     ),
-                    const SizedBox(height: 8),
-                    _CompactSwitch(
-                      label: settings.tieBreakAtGames == 1 ? 'Super TB' : 'Set completo',
-                      value: settings.tieBreakAtGames == 1,
-                      onChanged: (v) => bloc.add(ScoringEvent.toggleTieBreakGames(v ? 1 : 6)),
+                  ),
+                  const SizedBox(width: 16),
+                  // Campeonato
+                  Expanded(
+                    child: _ModeCard(
+                      title: 'CAMPEONATO',
+                      description: 'Sets 6-6 → Tie-break a 7\nEmpate 1-1 → Super TB a 11\nReglas oficiales',
+                      isSelected: isChampionship,
+                      icon: Icons.emoji_events,
+                      onTap: () => bloc.add(const ScoringEvent.setMatchMode(MatchMode.championship)),
                     ),
-                    const SizedBox(height: 6),
-                    Text(
-                      settings.tieBreakAtGames == 1
-                          ? l10n.superTBExplanation
-                          : l10n.completeSetExplanation,
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
-                      ),
+                  ),
+                ],
+              ),
+              
+              const SizedBox(height: 24),
+              const Divider(),
+              const SizedBox(height: 16),
+              
+              // =============== OTRAS REGLAS ===============
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Golden Point
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          l10n.goldenPointOn.split(':')[0],
+                          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+                        ),
+                        const SizedBox(height: 8),
+                        _CompactSwitch(
+                          label: settings.goldenPoint ? 'ON' : 'OFF',
+                          value: settings.goldenPoint,
+                          onChanged: (v) => bloc.add(ScoringEvent.toggleGoldenPoint(v)),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          l10n.goldenPointExplanation,
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+                          ),
+                        ),
+                      ],
                     ),
-                  ],
-                ),
+                  ),
+                  const SizedBox(width: 32),
+                  // Info del modo actual
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Reglas del Set',
+                          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+                        ),
+                        const SizedBox(height: 8),
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: Theme.of(context).brightness == Brightness.dark
+                                ? Colors.white10
+                                : Colors.grey.shade100,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text(
+                            isChampionship
+                                ? '• Sets: primero a 6 juegos\n• Empate 6-6: Tie-break a 7\n• Empate 1-1 sets: Super TB a 11'
+                                : '• Sets: primero a 6 juegos\n• Empate 5-5: diferencia de 2\n• Máximo permitido: 9-8',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.8),
+                              height: 1.5,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
         );
       },
+    );
+  }
+}
+
+/// Tarjeta de selección de modo
+class _ModeCard extends StatefulWidget {
+  final String title;
+  final String description;
+  final bool isSelected;
+  final IconData icon;
+  final VoidCallback onTap;
+
+  const _ModeCard({
+    required this.title,
+    required this.description,
+    required this.isSelected,
+    required this.icon,
+    required this.onTap,
+  });
+
+  @override
+  State<_ModeCard> createState() => _ModeCardState();
+}
+
+class _ModeCardState extends State<_ModeCard> {
+  bool _focused = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final primaryColor = Theme.of(context).colorScheme.primary;
+
+    return Focus(
+      onFocusChange: (f) => setState(() => _focused = f),
+      onKeyEvent: (node, event) {
+        if (event is KeyDownEvent &&
+            (event.logicalKey == LogicalKeyboardKey.select ||
+                event.logicalKey == LogicalKeyboardKey.enter)) {
+          widget.onTap();
+          return KeyEventResult.handled;
+        }
+        return KeyEventResult.ignored;
+      },
+      child: GestureDetector(
+        onTap: widget.onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 150),
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: widget.isSelected
+                ? primaryColor.withValues(alpha: isDark ? 0.3 : 0.15)
+                : (isDark ? Colors.white10 : Colors.grey.shade100),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: _focused
+                  ? _focusBorderColor
+                  : (widget.isSelected ? primaryColor : Colors.transparent),
+              width: _focused ? _focusBorderWidth : 2,
+            ),
+            boxShadow: _focused
+                ? [
+                    BoxShadow(
+                      color: _focusBorderColor.withValues(alpha: 0.4),
+                      blurRadius: 8,
+                      spreadRadius: 1,
+                    ),
+                  ]
+                : null,
+          ),
+          child: Column(
+            children: [
+              Icon(
+                widget.icon,
+                size: 32,
+                color: widget.isSelected ? primaryColor : (isDark ? Colors.white60 : Colors.black54),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                widget.title,
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: widget.isSelected ? primaryColor : null,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                widget.description,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 11,
+                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
+                  height: 1.4,
+                ),
+              ),
+              if (widget.isSelected) ...[
+                const SizedBox(height: 8),
+                Icon(
+                  Icons.check_circle,
+                  color: primaryColor,
+                  size: 20,
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

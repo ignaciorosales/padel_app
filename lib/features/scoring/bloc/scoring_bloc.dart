@@ -6,15 +6,9 @@ import 'package:Puntazo/features/scoring/bloc/scoring_state.dart';
 
 /// --- Compatibility layer ----------------------------------------------------
 /// Lets the bloc run whether MatchSettings already has the new fields or not.
-/// Remove this once your MatchSettings definitively includes:
-/// - int tieBreakAtGames
-/// - bool goldenPoint
-/// - int tieBreakTarget
-/// - int thirdSetFormat (0=normal, 1=super-tb, 2=advantage)
 extension MatchSettingsCompat on MatchSettings {
   int get tbGames {
     try { return (this as dynamic).tieBreakAtGames as int; } catch (_) {}
-    // Legacy fallback: if you had a boolean tieBreakAtSixSix
     try {
       final bool sixSix = ((this as dynamic).tieBreakAtSixSix as bool?) ?? true;
       return sixSix ? 6 : 12;
@@ -32,12 +26,19 @@ extension MatchSettingsCompat on MatchSettings {
     return 7;
   }
   
+  /// Modo de partido: Amateur (0) o Campeonato (1)
+  MatchMode get mode {
+    try { return (this as dynamic).matchMode as MatchMode; } catch (_) {}
+    return MatchMode.amateur;
+  }
+  
+  bool get isChampionship => mode == MatchMode.championship;
+  
   int get thirdSetFormat {
+    // En modo campeonato, el tercer set siempre es Super Tie-Break a 11
+    if (isChampionship) return 1;
+    
     try { return (this as dynamic).thirdSetFormat as int; } catch (_) {}
-    // Compatibilidad con configuración anterior:
-    // Si tieBreakAtGames == 1, era súper tie-break (formato 1)
-    // Si tieBreakAtGames == 6, era set normal (formato 0)
-    // Si tieBreakAtGames == 12 o mayor, era set ventaja (formato 2)
     try { 
       final int tbGames = (this as dynamic).tieBreakAtGames as int;
       if (tbGames == 1) return 1; // Super TB
@@ -65,11 +66,15 @@ extension MatchSettingsCompat on MatchSettings {
   
   MatchSettings withThirdSetFormat(int format) {
     try { return (this as dynamic).copyWith(thirdSetFormat: format) as MatchSettings; } catch (_) {}
-    // Compatibilidad con configuración anterior: usar tieBreakAtGames
     try { 
       final int tbGames = format == 1 ? 1 : (format == 2 ? 12 : 6);
       return (this as dynamic).copyWith(tieBreakAtGames: tbGames) as MatchSettings; 
     } catch (_) {}
+    return this;
+  }
+  
+  MatchSettings withMatchMode(MatchMode newMode) {
+    try { return (this as dynamic).copyWith(matchMode: newMode) as MatchSettings; } catch (_) {}
     return this;
   }
 }
@@ -95,6 +100,7 @@ class ScoringBloc extends Bloc<ScoringEvent, ScoringState> {
     on<ToggleTieBreakGamesEvent>(_onToggleTieBreakGamesEvent);
     on<ToggleTieBreakTargetEvent>(_onToggleTieBreakTargetEvent);
     on<ToggleGoldenPointEvent>(_onToggleGoldenPoint);
+    on<SetMatchModeEvent>(_onSetMatchMode);
 
     on<AnnounceScoreEvent>(_onAnnounceScore);
 
@@ -127,56 +133,63 @@ class ScoringBloc extends Bloc<ScoringEvent, ScoringState> {
   }
 
   MatchScore _toggleServer(MatchScore m) {
-    final nextServer = _other(m.server);
+    // Usar el nuevo sistema de servidor que rota entre los 4 jugadores
+    final nextServer = m.currentServer.next();
     return m.copyWith(
-      server: nextServer,
-      receiver: _other(nextServer),
+      currentServer: nextServer,
+      server: nextServer.team,
+      receiver: _other(nextServer.team),
     );
   }
 
-  /// Determines if the current set is over based on user-configurable settings.
+  /// Determines if the current set is over based on match mode and settings.
+  /// 
+  /// MODO AMATEUR:
+  /// - Sets se juegan hasta diferencia de 2 juegos
+  /// - En 5-5, se sigue jugando hasta diferencia de 2, máximo 9-8
+  /// - NO hay tie-break en sets (solo diferencia de 2)
+  /// 
+  /// MODO CAMPEONATO:
+  /// - En 6-6, se juega tie-break a 7 (diferencia de 2, sin límite)
+  /// - En empate 1-1 de sets, se juega Super Tie-Break a 11
   bool _isSetOver(SetScore s, MatchSettings settings, [int? setIndex]) {
     final a = s.blueGames, b = s.redGames;
     
     // Verificar si es el tercer set (índice 2)
     final bool isThirdSet = setIndex == 2;
+    final bool isChampionship = settings.mode == MatchMode.championship;
     
-    // Obtenemos el formato del tercer set (0=normal, 1=super-tb, 2=advantage)
-    final int thirdSetFormat = settings.thirdSetFormat;
-    
-    // Si es el tercer set y está en formato Super Tie-Break, se maneja de forma especial
-    if (isThirdSet && thirdSetFormat == 1) {
-      // Para Super Tie-Break, el set termina cuando se marca como 7-6 o 6-7
-      // (estos valores se asignan cuando se completa el súper tie-break)
-      if ((a == 7 && b == 6) || (a == 6 && b == 7)) return true;
-      return false; // El set no está terminado
-    }
-    
-    // Para set normal (thirdSetFormat == 0) o para los dos primeros sets:
-    if (!isThirdSet || thirdSetFormat == 0) {
-      // Regla 1: Victoria cuando un jugador alcanza 6 juegos con ventaja de 2 o más
+    // ========== MODO CAMPEONATO ==========
+    if (isChampionship) {
+      // En modo campeonato, el tercer set es un Super Tie-Break
+      if (isThirdSet) {
+        // Para Super Tie-Break, el set termina cuando se marca como 7-6 o 6-7
+        // (estos valores se asignan cuando se completa el súper tie-break)
+        if ((a == 7 && b == 6) || (a == 6 && b == 7)) return true;
+        return false;
+      }
+      
+      // Para sets normales en modo campeonato:
+      // - Victoria 6-0 a 6-4 (diferencia de 2)
       if ((a >= 6 || b >= 6) && (a - b).abs() >= 2) return true;
-      
-      // Regla 2: Victoria cuando el marcador llega a 7-5 o 5-7
-      if ((a == 7 && b == 5) || (a == 5 && b == 7)) return true;
-      
-      // Regla 3: Victoria tras tie-break (7-6 o 6-7)
+      // - Victoria tras tie-break (7-6 o 6-7)
       if ((a == 7 && b == 6) || (a == 6 && b == 7)) return true;
       
-      // Caso límite: Si alguno alcanzó 8 o más juegos (no debería ocurrir)
-      if (a >= 8 || b >= 8) return true;
+      return false;
     }
     
-    // Para tercer set con ventaja sin tie-break (thirdSetFormat == 2):
-    if (isThirdSet && thirdSetFormat == 2) {
-      // En un set de ventaja, se gana cuando hay diferencia de 2 juegos
-      // y al menos uno de los equipos tiene 6 o más juegos
-      if ((a >= 6 || b >= 6) && (a - b).abs() >= 2) return true;
-      
-      // Añadir una regla de seguridad: si algún equipo alcanza una puntuación muy alta
-      // (esto no debería ocurrir normalmente, pero previene loops infinitos)
-      if (a >= 15 || b >= 15) return true;
-    }
+    // ========== MODO AMATEUR ==========
+    // En modo amateur, NO hay tie-break en sets
+    // Se juega hasta diferencia de 2 juegos, con límite en 9-8
+    
+    // Victoria con diferencia de 2 (6-4, 7-5, 8-6, 9-7)
+    if ((a >= 6 || b >= 6) && (a - b).abs() >= 2) return true;
+    
+    // Límite: si llegamos a 9-8, el set termina (máximo permitido)
+    if ((a == 9 && b == 8) || (a == 8 && b == 9)) return true;
+    
+    // Seguridad: si algún equipo alcanza 10 juegos
+    if (a >= 10 || b >= 10) return true;
     
     // Set no completado
     return false;
@@ -235,30 +248,23 @@ class ScoringBloc extends Bloc<ScoringEvent, ScoringState> {
 
     final newSets = [...m.sets, const SetScore()];
     final newIndex = newSets.length - 1;
+    final isChampionship = settings.mode == MatchMode.championship;
     
     // Si estamos comenzando el tercer set (índice 2)
     if (newIndex == 2) {
-      // Obtener el formato del tercer set
-      final thirdSetFormat = settings.thirdSetFormat;
-      
-      // OPCIÓN 1: Super Tie-Break a 10 puntos
-      if (thirdSetFormat == 1) {
+      // En MODO CAMPEONATO, el tercer set es siempre un Super Tie-Break a 11
+      if (isChampionship) {
         // Asegurarnos de que comienza con puntuación 0-0 y en modo tie-break
-        newSets[newIndex] = const SetScore(
-          currentGame: GamePoints(isTieBreak: true, blue: 0, red: 0),
+        newSets[newIndex] = SetScore(
+          currentGame: const GamePoints(isTieBreak: true, blue: 0, red: 0),
           blueGames: 0,
           redGames: 0,
-        );
-        
-        // Guardar el servidor de inicio del tie-break
-        newSets[newIndex] = newSets[newIndex].copyWith(
           tieBreakStarter: m.server,
-          // Marcamos este set específicamente como Super Tie-Break
+          tieBreakStartServer: m.currentServer,
           isSuperTieBreak: true,
         );
       }
-      // OPCIÓN 2: Set normal (no se necesita código especial)
-      // OPCIÓN 3: Set con ventaja sin tie-break (no se necesita código especial)
+      // En MODO AMATEUR, el tercer set es un set normal (diferencia de 2, máximo 9-8)
     }
     
     return m.copyWith(sets: newSets, currentSetIndex: newIndex);
@@ -269,9 +275,11 @@ class ScoringBloc extends Bloc<ScoringEvent, ScoringState> {
   void _onNewMatch(NewMatchEvent e, Emitter<ScoringState> emit) {
     final settings = e.settings ?? state.match.settings;
     final start = e.startingServer ?? Team.blue;
+    final startServer = Server(team: start, position: PlayerPosition.drive);
     final next = MatchScore(
       sets: const [SetScore()],
       currentSetIndex: 0,
+      currentServer: startServer,
       server: start,
       receiver: _other(start),
       settings: settings,
@@ -310,6 +318,7 @@ class ScoringBloc extends Bloc<ScoringEvent, ScoringState> {
     final before= m.sets[idx];
     var set     = before;
     var skipGenericToggle = false;
+    final isChampionship = m.settings.mode == MatchMode.championship;
 
     // Tie-break logic
     if (set.currentGame.isTieBreak) {
@@ -318,10 +327,19 @@ class ScoringBloc extends Bloc<ScoringEvent, ScoringState> {
       final nr = gp.red + (e.team == Team.red  ? 1 : 0);
 
       final starter = set.tieBreakStarter ?? m.server;
+      final starterServer = set.tieBreakStartServer ?? m.currentServer;
       
-      // Determinar el objetivo del tie-break según si es un Super Tie-Break o no
+      // Determinar el objetivo del tie-break según:
+      // - Super Tie-Break en modo CAMPEONATO: 11 puntos
+      // - Super Tie-Break tradicional: 10 puntos
+      // - Tie-break normal: 7 puntos
       final bool isSuperTieBreak = set.isSuperTieBreak;
-      final tgt = isSuperTieBreak ? 10 : 7;  // 10 para Super TB, 7 para TB normal
+      final int tgt;
+      if (isSuperTieBreak) {
+        tgt = isChampionship ? 11 : 10;  // 11 para campeonato, 10 para tradicional
+      } else {
+        tgt = 7;  // Tie-break normal siempre a 7
+      }
       
       // Un tie-break se cierra cuando se alcanza el objetivo con diferencia de 2 puntos
       final tbClosed = (nb >= tgt || nr >= tgt) && (nb - nr).abs() >= 2;
@@ -330,16 +348,14 @@ class ScoringBloc extends Bloc<ScoringEvent, ScoringState> {
         // Determinar quién ganó el tie-break
         final winnerIsBlue = nb > nr;
         
-        // Si es un Super Tie-Break en el tercer set, contar como set ganado, no como juego
+        // Si es un Super Tie-Break, contar como set ganado
         if (isSuperTieBreak) {
-          // En el Super Tie-Break, directamente damos por ganado el set
-          // No incrementamos juegos, porque este tie-break representa el set completo
           set = set.copyWith(
-            // Asignamos un valor alto (como 7-6 o 6-7) para indicar que el set está cerrado
             blueGames: winnerIsBlue ? 7 : 6,
             redGames: winnerIsBlue ? 6 : 7,
             currentGame: const GamePoints(),
             tieBreakStarter: null,
+            tieBreakStartServer: null,
           );
         } else {
           // Tie-break normal a 7, incrementa los juegos normalmente
@@ -348,30 +364,36 @@ class ScoringBloc extends Bloc<ScoringEvent, ScoringState> {
             redGames: winnerIsBlue ? set.redGames : set.redGames + 1,
             currentGame: const GamePoints(),
             tieBreakStarter: null,
+            tieBreakStartServer: null,
           );
         }
         
-        final nextServer = _other(starter);
+        // Después del tie-break, el servidor rota al siguiente jugador
+        final nextServer = starterServer.next();
         m = m.copyWith(
           sets: (m.sets.toList()..[idx] = set),
-          server: nextServer,
-          receiver: _other(nextServer),
+          currentServer: nextServer,
+          server: nextServer.team,
+          receiver: _other(nextServer.team),
         );
         
         m = _maybeAdvanceSet(m);
         skipGenericToggle = true;
       } else {
-        // Tie-break en progreso
+        // Tie-break en progreso: rotación especial de saque
+        // En tie-break, se rota el saque cada 2 puntos (excepto el primero)
         final total = nb + nr;
         final nextServer = _tbNextServer(starter, total);
         set = set.copyWith(
           currentGame: gp.copyWith(blue: nb, red: nr),
           tieBreakStarter: starter,
+          tieBreakStartServer: starterServer,
         );
         m = m.copyWith(
           sets: (m.sets.toList()..[idx] = set),
           server: nextServer,
           receiver: _other(nextServer),
+          // Nota: currentServer se mantiene durante el tie-break, solo cambia server/receiver
         );
       }
     } else {
@@ -380,24 +402,23 @@ class ScoringBloc extends Bloc<ScoringEvent, ScoringState> {
 
       // Verificar si debemos activar un tie-break en 6-6
       final isThirdSet = idx == 2;
-      final thirdSetFormat = m.settings.thirdSetFormat;
       
-      // Solo activamos tie-break en:
-      // - Primer y segundo set (siempre)
-      // - Tercer set en formato normal (thirdSetFormat == 0)
-      // No activamos tie-break en:
-      // - Tercer set en formato Super Tie-Break (thirdSetFormat == 1) - ya está en modo TB
-      // - Tercer set en formato ventaja (thirdSetFormat == 2) - nunca hay tie-break
-      if (!isThirdSet || (isThirdSet && thirdSetFormat == 0)) {
-        if (set.blueGames == 6 && set.redGames == 6 && !set.currentGame.isTieBreak) {
+      // MODO CAMPEONATO: tie-break en 6-6 para sets 1-2, super TB en tercer set
+      // MODO AMATEUR: NO hay tie-break, se juega hasta diferencia de 2 (máx 9-8)
+      if (isChampionship) {
+        // En modo campeonato, activar tie-break en 6-6 (solo sets 1-2)
+        // El tercer set ya se maneja como Super TB desde _maybeAdvanceSet
+        if (!isThirdSet && set.blueGames == 6 && set.redGames == 6 && !set.currentGame.isTieBreak) {
           set = set.copyWith(
             currentGame: const GamePoints(isTieBreak: true),
             tieBreakStarter: m.server,
-            // Siempre a 7 para tie-breaks regulares
+            tieBreakStartServer: m.currentServer,
             isSuperTieBreak: false,
           );
         }
       }
+      // En modo amateur: NO se activa tie-break, se sigue jugando hasta diferencia de 2
+      
       m = m.copyWith(sets: (m.sets.toList()..[idx] = set));
     }
 
@@ -713,6 +734,40 @@ class ScoringBloc extends Bloc<ScoringEvent, ScoringState> {
       'Punto de oro: ${e.enabled ? 'ON' : 'OFF'}',
       actionType: 'config:golden-point',
     );
+  }
+
+  void _onSetMatchMode(SetMatchModeEvent e, Emitter<ScoringState> emit) {
+    // Al cambiar el modo de partido, resetear el partido actual
+    final currentSettings = state.match.settings;
+    final newSettings = currentSettings.withMatchMode(e.mode);
+    final modeName = e.mode == MatchMode.championship ? 'Campeonato' : 'Amateur';
+    
+    // Crear nuevo partido con las nuevas configuraciones
+    final startServer = Server(team: state.match.currentServer.team, position: PlayerPosition.drive);
+    final newMatch = MatchScore(
+      sets: const [SetScore()],
+      currentSetIndex: 0,
+      currentServer: startServer,
+      server: startServer.team,
+      receiver: _other(startServer.team),
+      settings: newSettings,
+      blueName: state.match.blueName.replaceAll(' 🏆', ''),
+      redName: state.match.redName.replaceAll(' 🏆', ''),
+    );
+    
+    // Resetear estado completo incluyendo ganador
+    emit(state.copyWith(
+      match: newMatch,
+      undoStack: const [],
+      redoStack: const [],
+      matchWinner: null,
+      matchWinnerName: '',
+      matchCompleted: false,
+      isSwapped: false,
+      lastActionLabel: 'Modo: $modeName (partido reiniciado)',
+    ));
+    
+    _undoMeta.clear();
   }
 
   void _onAnnounceScore(AnnounceScoreEvent e, Emitter<ScoringState> emit) {

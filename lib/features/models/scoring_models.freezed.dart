@@ -15,6 +15,187 @@ final _privateConstructorUsedError = UnsupportedError(
   'It seems like you constructed your class using `MyClass._()`. This constructor is only meant to be used by freezed and you are not supposed to need it nor use it.\nPlease check the documentation here for more information: https://github.com/rrousselGit/freezed#adding-getters-and-methods-to-our-models',
 );
 
+Server _$ServerFromJson(Map<String, dynamic> json) {
+  return _Server.fromJson(json);
+}
+
+/// @nodoc
+mixin _$Server {
+  /// Equipo que tiene el servicio
+  Team get team => throw _privateConstructorUsedError;
+
+  /// Posición del jugador que saca (drive o revés)
+  PlayerPosition get position => throw _privateConstructorUsedError;
+
+  /// Serializes this Server to a JSON map.
+  Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
+
+  /// Create a copy of Server
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  $ServerCopyWith<Server> get copyWith => throw _privateConstructorUsedError;
+}
+
+/// @nodoc
+abstract class $ServerCopyWith<$Res> {
+  factory $ServerCopyWith(Server value, $Res Function(Server) then) =
+      _$ServerCopyWithImpl<$Res, Server>;
+  @useResult
+  $Res call({Team team, PlayerPosition position});
+}
+
+/// @nodoc
+class _$ServerCopyWithImpl<$Res, $Val extends Server>
+    implements $ServerCopyWith<$Res> {
+  _$ServerCopyWithImpl(this._value, this._then);
+
+  // ignore: unused_field
+  final $Val _value;
+  // ignore: unused_field
+  final $Res Function($Val) _then;
+
+  /// Create a copy of Server
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({Object? team = null, Object? position = null}) {
+    return _then(
+      _value.copyWith(
+            team:
+                null == team
+                    ? _value.team
+                    : team // ignore: cast_nullable_to_non_nullable
+                        as Team,
+            position:
+                null == position
+                    ? _value.position
+                    : position // ignore: cast_nullable_to_non_nullable
+                        as PlayerPosition,
+          )
+          as $Val,
+    );
+  }
+}
+
+/// @nodoc
+abstract class _$$ServerImplCopyWith<$Res> implements $ServerCopyWith<$Res> {
+  factory _$$ServerImplCopyWith(
+    _$ServerImpl value,
+    $Res Function(_$ServerImpl) then,
+  ) = __$$ServerImplCopyWithImpl<$Res>;
+  @override
+  @useResult
+  $Res call({Team team, PlayerPosition position});
+}
+
+/// @nodoc
+class __$$ServerImplCopyWithImpl<$Res>
+    extends _$ServerCopyWithImpl<$Res, _$ServerImpl>
+    implements _$$ServerImplCopyWith<$Res> {
+  __$$ServerImplCopyWithImpl(
+    _$ServerImpl _value,
+    $Res Function(_$ServerImpl) _then,
+  ) : super(_value, _then);
+
+  /// Create a copy of Server
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({Object? team = null, Object? position = null}) {
+    return _then(
+      _$ServerImpl(
+        team:
+            null == team
+                ? _value.team
+                : team // ignore: cast_nullable_to_non_nullable
+                    as Team,
+        position:
+            null == position
+                ? _value.position
+                : position // ignore: cast_nullable_to_non_nullable
+                    as PlayerPosition,
+      ),
+    );
+  }
+}
+
+/// @nodoc
+@JsonSerializable()
+class _$ServerImpl extends _Server {
+  const _$ServerImpl({
+    this.team = Team.blue,
+    this.position = PlayerPosition.drive,
+  }) : super._();
+
+  factory _$ServerImpl.fromJson(Map<String, dynamic> json) =>
+      _$$ServerImplFromJson(json);
+
+  /// Equipo que tiene el servicio
+  @override
+  @JsonKey()
+  final Team team;
+
+  /// Posición del jugador que saca (drive o revés)
+  @override
+  @JsonKey()
+  final PlayerPosition position;
+
+  @override
+  String toString() {
+    return 'Server(team: $team, position: $position)';
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType &&
+            other is _$ServerImpl &&
+            (identical(other.team, team) || other.team == team) &&
+            (identical(other.position, position) ||
+                other.position == position));
+  }
+
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  int get hashCode => Object.hash(runtimeType, team, position);
+
+  /// Create a copy of Server
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  @pragma('vm:prefer-inline')
+  _$$ServerImplCopyWith<_$ServerImpl> get copyWith =>
+      __$$ServerImplCopyWithImpl<_$ServerImpl>(this, _$identity);
+
+  @override
+  Map<String, dynamic> toJson() {
+    return _$$ServerImplToJson(this);
+  }
+}
+
+abstract class _Server extends Server {
+  const factory _Server({final Team team, final PlayerPosition position}) =
+      _$ServerImpl;
+  const _Server._() : super._();
+
+  factory _Server.fromJson(Map<String, dynamic> json) = _$ServerImpl.fromJson;
+
+  /// Equipo que tiene el servicio
+  @override
+  Team get team;
+
+  /// Posición del jugador que saca (drive o revés)
+  @override
+  PlayerPosition get position;
+
+  /// Create a copy of Server
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  _$$ServerImplCopyWith<_$ServerImpl> get copyWith =>
+      throw _privateConstructorUsedError;
+}
+
 MatchSettings _$MatchSettingsFromJson(Map<String, dynamic> json) {
   return _MatchSettings.fromJson(json);
 }
@@ -39,6 +220,11 @@ mixin _$MatchSettings {
   /// - 10: Para Super Tie-Break en el tercer set
   int get tieBreakTarget => throw _privateConstructorUsedError;
 
+  /// Modo de partido: Amateur o Campeonato
+  /// - Amateur: Sets 5-5 se deciden con diferencia de 2, máximo 9-8
+  /// - Campeonato: Sets 5-5 → tie break a 7, empate 1-1 → Super tie break a 11
+  MatchMode get matchMode => throw _privateConstructorUsedError;
+
   /// Serializes this MatchSettings to a JSON map.
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
 
@@ -61,6 +247,7 @@ abstract class $MatchSettingsCopyWith<$Res> {
     int tieBreakAtGames,
     bool goldenPoint,
     int tieBreakTarget,
+    MatchMode matchMode,
   });
 }
 
@@ -83,6 +270,7 @@ class _$MatchSettingsCopyWithImpl<$Res, $Val extends MatchSettings>
     Object? tieBreakAtGames = null,
     Object? goldenPoint = null,
     Object? tieBreakTarget = null,
+    Object? matchMode = null,
   }) {
     return _then(
       _value.copyWith(
@@ -106,6 +294,11 @@ class _$MatchSettingsCopyWithImpl<$Res, $Val extends MatchSettings>
                     ? _value.tieBreakTarget
                     : tieBreakTarget // ignore: cast_nullable_to_non_nullable
                         as int,
+            matchMode:
+                null == matchMode
+                    ? _value.matchMode
+                    : matchMode // ignore: cast_nullable_to_non_nullable
+                        as MatchMode,
           )
           as $Val,
     );
@@ -126,6 +319,7 @@ abstract class _$$MatchSettingsImplCopyWith<$Res>
     int tieBreakAtGames,
     bool goldenPoint,
     int tieBreakTarget,
+    MatchMode matchMode,
   });
 }
 
@@ -147,6 +341,7 @@ class __$$MatchSettingsImplCopyWithImpl<$Res>
     Object? tieBreakAtGames = null,
     Object? goldenPoint = null,
     Object? tieBreakTarget = null,
+    Object? matchMode = null,
   }) {
     return _then(
       _$MatchSettingsImpl(
@@ -170,6 +365,11 @@ class __$$MatchSettingsImplCopyWithImpl<$Res>
                 ? _value.tieBreakTarget
                 : tieBreakTarget // ignore: cast_nullable_to_non_nullable
                     as int,
+        matchMode:
+            null == matchMode
+                ? _value.matchMode
+                : matchMode // ignore: cast_nullable_to_non_nullable
+                    as MatchMode,
       ),
     );
   }
@@ -183,6 +383,7 @@ class _$MatchSettingsImpl implements _MatchSettings {
     this.tieBreakAtGames = 6,
     this.goldenPoint = false,
     this.tieBreakTarget = 7,
+    this.matchMode = MatchMode.amateur,
   });
 
   factory _$MatchSettingsImpl.fromJson(Map<String, dynamic> json) =>
@@ -214,9 +415,16 @@ class _$MatchSettingsImpl implements _MatchSettings {
   @JsonKey()
   final int tieBreakTarget;
 
+  /// Modo de partido: Amateur o Campeonato
+  /// - Amateur: Sets 5-5 se deciden con diferencia de 2, máximo 9-8
+  /// - Campeonato: Sets 5-5 → tie break a 7, empate 1-1 → Super tie break a 11
+  @override
+  @JsonKey()
+  final MatchMode matchMode;
+
   @override
   String toString() {
-    return 'MatchSettings(setsToWin: $setsToWin, tieBreakAtGames: $tieBreakAtGames, goldenPoint: $goldenPoint, tieBreakTarget: $tieBreakTarget)';
+    return 'MatchSettings(setsToWin: $setsToWin, tieBreakAtGames: $tieBreakAtGames, goldenPoint: $goldenPoint, tieBreakTarget: $tieBreakTarget, matchMode: $matchMode)';
   }
 
   @override
@@ -231,7 +439,9 @@ class _$MatchSettingsImpl implements _MatchSettings {
             (identical(other.goldenPoint, goldenPoint) ||
                 other.goldenPoint == goldenPoint) &&
             (identical(other.tieBreakTarget, tieBreakTarget) ||
-                other.tieBreakTarget == tieBreakTarget));
+                other.tieBreakTarget == tieBreakTarget) &&
+            (identical(other.matchMode, matchMode) ||
+                other.matchMode == matchMode));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
@@ -242,6 +452,7 @@ class _$MatchSettingsImpl implements _MatchSettings {
     tieBreakAtGames,
     goldenPoint,
     tieBreakTarget,
+    matchMode,
   );
 
   /// Create a copy of MatchSettings
@@ -264,6 +475,7 @@ abstract class _MatchSettings implements MatchSettings {
     final int tieBreakAtGames,
     final bool goldenPoint,
     final int tieBreakTarget,
+    final MatchMode matchMode,
   }) = _$MatchSettingsImpl;
 
   factory _MatchSettings.fromJson(Map<String, dynamic> json) =
@@ -290,6 +502,12 @@ abstract class _MatchSettings implements MatchSettings {
   /// - 10: Para Super Tie-Break en el tercer set
   @override
   int get tieBreakTarget;
+
+  /// Modo de partido: Amateur o Campeonato
+  /// - Amateur: Sets 5-5 se deciden con diferencia de 2, máximo 9-8
+  /// - Campeonato: Sets 5-5 → tie break a 7, empate 1-1 → Super tie break a 11
+  @override
+  MatchMode get matchMode;
 
   /// Create a copy of MatchSettings
   /// with the given fields replaced by the non-null parameter values.
@@ -541,11 +759,14 @@ mixin _$SetScore {
   GamePoints get currentGame => throw _privateConstructorUsedError;
 
   /// Servidor que comenzó el tie-break (para la rotación 1–2–2–2)
-  /// En tie-breaks, el servicio rota después de cada punto impar
+  /// En tie-breaks, el servicio rota después de cada punto
+  Server? get tieBreakStartServer => throw _privateConstructorUsedError;
+
+  /// @deprecated Mantener por compatibilidad con Team
   Team? get tieBreakStarter => throw _privateConstructorUsedError;
 
-  /// Indica si este set es un Super Tie-Break (a 10 puntos)
-  /// - true: Es un Super Tie-Break (tercer set en formato 1)
+  /// Indica si este set es un Super Tie-Break (a 10/11 puntos)
+  /// - true: Es un Super Tie-Break (tercer set en formato campeonato o tradicional)
   /// - false: Es un set normal (con tie-break regular a 7 puntos)
   bool get isSuperTieBreak => throw _privateConstructorUsedError;
 
@@ -568,11 +789,13 @@ abstract class $SetScoreCopyWith<$Res> {
     int blueGames,
     int redGames,
     GamePoints currentGame,
+    Server? tieBreakStartServer,
     Team? tieBreakStarter,
     bool isSuperTieBreak,
   });
 
   $GamePointsCopyWith<$Res> get currentGame;
+  $ServerCopyWith<$Res>? get tieBreakStartServer;
 }
 
 /// @nodoc
@@ -593,6 +816,7 @@ class _$SetScoreCopyWithImpl<$Res, $Val extends SetScore>
     Object? blueGames = null,
     Object? redGames = null,
     Object? currentGame = null,
+    Object? tieBreakStartServer = freezed,
     Object? tieBreakStarter = freezed,
     Object? isSuperTieBreak = null,
   }) {
@@ -613,6 +837,11 @@ class _$SetScoreCopyWithImpl<$Res, $Val extends SetScore>
                     ? _value.currentGame
                     : currentGame // ignore: cast_nullable_to_non_nullable
                         as GamePoints,
+            tieBreakStartServer:
+                freezed == tieBreakStartServer
+                    ? _value.tieBreakStartServer
+                    : tieBreakStartServer // ignore: cast_nullable_to_non_nullable
+                        as Server?,
             tieBreakStarter:
                 freezed == tieBreakStarter
                     ? _value.tieBreakStarter
@@ -637,6 +866,20 @@ class _$SetScoreCopyWithImpl<$Res, $Val extends SetScore>
       return _then(_value.copyWith(currentGame: value) as $Val);
     });
   }
+
+  /// Create a copy of SetScore
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @pragma('vm:prefer-inline')
+  $ServerCopyWith<$Res>? get tieBreakStartServer {
+    if (_value.tieBreakStartServer == null) {
+      return null;
+    }
+
+    return $ServerCopyWith<$Res>(_value.tieBreakStartServer!, (value) {
+      return _then(_value.copyWith(tieBreakStartServer: value) as $Val);
+    });
+  }
 }
 
 /// @nodoc
@@ -652,12 +895,15 @@ abstract class _$$SetScoreImplCopyWith<$Res>
     int blueGames,
     int redGames,
     GamePoints currentGame,
+    Server? tieBreakStartServer,
     Team? tieBreakStarter,
     bool isSuperTieBreak,
   });
 
   @override
   $GamePointsCopyWith<$Res> get currentGame;
+  @override
+  $ServerCopyWith<$Res>? get tieBreakStartServer;
 }
 
 /// @nodoc
@@ -677,6 +923,7 @@ class __$$SetScoreImplCopyWithImpl<$Res>
     Object? blueGames = null,
     Object? redGames = null,
     Object? currentGame = null,
+    Object? tieBreakStartServer = freezed,
     Object? tieBreakStarter = freezed,
     Object? isSuperTieBreak = null,
   }) {
@@ -697,6 +944,11 @@ class __$$SetScoreImplCopyWithImpl<$Res>
                 ? _value.currentGame
                 : currentGame // ignore: cast_nullable_to_non_nullable
                     as GamePoints,
+        tieBreakStartServer:
+            freezed == tieBreakStartServer
+                ? _value.tieBreakStartServer
+                : tieBreakStartServer // ignore: cast_nullable_to_non_nullable
+                    as Server?,
         tieBreakStarter:
             freezed == tieBreakStarter
                 ? _value.tieBreakStarter
@@ -719,6 +971,7 @@ class _$SetScoreImpl implements _SetScore {
     this.blueGames = 0,
     this.redGames = 0,
     this.currentGame = const GamePoints(),
+    this.tieBreakStartServer,
     this.tieBreakStarter,
     this.isSuperTieBreak = false,
   });
@@ -742,12 +995,16 @@ class _$SetScoreImpl implements _SetScore {
   final GamePoints currentGame;
 
   /// Servidor que comenzó el tie-break (para la rotación 1–2–2–2)
-  /// En tie-breaks, el servicio rota después de cada punto impar
+  /// En tie-breaks, el servicio rota después de cada punto
+  @override
+  final Server? tieBreakStartServer;
+
+  /// @deprecated Mantener por compatibilidad con Team
   @override
   final Team? tieBreakStarter;
 
-  /// Indica si este set es un Super Tie-Break (a 10 puntos)
-  /// - true: Es un Super Tie-Break (tercer set en formato 1)
+  /// Indica si este set es un Super Tie-Break (a 10/11 puntos)
+  /// - true: Es un Super Tie-Break (tercer set en formato campeonato o tradicional)
   /// - false: Es un set normal (con tie-break regular a 7 puntos)
   @override
   @JsonKey()
@@ -755,7 +1012,7 @@ class _$SetScoreImpl implements _SetScore {
 
   @override
   String toString() {
-    return 'SetScore(blueGames: $blueGames, redGames: $redGames, currentGame: $currentGame, tieBreakStarter: $tieBreakStarter, isSuperTieBreak: $isSuperTieBreak)';
+    return 'SetScore(blueGames: $blueGames, redGames: $redGames, currentGame: $currentGame, tieBreakStartServer: $tieBreakStartServer, tieBreakStarter: $tieBreakStarter, isSuperTieBreak: $isSuperTieBreak)';
   }
 
   @override
@@ -769,6 +1026,8 @@ class _$SetScoreImpl implements _SetScore {
                 other.redGames == redGames) &&
             (identical(other.currentGame, currentGame) ||
                 other.currentGame == currentGame) &&
+            (identical(other.tieBreakStartServer, tieBreakStartServer) ||
+                other.tieBreakStartServer == tieBreakStartServer) &&
             (identical(other.tieBreakStarter, tieBreakStarter) ||
                 other.tieBreakStarter == tieBreakStarter) &&
             (identical(other.isSuperTieBreak, isSuperTieBreak) ||
@@ -782,6 +1041,7 @@ class _$SetScoreImpl implements _SetScore {
     blueGames,
     redGames,
     currentGame,
+    tieBreakStartServer,
     tieBreakStarter,
     isSuperTieBreak,
   );
@@ -805,6 +1065,7 @@ abstract class _SetScore implements SetScore {
     final int blueGames,
     final int redGames,
     final GamePoints currentGame,
+    final Server? tieBreakStartServer,
     final Team? tieBreakStarter,
     final bool isSuperTieBreak,
   }) = _$SetScoreImpl;
@@ -825,12 +1086,16 @@ abstract class _SetScore implements SetScore {
   GamePoints get currentGame;
 
   /// Servidor que comenzó el tie-break (para la rotación 1–2–2–2)
-  /// En tie-breaks, el servicio rota después de cada punto impar
+  /// En tie-breaks, el servicio rota después de cada punto
+  @override
+  Server? get tieBreakStartServer;
+
+  /// @deprecated Mantener por compatibilidad con Team
   @override
   Team? get tieBreakStarter;
 
-  /// Indica si este set es un Super Tie-Break (a 10 puntos)
-  /// - true: Es un Super Tie-Break (tercer set en formato 1)
+  /// Indica si este set es un Super Tie-Break (a 10/11 puntos)
+  /// - true: Es un Super Tie-Break (tercer set en formato campeonato o tradicional)
   /// - false: Es un set normal (con tie-break regular a 7 puntos)
   @override
   bool get isSuperTieBreak;
@@ -855,10 +1120,14 @@ mixin _$MatchScore {
   /// Índice del set actual (0 = primer set, 1 = segundo set, 2 = tercer set)
   int get currentSetIndex => throw _privateConstructorUsedError;
 
-  /// Equipo que tiene el servicio actualmente
+  /// Servidor actual: equipo + posición (drive/revés)
+  /// Rotación: DRY1 → DRY2 → REVÉS1 → REVÉS2 → repite
+  Server get currentServer => throw _privateConstructorUsedError;
+
+  /// @deprecated Mantener por compatibilidad - usar currentServer.team
   Team get server => throw _privateConstructorUsedError;
 
-  /// Equipo que recibe actualmente
+  /// @deprecated Mantener por compatibilidad
   Team get receiver => throw _privateConstructorUsedError;
 
   /// Nombre del equipo verde
@@ -893,6 +1162,7 @@ abstract class $MatchScoreCopyWith<$Res> {
   $Res call({
     List<SetScore> sets,
     int currentSetIndex,
+    Server currentServer,
     Team server,
     Team receiver,
     String blueName,
@@ -901,6 +1171,7 @@ abstract class $MatchScoreCopyWith<$Res> {
     MatchSettings settings,
   });
 
+  $ServerCopyWith<$Res> get currentServer;
   $MatchSettingsCopyWith<$Res> get settings;
 }
 
@@ -921,6 +1192,7 @@ class _$MatchScoreCopyWithImpl<$Res, $Val extends MatchScore>
   $Res call({
     Object? sets = null,
     Object? currentSetIndex = null,
+    Object? currentServer = null,
     Object? server = null,
     Object? receiver = null,
     Object? blueName = null,
@@ -940,6 +1212,11 @@ class _$MatchScoreCopyWithImpl<$Res, $Val extends MatchScore>
                     ? _value.currentSetIndex
                     : currentSetIndex // ignore: cast_nullable_to_non_nullable
                         as int,
+            currentServer:
+                null == currentServer
+                    ? _value.currentServer
+                    : currentServer // ignore: cast_nullable_to_non_nullable
+                        as Server,
             server:
                 null == server
                     ? _value.server
@@ -979,6 +1256,16 @@ class _$MatchScoreCopyWithImpl<$Res, $Val extends MatchScore>
   /// with the given fields replaced by the non-null parameter values.
   @override
   @pragma('vm:prefer-inline')
+  $ServerCopyWith<$Res> get currentServer {
+    return $ServerCopyWith<$Res>(_value.currentServer, (value) {
+      return _then(_value.copyWith(currentServer: value) as $Val);
+    });
+  }
+
+  /// Create a copy of MatchScore
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @pragma('vm:prefer-inline')
   $MatchSettingsCopyWith<$Res> get settings {
     return $MatchSettingsCopyWith<$Res>(_value.settings, (value) {
       return _then(_value.copyWith(settings: value) as $Val);
@@ -998,6 +1285,7 @@ abstract class _$$MatchScoreImplCopyWith<$Res>
   $Res call({
     List<SetScore> sets,
     int currentSetIndex,
+    Server currentServer,
     Team server,
     Team receiver,
     String blueName,
@@ -1006,6 +1294,8 @@ abstract class _$$MatchScoreImplCopyWith<$Res>
     MatchSettings settings,
   });
 
+  @override
+  $ServerCopyWith<$Res> get currentServer;
   @override
   $MatchSettingsCopyWith<$Res> get settings;
 }
@@ -1026,6 +1316,7 @@ class __$$MatchScoreImplCopyWithImpl<$Res>
   $Res call({
     Object? sets = null,
     Object? currentSetIndex = null,
+    Object? currentServer = null,
     Object? server = null,
     Object? receiver = null,
     Object? blueName = null,
@@ -1045,6 +1336,11 @@ class __$$MatchScoreImplCopyWithImpl<$Res>
                 ? _value.currentSetIndex
                 : currentSetIndex // ignore: cast_nullable_to_non_nullable
                     as int,
+        currentServer:
+            null == currentServer
+                ? _value.currentServer
+                : currentServer // ignore: cast_nullable_to_non_nullable
+                    as Server,
         server:
             null == server
                 ? _value.server
@@ -1081,12 +1377,12 @@ class __$$MatchScoreImplCopyWithImpl<$Res>
 }
 
 /// @nodoc
-
-@JsonSerializable(explicitToJson: true)
+@JsonSerializable()
 class _$MatchScoreImpl extends _MatchScore {
   const _$MatchScoreImpl({
     final List<SetScore> sets = const <SetScore>[],
     this.currentSetIndex = 0,
+    this.currentServer = const Server(),
     this.server = Team.blue,
     this.receiver = Team.red,
     this.blueName = 'Verde',
@@ -1116,12 +1412,18 @@ class _$MatchScoreImpl extends _MatchScore {
   @JsonKey()
   final int currentSetIndex;
 
-  /// Equipo que tiene el servicio actualmente
+  /// Servidor actual: equipo + posición (drive/revés)
+  /// Rotación: DRY1 → DRY2 → REVÉS1 → REVÉS2 → repite
+  @override
+  @JsonKey()
+  final Server currentServer;
+
+  /// @deprecated Mantener por compatibilidad - usar currentServer.team
   @override
   @JsonKey()
   final Team server;
 
-  /// Equipo que recibe actualmente
+  /// @deprecated Mantener por compatibilidad
   @override
   @JsonKey()
   final Team receiver;
@@ -1148,7 +1450,7 @@ class _$MatchScoreImpl extends _MatchScore {
 
   @override
   String toString() {
-    return 'MatchScore(sets: $sets, currentSetIndex: $currentSetIndex, server: $server, receiver: $receiver, blueName: $blueName, redName: $redName, paused: $paused, settings: $settings)';
+    return 'MatchScore(sets: $sets, currentSetIndex: $currentSetIndex, currentServer: $currentServer, server: $server, receiver: $receiver, blueName: $blueName, redName: $redName, paused: $paused, settings: $settings)';
   }
 
   @override
@@ -1159,6 +1461,8 @@ class _$MatchScoreImpl extends _MatchScore {
             const DeepCollectionEquality().equals(other._sets, _sets) &&
             (identical(other.currentSetIndex, currentSetIndex) ||
                 other.currentSetIndex == currentSetIndex) &&
+            (identical(other.currentServer, currentServer) ||
+                other.currentServer == currentServer) &&
             (identical(other.server, server) || other.server == server) &&
             (identical(other.receiver, receiver) ||
                 other.receiver == receiver) &&
@@ -1176,6 +1480,7 @@ class _$MatchScoreImpl extends _MatchScore {
     runtimeType,
     const DeepCollectionEquality().hash(_sets),
     currentSetIndex,
+    currentServer,
     server,
     receiver,
     blueName,
@@ -1202,6 +1507,7 @@ abstract class _MatchScore extends MatchScore {
   const factory _MatchScore({
     final List<SetScore> sets,
     final int currentSetIndex,
+    final Server currentServer,
     final Team server,
     final Team receiver,
     final String blueName,
@@ -1222,11 +1528,16 @@ abstract class _MatchScore extends MatchScore {
   @override
   int get currentSetIndex;
 
-  /// Equipo que tiene el servicio actualmente
+  /// Servidor actual: equipo + posición (drive/revés)
+  /// Rotación: DRY1 → DRY2 → REVÉS1 → REVÉS2 → repite
+  @override
+  Server get currentServer;
+
+  /// @deprecated Mantener por compatibilidad - usar currentServer.team
   @override
   Team get server;
 
-  /// Equipo que recibe actualmente
+  /// @deprecated Mantener por compatibilidad
   @override
   Team get receiver;
 
