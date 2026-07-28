@@ -227,6 +227,13 @@ class AppLocalizationsEs extends AppLocalizations {
   String get themeMode => 'Modo de tema';
 
   @override
+  String get showDebugButton => 'Mostrar botón de depuración';
+
+  @override
+  String get showDebugButtonHint =>
+      'Muestra el botón que abre el panel de pruebas para simular la botonera';
+
+  @override
   String get pressToSelect => 'Pulsa OK para seleccionar';
 
   @override

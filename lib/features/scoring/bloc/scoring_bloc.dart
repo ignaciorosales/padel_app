@@ -87,6 +87,7 @@ class ScoringBloc extends Bloc<ScoringEvent, ScoringState> {
             match: MatchScore(sets: const [SetScore()], currentSetIndex: 0),
           ),
         ) {
+    _replayBase = state.match;
     on<NewMatchEvent>(_onNewMatch);
     on<NewSetEvent>(_onNewSet);
     on<NewGameEvent>(_onNewGame);
@@ -114,6 +115,28 @@ class ScoringBloc extends Bloc<ScoringEvent, ScoringState> {
   }
 
   final List<_ActionMeta> _undoMeta = [];
+
+  /// Log ordenado de puntos del partido actual. Es la fuente de verdad del
+  /// deshacer: al deshacer se retira un punto y se REPRODUCE la secuencia para
+  /// recalcular el marcador. Esto permite un deshacer por equipo INDEPENDIENTE
+  /// (cada equipo deshace sus propios puntos, sin importar el orden).
+  final List<Team> _pointLog = [];
+
+  /// Puntos retirados por un deshacer lineal, disponibles para rehacer.
+  final List<Team> _redoLog = [];
+
+  /// Estado inicial (limpio) desde el que se reproduce [_pointLog].
+  late MatchScore _replayBase;
+
+  /// Reconstruye el marcador reproduciendo el log de puntos desde el estado
+  /// inicial, respetando la configuración actual.
+  MatchScore _replayFromLog() {
+    var m = _replayBase.copyWith(settings: state.match.settings);
+    for (final t in _pointLog) {
+      m = _applyPointTo(m, t, silent: true);
+    }
+    return m;
+  }
 
   // Helpers…
 
@@ -212,7 +235,7 @@ class ScoringBloc extends Bloc<ScoringEvent, ScoringState> {
     return won;
   }
 
-  MatchScore _maybeAdvanceSet(MatchScore m) {
+  MatchScore _maybeAdvanceSet(MatchScore m, {bool silent = false}) {
     final s = m.sets[m.currentSetIndex];
     final settings = m.settings;
     // Pasamos el índice del set actual para tener en cuenta el formato del tercer set
@@ -231,6 +254,10 @@ class ScoringBloc extends Bloc<ScoringEvent, ScoringState> {
       
       // Si hay un ganador, mostramos un mensaje especial
       if (winner != null) {
+        // Durante un replay (deshacer/rehacer) no disparamos efectos
+        // secundarios: ni anuncio ni trofeo en el nombre.
+        if (silent) return m;
+
         // Emitimos un evento para anunciar al ganador
         Future.delayed(const Duration(milliseconds: 100), () {
           add(const AnnounceScoreEvent());
@@ -286,15 +313,26 @@ class ScoringBloc extends Bloc<ScoringEvent, ScoringState> {
       blueName: state.match.blueName,
       redName: state.match.redName,
     );
-    
-    // Emitir estado con el partido reiniciado y sin ganador
+
+    // Un partido nuevo empieza con historial limpio. Si se dejaran entradas
+    // (p. ej. 'Nuevo partido' con team=null) actuarían como "muro" y
+    // bloquearían el deshacer por equipo (UNDO_A/UNDO_B). Se limpia igual
+    // que en _onSetMatchMode para mantener consistencia.
     emit(state.copyWith(
+      match: next,
+      undoStack: const [],
+      redoStack: const [],
       matchWinner: null,
       matchWinnerName: '',
-      matchCompleted: false
+      matchCompleted: false,
+      isSwapped: false,
+      lastActionLabel: 'Nuevo partido',
     ));
-    
-    _pushHistory(emit, next, 'Nuevo partido');
+
+    _replayBase = next;
+    _pointLog.clear();
+    _redoLog.clear();
+    _undoMeta.clear();
   }
 
   void _onNewSet(NewSetEvent e, Emitter<ScoringState> emit) {
@@ -313,7 +351,23 @@ class ScoringBloc extends Bloc<ScoringEvent, ScoringState> {
   }
 
   void _onPointFor(PointForEvent e, Emitter<ScoringState> emit) {
-    var m = state.match;
+    // Registrar el punto en el log ordenado (fuente de verdad del deshacer por
+    // equipo independiente) y recalcular el marcador aplicando el punto.
+    _pointLog.add(e.team);
+    _redoLog.clear();
+    final result = _applyPointTo(state.match, e.team);
+    final teamName =
+        e.team == Team.blue ? state.match.blueName : state.match.redName;
+    _pushHistory(emit, result, 'Punto $teamName',
+        actorTeam: e.team, actionType: 'point');
+  }
+
+  /// Aplica UN punto de forma pura (sin emitir ni tocar el historial) y
+  /// devuelve el nuevo marcador. Se usa al anotar y al reproducir la secuencia
+  /// de puntos durante un deshacer/rehacer. [silent] evita efectos secundarios
+  /// (anuncio de ganador y trofeo) durante el replay.
+  MatchScore _applyPointTo(MatchScore start, Team team, {bool silent = false}) {
+    var m = start;
     final idx   = m.currentSetIndex;
     final before= m.sets[idx];
     var set     = before;
@@ -323,8 +377,8 @@ class ScoringBloc extends Bloc<ScoringEvent, ScoringState> {
     // Tie-break logic
     if (set.currentGame.isTieBreak) {
       final gp = set.currentGame;
-      final nb = gp.blue + (e.team == Team.blue ? 1 : 0);
-      final nr = gp.red + (e.team == Team.red  ? 1 : 0);
+      final nb = gp.blue + (team == Team.blue ? 1 : 0);
+      final nr = gp.red + (team == Team.red  ? 1 : 0);
 
       final starter = set.tieBreakStarter ?? m.server;
       final starterServer = set.tieBreakStartServer ?? m.currentServer;
@@ -377,7 +431,7 @@ class ScoringBloc extends Bloc<ScoringEvent, ScoringState> {
           receiver: _other(nextServer.team),
         );
         
-        m = _maybeAdvanceSet(m);
+        m = _maybeAdvanceSet(m, silent: silent);
         skipGenericToggle = true;
       } else {
         // Tie-break en progreso: rotación especial de saque
@@ -398,7 +452,7 @@ class ScoringBloc extends Bloc<ScoringEvent, ScoringState> {
       }
     } else {
       // Standard game logic (with or without golden point)
-      set = _advanceStandardPoint(set, e.team, m.settings.isGoldenPoint);
+      set = _advanceStandardPoint(set, team, m.settings.isGoldenPoint);
 
       // Verificar si debemos activar un tie-break en 6-6
       final isThirdSet = idx == 2;
@@ -424,11 +478,10 @@ class ScoringBloc extends Bloc<ScoringEvent, ScoringState> {
 
     if (!skipGenericToggle && _gameClosed(before, set)) {
       m = _toggleServer(m);
-      m = _maybeAdvanceSet(m);
+      m = _maybeAdvanceSet(m, silent: silent);
     }
 
-    final teamName = e.team == Team.blue ? state.match.blueName : state.match.redName;
-    _pushHistory(emit, m, 'Punto $teamName', actorTeam: e.team, actionType: 'point');
+    return m;
   }
 
   SetScore _advanceStandardPoint(SetScore set, Team team, bool goldenPoint) {
@@ -767,6 +820,9 @@ class ScoringBloc extends Bloc<ScoringEvent, ScoringState> {
       lastActionLabel: 'Modo: $modeName (partido reiniciado)',
     ));
     
+    _replayBase = newMatch;
+    _pointLog.clear();
+    _redoLog.clear();
     _undoMeta.clear();
   }
 
@@ -814,180 +870,42 @@ class ScoringBloc extends Bloc<ScoringEvent, ScoringState> {
   }
 
   void _onUndo(UndoEvent e, Emitter<ScoringState> emit) {
-    if (state.undoStack.isEmpty) return;
-    
-    // Buscar la última acción que no sea de configuración
-    int idx = state.undoStack.length - 1;
-    
-    while (idx >= 0) {
-      // Verificar si tenemos metadatos para esta acción
-      if (idx < _undoMeta.length) {
-        final meta = _undoMeta[idx];
-        // Si es una acción de puntos (no de configuración), entonces la deshacemos
-        if (!_isConfigEvent(meta.type)) {
-          break;
-        }
-      }
-      idx--;
-    }
-    
-    if (idx < 0) return; // No hay acciones de puntos para deshacer
-    
-    final prev = state.undoStack[idx];
-    
-    // Mantener todas las configuraciones actuales:
-    // 1. Punto de oro (golden point)
-    // 2. Tipo de tercer set (Super Tie-Break o set normal)
-    // 3. Objetivo del tie-break (7 o 10 puntos)
-    final currentSettings = state.match.settings;
-    final updatedPrev = prev.copyWith(settings: currentSettings);
-    
+    // Deshacer lineal: quita el último punto anotado y reproduce la secuencia.
+    if (_pointLog.isEmpty) return;
+    _redoLog.add(_pointLog.removeLast());
     emit(state.copyWith(
-      match: updatedPrev,
-      undoStack: state.undoStack.take(idx).toList(),
-      redoStack: [...state.redoStack, state.match],
+      match: _replayFromLog(),
       lastActionLabel: 'Deshacer',
     ));
-    
-    // Actualizar _undoMeta para mantener sincronización
-    if (_undoMeta.isNotEmpty) {
-      _undoMeta.removeRange(idx, _undoMeta.length);
-    }
   }
   
   void _onRedo(RedoEvent e, Emitter<ScoringState> emit) {
-    if (state.redoStack.isEmpty) return;
-    
-    // Buscar la siguiente acción que no sea de configuración
-    int idx = 0;
-    final redoLength = state.redoStack.length;
-    
-    while (idx < redoLength) {
-      final nextState = state.redoStack[idx];
-      // Solo rehacer acciones de puntos, no de configuración
-      if (_isActionRelatedToPoints(state.match, nextState)) {
-        break;
-      }
-      idx++;
-    }
-    
-    if (idx >= redoLength) return; // No hay acciones de puntos para rehacer
-    
-    final next = state.redoStack[idx];
-    
-    // Mantener todas las configuraciones actuales
-    final currentSettings = state.match.settings;
-    final updatedNext = next.copyWith(settings: currentSettings);
-    
+    // Rehacer lineal: vuelve a anotar el último punto retirado por un deshacer.
+    if (_redoLog.isEmpty) return;
+    final t = _redoLog.removeLast();
+    _pointLog.add(t);
     emit(state.copyWith(
-      match: updatedNext,
-      redoStack: state.redoStack.sublist(idx + 1),
-      undoStack: [...state.undoStack, state.match],
+      match: _applyPointTo(state.match, t),
       lastActionLabel: 'Rehacer',
     ));
-    
-    // Push placeholder meta
-    _undoMeta.add(_ActionMeta(null, 'redo'));
-  }
-  
-  // Determina si un cambio es de puntos (no de configuración)
-  bool _isActionRelatedToPoints(MatchScore current, MatchScore next) {
-    // Si cambia la configuración de tie-break, es un cambio de configuración
-    if (current.settings.tbGames != next.settings.tbGames) {
-      return false; // Cambio de tipo de tercer set (normal vs Super TB)
-    }
-    
-    // Si cambia la configuración de punto de oro, es un cambio de configuración
-    if (current.settings.goldenPoint != next.settings.goldenPoint) {
-      return false; // Cambio de configuración de punto de oro
-    }
-    
-    // Si cambia el objetivo del tie-break, es un cambio de configuración
-    if (current.settings.tbTarget != next.settings.tbTarget) {
-      return false; // Cambio de objetivo del tie-break (7 vs 10)
-    }
-    
-    // Si cambian los puntos, es un cambio relacionado con puntos
-    final curSet = current.currentSet;
-    final nextSet = next.currentSet;
-    
-    // Comparar puntos del juego actual
-    if (curSet.currentGame.blue != nextSet.currentGame.blue || 
-        curSet.currentGame.red != nextSet.currentGame.red) {
-      return true;
-    }
-    
-    // Comparar juegos del set
-    if (curSet.blueGames != nextSet.blueGames || 
-        curSet.redGames != nextSet.redGames) {
-      return true;
-    }
-    
-    // Comparar número de sets
-    if (current.sets.length != next.sets.length) {
-      return true;
-    }
-    
-    // No es un cambio de puntos
-    return false;
-  }
-  
-  // Determina si un evento es de configuración (no de puntos)
-  bool _isConfigEvent(String type) {
-    return type.contains('Tie-break') || 
-           type.contains('Punto de oro') || 
-           type.contains('Super TB') || 
-           type.contains('set normal') || 
-           type.startsWith('config:') ||
-           type == 'Cambiar servicio';
   }
 
   void _onUndoForTeam(UndoForTeamEvent e, Emitter<ScoringState> emit) {
-    // UNDO_A solo funciona si la ÚLTIMA acción fue del equipo A
-    // UNDO_B solo funciona si la ÚLTIMA acción fue del equipo B
-    // Esto evita que un equipo deshaga los puntos del contrario
-    
-    if (state.undoStack.isEmpty || _undoMeta.isEmpty) return;
-    
-    // Buscar la última acción de puntos (ignorando configuraciones)
-    int metaIdx = _undoMeta.length - 1;
-    while (metaIdx >= 0) {
-      final meta = _undoMeta[metaIdx];
-      if (!_isConfigEvent(meta.type)) {
-        break;
-      }
-      metaIdx--;
-    }
-    
-    if (metaIdx < 0) return; // No hay acciones de puntos
-    
-    final lastMeta = _undoMeta[metaIdx];
-    
-    // Solo permitir deshacer si la última acción fue de ESTE equipo
-    if (lastMeta.team != e.team) {
-      // La última acción no fue de este equipo, no hacer nada
-      return;
-    }
-    
-    // Deshacer la última acción (que es de este equipo)
-    if (metaIdx >= state.undoStack.length) return;
-    
-    final target = state.undoStack[metaIdx];
-    final newUndo = state.undoStack.take(metaIdx).toList();
-    
-    // Mantener configuraciones actuales
-    final currentSettings = state.match.settings;
-    final updatedTarget = target.copyWith(settings: currentSettings);
+    // Deshacer INDEPENDIENTE por equipo: retira el ÚLTIMO punto de ESTE equipo,
+    // sin importar cuántos puntos haya anotado el rival después. La secuencia
+    // restante se reproduce para recalcular el marcador correctamente, de modo
+    // que cada equipo tiene su propia "cola" de deshacer.
+    final idx = _pointLog.lastIndexOf(e.team);
+    if (idx < 0) return; // Este equipo no tiene puntos que deshacer.
+
+    _pointLog.removeAt(idx);
+    // Un deshacer dirigido rompe la linealidad del rehacer.
+    _redoLog.clear();
 
     emit(state.copyWith(
-      match: updatedTarget,
-      undoStack: newUndo,
-      redoStack: [...state.redoStack, state.match],
+      match: _replayFromLog(),
       lastActionLabel: 'Deshacer (${e.team == Team.blue ? 'A' : 'B'})',
     ));
-
-    // Trim meta to match newUndo length
-    _undoMeta.removeRange(metaIdx, _undoMeta.length);
   }
 
   // Helper to deep-clone the match state (for undo/redo)

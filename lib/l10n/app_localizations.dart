@@ -530,6 +530,18 @@ abstract class AppLocalizations {
   /// **'Modo de tema'**
   String get themeMode;
 
+  /// Toggle to show or hide the debug/testing button
+  ///
+  /// In es, this message translates to:
+  /// **'Mostrar botón de depuración'**
+  String get showDebugButton;
+
+  /// Helper text for the debug button toggle
+  ///
+  /// In es, this message translates to:
+  /// **'Muestra el botón que abre el panel de pruebas para simular la botonera'**
+  String get showDebugButtonHint;
+
   /// TV remote hint
   ///
   /// In es, this message translates to:

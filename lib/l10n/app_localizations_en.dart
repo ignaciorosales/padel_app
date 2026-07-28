@@ -227,6 +227,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get themeMode => 'Theme mode';
 
   @override
+  String get showDebugButton => 'Show debug button';
+
+  @override
+  String get showDebugButtonHint =>
+      'Shows the button that opens the testing panel to simulate the button box';
+
+  @override
   String get pressToSelect => 'Press OK to select';
 
   @override

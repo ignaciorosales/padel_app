@@ -117,7 +117,15 @@ class SimpleUsbSerialListener {
     // Comandos válidos
     final validCommands = ['P_A', 'P_B', 'UNDO_A', 'UNDO_B', 'RESET', 'RESET_GAME', 'PONG'];
     final upperCmd = cmd.toUpperCase();
-    
+
+    // Nuevo protocolo basado en el ID de la caja: BTN:<idHex>:<P|U|G>
+    // El master ya no decide el equipo; la app empareja caja → equipo.
+    if (RegExp(r'^BTN:[0-9A-F]{1,4}:[PUG]$').hasMatch(upperCmd)) {
+      _sendDebug('CMD: $upperCmd');
+      _commandController.add(upperCmd);
+      return;
+    }
+
     if (validCommands.contains(upperCmd)) {
       _sendDebug('CMD: $upperCmd');
       

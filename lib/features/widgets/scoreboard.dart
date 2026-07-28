@@ -2,6 +2,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:Puntazo/config/app_theme.dart';
+import 'package:Puntazo/config/scoreboard_font_cubit.dart';
 import 'package:Puntazo/config/team_selection_service.dart';
 import 'package:Puntazo/features/models/scoring_models.dart' hide SetScore;
 import 'package:Puntazo/features/scoring/bloc/scoring_bloc.dart';
@@ -273,8 +274,10 @@ class _ScoreboardContent extends StatelessWidget {
         child: LayoutBuilder(
           builder: (_, c) {
             final h = c.maxHeight;
+            // Escala de números del marcador (configurable en Ajustes).
+            final scale = context.watch<ScoreboardFontCubit>().state.scale;
             // Tamaños aumentados para mejor visibilidad
-            final pointsSize = h * 0.52;  // Puntos grandes del juego actual
+            final pointsSize = h * 0.52 * scale;  // Puntos grandes del juego actual
             final labelSize  = h * 0.10;  // Etiquetas de equipo
             final histFont   = h * 0.10;  // Historial de sets
             const textColor = Colors.white;
@@ -632,10 +635,17 @@ class _CurrentGamePointsRow extends StatelessWidget {
             Expanded(
               flex: 38,
               child: Center(
-                child: _DigitalPoints(
-                  text: data.leftPoints,
-                  height: pointsSize,
-                  color: textColor,
+                child: Padding(
+                  // Separa los puntos del bloque central de games.
+                  padding: EdgeInsets.only(right: pointsSize * 0.22),
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: _DigitalPoints(
+                      text: data.leftPoints,
+                      height: pointsSize,
+                      color: textColor,
+                    ),
+                  ),
                 ),
               ),
             ),
@@ -650,25 +660,35 @@ class _CurrentGamePointsRow extends StatelessWidget {
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Text(
-                            'SET ACTUAL',
-                            maxLines: 1,
-                            style: TextStyle(
-                              color: textColor.withOpacity(0.6),
-                              fontSize: pointsSize * 0.12,
-                              fontWeight: FontWeight.w500,
-                              letterSpacing: 2.0,
-                              shadows: [
-                                Shadow(
-                                  offset: Offset(1, 1),
-                                  blurRadius: 3,
-                                  color: Colors.black.withOpacity(0.4),
-                                ),
-                              ],
+                          // `letterSpacing` añade un espacio tras la última
+                          // letra, desplazando visualmente el texto a la
+                          // izquierda. Compensamos con un padding izquierdo del
+                          // mismo tamaño para centrarlo sobre los games.
+                          Padding(
+                            padding: const EdgeInsets.only(left: 2.0),
+                            child: Text(
+                              'SET ACTUAL',
+                              textAlign: TextAlign.center,
+                              maxLines: 1,
+                              style: TextStyle(
+                                color: textColor.withOpacity(0.6),
+                                fontSize: pointsSize * 0.12,
+                                fontWeight: FontWeight.w500,
+                                letterSpacing: 2.0,
+                                shadows: [
+                                  Shadow(
+                                    offset: Offset(1, 1),
+                                    blurRadius: 3,
+                                    color: Colors.black.withOpacity(0.4),
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
                           const SizedBox(height: 12),
-                          Row(
+                          FittedBox(
+                            fit: BoxFit.scaleDown,
+                            child: Row(
                             mainAxisSize: MainAxisSize.min,
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
@@ -706,6 +726,7 @@ class _CurrentGamePointsRow extends StatelessWidget {
                                 ),
                               ),
                             ],
+                            ),
                           ),
                         ],
                       ),
@@ -718,11 +739,18 @@ class _CurrentGamePointsRow extends StatelessWidget {
             Expanded(
               flex: 38,
               child: Center(
-                child: _DigitalPoints(
-                  text: data.rightPoints,
-                  height: pointsSize,
-                  color: textColor,
-                  alignRight: true,
+                child: Padding(
+                  // Separa los puntos del bloque central de games.
+                  padding: EdgeInsets.only(left: pointsSize * 0.22),
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: _DigitalPoints(
+                      text: data.rightPoints,
+                      height: pointsSize,
+                      color: textColor,
+                      alignRight: true,
+                    ),
+                  ),
                 ),
               ),
             ),

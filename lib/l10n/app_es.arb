@@ -366,6 +366,16 @@
     "description": "Theme mode label"
   },
 
+  "showDebugButton": "Mostrar botón de depuración",
+  "@showDebugButton": {
+    "description": "Toggle to show or hide the debug/testing button"
+  },
+
+  "showDebugButtonHint": "Muestra el botón que abre el panel de pruebas para simular la botonera",
+  "@showDebugButtonHint": {
+    "description": "Helper text for the debug button toggle"
+  },
+
   "pressToSelect": "Pulsa OK para seleccionar",
   "@pressToSelect": {
     "description": "TV remote hint"

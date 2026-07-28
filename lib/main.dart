@@ -7,8 +7,12 @@ import 'package:wakelock_plus/wakelock_plus.dart';
 import 'package:Puntazo/config/config_loader.dart';
 import 'package:Puntazo/config/app_config.dart';
 import 'package:Puntazo/config/app_theme.dart';
+import 'package:Puntazo/config/box_pairing_service.dart';
+import 'package:Puntazo/config/debug_settings_cubit.dart';
+import 'package:Puntazo/config/scoreboard_font_cubit.dart';
 import 'package:Puntazo/config/team_selection_service.dart';
 import 'package:Puntazo/config/theme_cubit.dart';
+import 'package:Puntazo/features/match_control/hardware_command_handler.dart';
 import 'package:Puntazo/features/models/scoring_models.dart';
 import 'package:Puntazo/features/scoring/bloc/scoring_bloc.dart';
 import 'package:Puntazo/features/scoring/bloc/scoring_event.dart';
@@ -16,6 +20,7 @@ import 'package:Puntazo/features/scoring/bloc/scoring_state.dart';
 import 'package:Puntazo/features/usb_serial/simple_usb_serial_listener.dart';
 import 'package:Puntazo/features/usb_serial/usb_connection_cubit.dart';
 import 'package:Puntazo/features/widgets/scoreboard.dart';
+import 'package:Puntazo/features/widgets/testing_overlay.dart';
 import 'package:Puntazo/features/widgets/winner_overlay.dart';
 import 'package:Puntazo/features/widgets/settings_screen.dart';
 import 'package:Puntazo/l10n/app_localizations.dart';
@@ -35,12 +40,18 @@ Future<void> main() async {
   // Initialize services
   final teamService = await TeamSelectionService.init(config);
   final themeCubit = await ThemeCubit.init();
+  final debugSettingsCubit = await DebugSettingsCubit.init();
+  final scoreboardFontCubit = await ScoreboardFontCubit.init();
+  final boxPairingService = await BoxPairingService.init();
 
   runApp(
     PuntazoApp(
       config: config,
       teamService: teamService,
       themeCubit: themeCubit,
+      debugSettingsCubit: debugSettingsCubit,
+      scoreboardFontCubit: scoreboardFontCubit,
+      boxPairingService: boxPairingService,
     ),
   );
 }
@@ -49,12 +60,18 @@ class PuntazoApp extends StatefulWidget {
   final AppConfig config;
   final TeamSelectionService teamService;
   final ThemeCubit themeCubit;
+  final DebugSettingsCubit debugSettingsCubit;
+  final ScoreboardFontCubit scoreboardFontCubit;
+  final BoxPairingService boxPairingService;
 
   const PuntazoApp({
     super.key,
     required this.config,
     required this.teamService,
     required this.themeCubit,
+    required this.debugSettingsCubit,
+    required this.scoreboardFontCubit,
+    required this.boxPairingService,
   });
 
   @override
@@ -84,10 +101,13 @@ class _PuntazoAppState extends State<PuntazoApp> {
       providers: [
         RepositoryProvider.value(value: widget.config),
         RepositoryProvider.value(value: widget.teamService),
+        RepositoryProvider.value(value: widget.boxPairingService),
       ],
       child: MultiBlocProvider(
         providers: [
           BlocProvider.value(value: widget.themeCubit),
+          BlocProvider.value(value: widget.debugSettingsCubit),
+          BlocProvider.value(value: widget.scoreboardFontCubit),
           BlocProvider(create: (_) => UsbConnectionCubit()),
           BlocProvider(
             create: (context) {
@@ -176,7 +196,10 @@ class _MatchScreenState extends State<MatchScreen> {
   SimpleUsbSerialListener? _usbListener;
   StreamSubscription<String>? _commandSub;
   StreamSubscription<bool>? _connectionSub;
-  
+
+  /// Capa de lógica de app que traduce comandos (hardware o testing) a eventos.
+  late final HardwareCommandHandler _commandHandler;
+
   // Overlay para testing manual de puntos
   bool _showTestingOverlay = false;
 
@@ -184,6 +207,10 @@ class _MatchScreenState extends State<MatchScreen> {
   void initState() {
     super.initState();
     WakelockPlus.enable();
+    _commandHandler = HardwareCommandHandler(
+      bloc: context.read<ScoringBloc>(),
+      pairing: context.read<BoxPairingService>(),
+    );
     _startUsbSerial();
   }
 
@@ -193,58 +220,31 @@ class _MatchScreenState extends State<MatchScreen> {
     _commandSub?.cancel();
     _connectionSub?.cancel();
     _usbListener?.stop();
+    _commandHandler.dispose();
     super.dispose();
   }
 
   Future<void> _startUsbSerial() async {
     _usbListener = SimpleUsbSerialListener();
 
-    // Usamos BLoC para el estado de conexión USB
+    // Estado de conexión USB → Cubit
     _connectionSub = _usbListener!.connectionStatus.listen((connected) {
       if (mounted) {
         context.read<UsbConnectionCubit>().setConnected(connected);
       }
     });
 
-    // Comandos USB → BLoC events
-    _commandSub = _usbListener!.commands.listen((cmd) {
-      if (!mounted) return;
-
-      final cleanCmd = cmd.trim().toUpperCase();
-      if (cleanCmd.isEmpty) return;
-
-      final bloc = context.read<ScoringBloc>();
-      final isSwapped = bloc.state.isSwapped;
-      
-      // Determinar qué equipo está en cada lado físico
-      // P_A = Botonera IZQUIERDA física
-      // P_B = Botonera DERECHA física
-      final leftTeam = isSwapped ? Team.red : Team.blue;
-      final rightTeam = isSwapped ? Team.blue : Team.red;
-
-      switch (cleanCmd) {
-        case 'P_A':
-          bloc.add(ScoringEvent.pointFor(leftTeam));
-        case 'P_B':
-          bloc.add(ScoringEvent.pointFor(rightTeam));
-        case 'UNDO_A':
-          bloc.add(ScoringEvent.undoForTeam(leftTeam));
-        case 'UNDO_B':
-          bloc.add(ScoringEvent.undoForTeam(rightTeam));
-        case 'RESET':
-        case 'RESET_GAME':
-          bloc.add(const ScoringEvent.resetSwap()); // Resetear swap al iniciar nuevo partido
-          bloc.add(const ScoringEvent.newMatch());
-        case 'PONG':
-          break;
-      }
-    });
+    // Comandos del hardware → misma capa de lógica que usa el overlay de testing
+    _commandSub = _usbListener!.commands.listen(_commandHandler.handle);
 
     await _usbListener!.start();
   }
 
   @override
   Widget build(BuildContext context) {
+    // Visibilidad del botón de depuración (configurable en Ajustes).
+    final showDebugButton = context.watch<DebugSettingsCubit>().state;
+
     return BlocListener<ScoringBloc, ScoringState>(
       listenWhen: (previous, current) {
         // Detectar cambio de set (avance, no retroceso por undo)
@@ -343,8 +343,10 @@ class _MatchScreenState extends State<MatchScreen> {
             ),
           ),
           
-          // Botón para mostrar/ocultar overlay de testing
-          Positioned(
+          // Botón para mostrar/ocultar overlay de testing (depuración).
+          // Se puede ocultar por completo desde Ajustes.
+          if (showDebugButton)
+            Positioned(
             bottom: 16,
             left: 16,
             child: Material(
@@ -374,92 +376,29 @@ class _MatchScreenState extends State<MatchScreen> {
             ),
           ),
           
-          // Overlay de testing para anotar puntos manualmente
-          if (_showTestingOverlay)
+          // Overlay de testing: simula la botonera física usando la MISMA
+          // capa de lógica (HardwareCommandHandler) que el hardware real.
+          if (showDebugButton && _showTestingOverlay)
             Positioned(
               bottom: 70,
               left: 16,
-              child: BlocBuilder<ScoringBloc, ScoringState>(
-                builder: (context, scoringState) {
-                  final teamService = RepositoryProvider.of<TeamSelectionService>(context);
-                  final isSwapped = scoringState.isSwapped;
-                  final leftTeam = isSwapped ? Team.red : Team.blue;
-                  final rightTeam = isSwapped ? Team.blue : Team.red;
-                  final leftColor = isSwapped ? teamService.getColor2() : teamService.getColor1();
-                  final rightColor = isSwapped ? teamService.getColor1() : teamService.getColor2();
-                  final match = scoringState.match;
-                  final currentServer = match.currentServer;
-                  final serverPos = currentServer.position == PlayerPosition.drive ? 'DRY' : 'REV';
-                  final serverTeam = currentServer.team == Team.blue ? 'Eq1' : 'Eq2';
-                  final settings = match.settings;
-                  final modeLabel = settings.matchMode == MatchMode.championship ? 'CAMPEONATO' : 'AMATEUR';
-                  
-                  return Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: Colors.black.withValues(alpha: 0.85),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.orange, width: 2),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        // Info del modo y servidor
-                        Text(
-                          'Modo: $modeLabel | Saque: $serverTeam $serverPos',
-                          style: const TextStyle(color: Colors.orange, fontSize: 12, fontWeight: FontWeight.bold),
-                        ),
-                        const SizedBox(height: 8),
-                        // Botones de puntos
-                        Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            _TestingButton(
-                              label: '+1',
-                              color: leftColor,
-                              onTap: () => context.read<ScoringBloc>().add(ScoringEvent.pointFor(leftTeam)),
-                            ),
-                            const SizedBox(width: 8),
-                            _TestingButton(
-                              label: '+1',
-                              color: rightColor,
-                              onTap: () => context.read<ScoringBloc>().add(ScoringEvent.pointFor(rightTeam)),
-                            ),
-                            const SizedBox(width: 16),
-                            _TestingButton(
-                              label: 'UNDO',
-                              color: Colors.grey.shade700,
-                              onTap: () => context.read<ScoringBloc>().add(const ScoringEvent.undo()),
-                            ),
-                            const SizedBox(width: 8),
-                            _TestingButton(
-                              label: 'RESET',
-                              color: Colors.red.shade700,
-                              onTap: () {
-                                context.read<ScoringBloc>().add(const ScoringEvent.resetSwap());
-                                context.read<ScoringBloc>().add(const ScoringEvent.newMatch());
-                              },
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 8),
-                        // Info del set actual
-                        Text(
-                          'Set ${match.currentSetIndex + 1} | Games: ${match.currentSet.blueGames}-${match.currentSet.redGames} | Pts: ${match.currentSet.currentGame.blue}-${match.currentSet.currentGame.red}',
-                          style: const TextStyle(color: Colors.white70, fontSize: 11),
-                        ),
-                        if (match.currentSet.currentGame.isTieBreak)
-                          Text(
-                            match.currentSet.isSuperTieBreak ? 'SUPER TIE-BREAK (a 11)' : 'TIE-BREAK (a 7)',
-                            style: const TextStyle(color: Colors.yellowAccent, fontSize: 11, fontWeight: FontWeight.bold),
-                          ),
-                      ],
-                    ),
-                  );
-                },
-              ),
+              child: TestingOverlay(commandHandler: _commandHandler),
             ),
+
+          // Overlay de confirmación de reinicio (por encima de todo).
+          // Se muestra cuando el hardware envía RESET y espera que el árbitro
+          // confirme con un botón/sensor de PUNTO (verde) o cancele con
+          // cualquier otro botón (blanco/rojo).
+          ValueListenableBuilder<bool>(
+            valueListenable: _commandHandler.pendingReset,
+            builder: (context, pending, _) {
+              if (!pending) return const SizedBox.shrink();
+              return _ResetConfirmOverlay(
+                onConfirm: _commandHandler.performReset,
+                onCancel: _commandHandler.cancelReset,
+              );
+            },
+          ),
         ],
         ),
       ),
@@ -467,39 +406,161 @@ class _MatchScreenState extends State<MatchScreen> {
   }
 }
 
-/// Botón de testing para anotar puntos manualmente
-class _TestingButton extends StatelessWidget {
-  final String label;
-  final Color color;
-  final VoidCallback onTap;
+/// Instrucciones a pantalla completa para confirmar (o cancelar) el reinicio
+/// del partido desde el hardware.
+///
+/// El árbitro pulsa el botón/sensor VERDE (comando de PUNTO) para reiniciar,
+/// o cualquier botón BLANCO/ROJO para cancelar. Los botones táctiles son un
+/// respaldo para pantallas con toque.
+class _ResetConfirmOverlay extends StatelessWidget {
+  const _ResetConfirmOverlay({
+    required this.onConfirm,
+    required this.onCancel,
+  });
 
-  const _TestingButton({
+  final VoidCallback onConfirm;
+  final VoidCallback onCancel;
+
+  @override
+  Widget build(BuildContext context) {
+    return Positioned.fill(
+      child: Container(
+        color: Colors.black.withValues(alpha: 0.85),
+        alignment: Alignment.center,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(
+              Icons.warning_amber_rounded,
+              color: Colors.amber,
+              size: 72,
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              '¿REINICIAR PARTIDO?',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 32,
+                fontWeight: FontWeight.w800,
+                letterSpacing: 1.5,
+              ),
+            ),
+            const SizedBox(height: 32),
+            const _ResetInstructionRow(
+              color: Color(0xFF2ECC71),
+              icon: Icons.check_circle,
+              text: 'Botón/sensor VERDE (PUNTO) para REINICIAR',
+            ),
+            const SizedBox(height: 16),
+            const _ResetInstructionRow(
+              color: Color(0xFFE74C3C),
+              icon: Icons.cancel,
+              text: 'Botón BLANCO o ROJO para CANCELAR',
+            ),
+            const SizedBox(height: 40),
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _ResetActionButton(
+                  label: 'REINICIAR',
+                  icon: Icons.check,
+                  color: const Color(0xFF2ECC71),
+                  onTap: onConfirm,
+                ),
+                const SizedBox(width: 24),
+                _ResetActionButton(
+                  label: 'CANCELAR',
+                  icon: Icons.close,
+                  color: const Color(0xFFE74C3C),
+                  onTap: onCancel,
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ResetInstructionRow extends StatelessWidget {
+  const _ResetInstructionRow({
+    required this.color,
+    required this.icon,
+    required this.text,
+  });
+
+  final Color color;
+  final IconData icon;
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, color: color, size: 28),
+        const SizedBox(width: 12),
+        Text(
+          text,
+          style: TextStyle(
+            color: color,
+            fontSize: 20,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _ResetActionButton extends StatelessWidget {
+  const _ResetActionButton({
     required this.label,
+    required this.icon,
     required this.color,
     required this.onTap,
   });
 
+  final String label;
+  final IconData icon;
+  final Color color;
+  final VoidCallback onTap;
+
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: color,
-      borderRadius: BorderRadius.circular(8),
+      color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(12),
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-          alignment: Alignment.center,
-          child: Text(
-            label,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 14,
-              fontWeight: FontWeight.bold,
-            ),
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+          decoration: BoxDecoration(
+            color: color.withValues(alpha: 0.2),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: color, width: 2),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, color: color, size: 22),
+              const SizedBox(width: 8),
+              Text(
+                label,
+                style: TextStyle(
+                  color: color,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 0.5,
+                ),
+              ),
+            ],
           ),
         ),
       ),
     );
   }
 }
+

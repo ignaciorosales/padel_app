@@ -74,6 +74,8 @@
   "rulesDescription": "Configure match rules",
   "displayDescription": "Display settings",
   "themeMode": "Theme mode",
+  "showDebugButton": "Show debug button",
+  "showDebugButtonHint": "Shows the button that opens the testing panel to simulate the button box",
   "pressToSelect": "Press OK to select",
   "settingsSelected": "Selected"
 }

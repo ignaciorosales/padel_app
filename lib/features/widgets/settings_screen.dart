@@ -2,9 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:Puntazo/config/app_config.dart';
+import 'package:Puntazo/config/box_pairing_service.dart';
+import 'package:Puntazo/config/debug_settings_cubit.dart';
+import 'package:Puntazo/config/scoreboard_font_cubit.dart';
 import 'package:Puntazo/config/team_selection_service.dart';
 import 'package:Puntazo/config/theme_cubit.dart';
-import 'package:Puntazo/features/models/scoring_models.dart' show MatchMode;
+import 'package:Puntazo/features/models/scoring_models.dart' show MatchMode, Team;
 import 'package:Puntazo/features/scoring/bloc/scoring_bloc.dart';
 import 'package:Puntazo/features/scoring/bloc/scoring_event.dart';
 import 'package:Puntazo/features/scoring/bloc/scoring_state.dart';
@@ -28,12 +31,19 @@ class SettingsScreen extends StatefulWidget {
               providers: [
                 BlocProvider.value(value: context.read<ScoringBloc>()),
                 BlocProvider.value(value: context.read<ThemeCubit>()),
+                BlocProvider.value(value: context.read<DebugSettingsCubit>()),
+                BlocProvider.value(
+                  value: context.read<ScoreboardFontCubit>(),
+                ),
               ],
               child: MultiRepositoryProvider(
                 providers: [
                   RepositoryProvider.value(value: context.read<AppConfig>()),
                   RepositoryProvider.value(
                     value: context.read<TeamSelectionService>(),
+                  ),
+                  RepositoryProvider.value(
+                    value: context.read<BoxPairingService>(),
                   ),
                 ],
                 child: const SettingsScreen(),
@@ -51,7 +61,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   int _currentTabIndex = 0;
 
   void _changeTab(int index) {
-    if (index >= 0 && index < 3) {
+    if (index >= 0 && index < 4) {
       setState(() => _currentTabIndex = index);
     }
   }
@@ -110,6 +120,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             _TabInfo(Icons.groups, l10n.tabTeams),
                             _TabInfo(Icons.rule, l10n.tabRules),
                             _TabInfo(Icons.palette, l10n.tabDisplay),
+                            _TabInfo(Icons.sports_esports, 'Mandos'),
                           ],
                         ),
                       ),
@@ -142,6 +153,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
         return const _RulesTab(key: ValueKey('rules'));
       case 2:
         return const _DisplayTab(key: ValueKey('display'));
+      case 3:
+        return const _ControllersTab(key: ValueKey('controllers'));
       default:
         return const _TeamsTab(key: ValueKey('teams'));
     }
@@ -922,6 +935,54 @@ class _DisplayTab extends StatelessWidget {
               ),
             ],
           ),
+          const SizedBox(height: 24),
+          // Botón de depuración (mostrar/ocultar el panel de pruebas)
+          BlocBuilder<DebugSettingsCubit, bool>(
+            builder: (context, showDebug) {
+              return _FocusableSwitch(
+                label: l10n.showDebugButton,
+                value: showDebug,
+                onChanged: (v) =>
+                    context.read<DebugSettingsCubit>().setShowDebugButton(v),
+              );
+            },
+          ),
+          const SizedBox(height: 6),
+          Text(
+            l10n.showDebugButtonHint,
+            style: TextStyle(
+              fontSize: 12,
+              color: Theme.of(context)
+                  .colorScheme
+                  .onSurface
+                  .withValues(alpha: 0.6),
+            ),
+          ),
+          const SizedBox(height: 24),
+          // Tamaño de los números del marcador (solo pantalla del marcador)
+          const Text(
+            'Tamaño de números (marcador)',
+            style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 12),
+          BlocBuilder<ScoreboardFontCubit, ScoreboardFontSize>(
+            builder: (context, current) {
+              return Wrap(
+                spacing: 12,
+                runSpacing: 12,
+                children: [
+                  for (final size in ScoreboardFontSize.values)
+                    _CompactThemeChip(
+                      icon: Icons.format_size,
+                      label: size.label,
+                      isSelected: size == current,
+                      onTap: () =>
+                          context.read<ScoreboardFontCubit>().setSize(size),
+                    ),
+                ],
+              );
+            },
+          ),
         ],
       ),
     );
@@ -1164,6 +1225,405 @@ class _FocusableIconButtonState extends State<_FocusableIconButton> {
           icon: Icon(widget.icon),
           onPressed: widget.onPressed,
           tooltip: widget.tooltip,
+        ),
+      ),
+    );
+  }
+}
+
+// ============================================================================
+// TAB: MANDOS (emparejamiento caja → equipo)
+// ============================================================================
+
+class _ControllersTab extends StatelessWidget {
+  const _ControllersTab({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final pairing = context.read<BoxPairingService>();
+    final teamService = context.read<TeamSelectionService>();
+
+    return AnimatedBuilder(
+      animation: Listenable.merge([
+        pairing.pairings,
+        pairing.lastUnpairedBox,
+        teamService.team1Selection,
+        teamService.team2Selection,
+      ]),
+      builder: (context, _) {
+        final entries = pairing.pairings.value.entries.toList()
+          ..sort((a, b) => a.key.compareTo(b.key));
+        final unpaired = pairing.lastUnpairedBox.value;
+
+        final team1Name = teamService.getTeam1()?.displayName ?? 'Equipo 1';
+        final team2Name = teamService.getTeam2()?.displayName ?? 'Equipo 2';
+        final team1Color = teamService.getColor1();
+        final team2Color = teamService.getColor2();
+
+        return SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Emparejar mandos con equipos',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                'Cada mando tiene un ID fijo. Asigna cada uno al equipo que '
+                'debe puntuar. El emparejamiento se recuerda hasta que lo '
+                'cambies. Si conectas un mando nuevo, pulsa uno de sus botones '
+                'para que aparezca aquí.',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Theme.of(context)
+                      .colorScheme
+                      .onSurface
+                      .withValues(alpha: 0.6),
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              // Aviso de mando nuevo detectado sin emparejar.
+              if (unpaired != null) ...[
+                _UnpairedBoxCard(
+                  boxId: unpaired,
+                  team1Color: team1Color,
+                  team2Color: team2Color,
+                  team1Name: team1Name,
+                  team2Name: team2Name,
+                  onAssign: (idx) => pairing.setPairing(unpaired, idx),
+                  onDismiss: pairing.clearUnpairedBox,
+                ),
+                const SizedBox(height: 16),
+              ],
+
+              if (entries.isEmpty)
+                Text(
+                  'No hay mandos emparejados.',
+                  style: TextStyle(
+                    color: Theme.of(context)
+                        .colorScheme
+                        .onSurface
+                        .withValues(alpha: 0.6),
+                  ),
+                )
+              else
+                ...entries.map(
+                  (e) => Padding(
+                    padding: const EdgeInsets.only(bottom: 10),
+                    child: _BoxPairingRow(
+                      boxId: e.key,
+                      teamIndex: e.value,
+                      team1Color: team1Color,
+                      team2Color: team2Color,
+                      team1Name: team1Name,
+                      team2Name: team2Name,
+                      onSelect: (idx) => pairing.setPairing(e.key, idx),
+                      onRemove: () => pairing.removeBox(e.key),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
+/// Fila de un mando emparejado: ID + selector de equipo + eliminar.
+class _BoxPairingRow extends StatelessWidget {
+  const _BoxPairingRow({
+    required this.boxId,
+    required this.teamIndex,
+    required this.team1Color,
+    required this.team2Color,
+    required this.team1Name,
+    required this.team2Name,
+    required this.onSelect,
+    required this.onRemove,
+  });
+
+  final String boxId;
+  final int teamIndex;
+  final Color team1Color;
+  final Color team2Color;
+  final String team1Name;
+  final String team2Name;
+  final ValueChanged<int> onSelect;
+  final VoidCallback onRemove;
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.08),
+            blurRadius: 4,
+            offset: const Offset(0, 1),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.sports_esports, size: 20),
+          const SizedBox(width: 10),
+          Text(
+            'Mando ${boxId.toUpperCase()}',
+            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+          ),
+          const Spacer(),
+          _TeamPickChip(
+            color: team1Color,
+            label: team1Name,
+            selected: teamIndex == 1,
+            onTap: () => onSelect(1),
+          ),
+          const SizedBox(width: 8),
+          _TeamPickChip(
+            color: team2Color,
+            label: team2Name,
+            selected: teamIndex == 2,
+            onTap: () => onSelect(2),
+          ),
+          const SizedBox(width: 12),
+          _FocusableSquareButton(
+            icon: Icons.delete_outline,
+            color: Colors.red.shade400,
+            onTap: onRemove,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Tarjeta destacada cuando se detecta un mando sin emparejar.
+class _UnpairedBoxCard extends StatelessWidget {
+  const _UnpairedBoxCard({
+    required this.boxId,
+    required this.team1Color,
+    required this.team2Color,
+    required this.team1Name,
+    required this.team2Name,
+    required this.onAssign,
+    required this.onDismiss,
+  });
+
+  final String boxId;
+  final Color team1Color;
+  final Color team2Color;
+  final String team1Name;
+  final String team2Name;
+  final ValueChanged<int> onAssign;
+  final VoidCallback onDismiss;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.orange.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.orange, width: 2),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.new_releases, color: Colors.orange, size: 20),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'Mando nuevo detectado: ${boxId.toUpperCase()}',
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+              _FocusableSquareButton(
+                icon: Icons.close,
+                color: Colors.grey,
+                onTap: onDismiss,
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          const Text('Asignar a:', style: TextStyle(fontSize: 12)),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              _TeamPickChip(
+                color: team1Color,
+                label: team1Name,
+                selected: false,
+                onTap: () => onAssign(1),
+              ),
+              const SizedBox(width: 12),
+              _TeamPickChip(
+                color: team2Color,
+                label: team2Name,
+                selected: false,
+                onTap: () => onAssign(2),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Chip seleccionable de equipo (punto de color + nombre), navegable por d-pad.
+class _TeamPickChip extends StatefulWidget {
+  const _TeamPickChip({
+    required this.color,
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final Color color;
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  State<_TeamPickChip> createState() => _TeamPickChipState();
+}
+
+class _TeamPickChipState extends State<_TeamPickChip> {
+  bool _focused = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return Focus(
+      onFocusChange: (f) => setState(() => _focused = f),
+      onKeyEvent: (node, event) {
+        if (event is KeyDownEvent &&
+            (event.logicalKey == LogicalKeyboardKey.select ||
+                event.logicalKey == LogicalKeyboardKey.enter)) {
+          widget.onTap();
+          return KeyEventResult.handled;
+        }
+        return KeyEventResult.ignored;
+      },
+      child: GestureDetector(
+        onTap: widget.onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 150),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          decoration: BoxDecoration(
+            color: widget.selected
+                ? widget.color.withValues(alpha: 0.18)
+                : (isDark ? Colors.white10 : Colors.grey.shade100),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(
+              color: _focused
+                  ? _focusBorderColor
+                  : (widget.selected ? widget.color : Colors.transparent),
+              width: _focused ? _focusBorderWidth : 2,
+            ),
+            boxShadow: _focused
+                ? [
+                    BoxShadow(
+                      color: _focusBorderColor.withValues(alpha: 0.4),
+                      blurRadius: 8,
+                    ),
+                  ]
+                : null,
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 16,
+                height: 16,
+                decoration: BoxDecoration(
+                  color: widget.color,
+                  shape: BoxShape.circle,
+                  border: Border.all(color: Colors.white30),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                widget.label,
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight:
+                      widget.selected ? FontWeight.bold : FontWeight.normal,
+                ),
+              ),
+              if (widget.selected) ...[
+                const SizedBox(width: 6),
+                Icon(Icons.check, size: 16, color: widget.color),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Botón cuadrado con icono, navegable por d-pad (eliminar / cerrar).
+class _FocusableSquareButton extends StatefulWidget {
+  const _FocusableSquareButton({
+    required this.icon,
+    required this.color,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final Color color;
+  final VoidCallback onTap;
+
+  @override
+  State<_FocusableSquareButton> createState() => _FocusableSquareButtonState();
+}
+
+class _FocusableSquareButtonState extends State<_FocusableSquareButton> {
+  bool _focused = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return Focus(
+      onFocusChange: (f) => setState(() => _focused = f),
+      onKeyEvent: (node, event) {
+        if (event is KeyDownEvent &&
+            (event.logicalKey == LogicalKeyboardKey.select ||
+                event.logicalKey == LogicalKeyboardKey.enter)) {
+          widget.onTap();
+          return KeyEventResult.handled;
+        }
+        return KeyEventResult.ignored;
+      },
+      child: GestureDetector(
+        onTap: widget.onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 150),
+          padding: const EdgeInsets.all(6),
+          decoration: BoxDecoration(
+            color: widget.color.withValues(alpha: 0.12),
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(
+              color: _focused ? _focusBorderColor : Colors.transparent,
+              width: _focused ? _focusBorderWidth : 2,
+            ),
+          ),
+          child: Icon(widget.icon, color: widget.color, size: 20),
         ),
       ),
     );
