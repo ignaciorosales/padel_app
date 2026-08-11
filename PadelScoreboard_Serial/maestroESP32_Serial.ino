@@ -269,8 +269,8 @@ static bool pollOneSlave(uint16_t slaveId, char &outCmd) {
 }
 
 // ===== Procesar comando recibido del esclavo =====
-// Nuevo protocolo: el master NO decide el equipo. Solo reenvía el ID de la
-// caja y el comando en bruto. La app empareja caja -> equipo.
+// El master NO decide el equipo: solo reenvía el ID de la caja y el
+// comando en bruto. La app empareja caja -> equipo (Ajustes > Mandos).
 // Formato: BTN:<idHex>:<P|U|G>
 void processSlaveCommand(size_t slaveIndex, uint16_t slaveId, char cmd) {
   if (!debounceSlaveCommand(slaveIndex, slaveId, cmd)) return;
