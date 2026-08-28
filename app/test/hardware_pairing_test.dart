@@ -42,6 +42,27 @@ void main() {
       expect(pairing.teamForBox('0209'), isNull);
     });
 
+    test('unassignBox deja la caja SIN EQUIPO en vez de borrarla', () async {
+      final pairing = await BoxPairingService.init();
+
+      await pairing.unassignBox('0201');
+      expect(pairing.teamForBox('0201'), isNull);
+      // A diferencia de removeBox, la caja sigue en la lista.
+      expect(pairing.pairings.value.containsKey('0201'), isTrue);
+      expect(pairing.pairings.value['0201'], BoxPairingService.unassigned);
+    });
+
+    test('una caja SIN EQUIPO se puede reasignar sin comando en vivo',
+        () async {
+      final pairing = await BoxPairingService.init();
+
+      await pairing.unassignBox('0202');
+      expect(pairing.teamForBox('0202'), isNull);
+
+      await pairing.setPairing('0202', 2);
+      expect(pairing.teamForBox('0202'), Team.red);
+    });
+
     test('la persistencia sobrevive a un reinicio del servicio', () async {
       final first = await BoxPairingService.init();
       await first.setPairing('0203', 1); // reasignar a Equipo 1
@@ -50,16 +71,33 @@ void main() {
       expect(reloaded.teamForBox('0203'), Team.blue);
     });
 
-    test('reportUnpairedBox marca la última caja desconocida', () async {
+    test('reportUnpairedBox marca la caja desconocida como pendiente',
+        () async {
       final pairing = await BoxPairingService.init();
-      expect(pairing.lastUnpairedBox.value, isNull);
+      expect(pairing.unpairedBoxes.value, isEmpty);
 
       pairing.reportUnpairedBox('0209');
-      expect(pairing.lastUnpairedBox.value, '0209');
+      expect(pairing.unpairedBoxes.value, contains('0209'));
 
       // Emparejarla la retira de "pendiente".
       await pairing.setPairing('0209', 1);
-      expect(pairing.lastUnpairedBox.value, isNull);
+      expect(pairing.unpairedBoxes.value, isNot(contains('0209')));
+    });
+
+    test('varias cajas sin emparejar se acumulan, ninguna tapa a otra',
+        () async {
+      final pairing = await BoxPairingService.init();
+
+      pairing.reportUnpairedBox('0209');
+      pairing.reportUnpairedBox('020a');
+      expect(pairing.unpairedBoxes.value, containsAll(['0209', '020a']));
+
+      // Emparejar una no afecta a la otra.
+      await pairing.setPairing('0209', 1);
+      expect(pairing.unpairedBoxes.value, ['020a']);
+
+      pairing.clearUnpairedBox('020a');
+      expect(pairing.unpairedBoxes.value, isEmpty);
     });
   });
 
@@ -109,7 +147,7 @@ void main() {
       final after = _points(bloc);
 
       expect(after, before); // sin cambios en el marcador
-      expect(pairing.lastUnpairedBox.value, '0209');
+      expect(pairing.unpairedBoxes.value, contains('0209'));
     });
 
     test('reasignar una caja cambia el equipo al que puntúa', () async {

@@ -1,4 +1,8 @@
-# Miscellaneous
+# ============================================
+# Monorepo Puntazo — app/ + firmware/ + docs/
+# ============================================
+
+# ---- Genérico ----
 *.class
 *.log
 *.pyc
@@ -12,18 +16,17 @@
 .swiftpm/
 migrate_working_dir/
 
-# IntelliJ related
+# ---- IntelliJ / Android Studio ----
 *.iml
 *.ipr
 *.iws
 .idea/
 
-# The .vscode folder contains launch configuration and tasks you configure in
-# VS Code which you may wish to be included in version control, so this line
-# is commented out by default.
+# El directorio .vscode contiene launch configs y tasks que puede que
+# quieras versionar; descomenta para ignorarlo.
 #.vscode/
 
-# Flutter/Dart/Pub related
+# ---- app/ : Flutter / Dart ----
 **/doc/api/
 **/ios/Flutter/.last_build_id
 .dart_tool/
@@ -31,15 +34,32 @@ migrate_working_dir/
 .flutter-plugins-dependencies
 .pub-cache/
 .pub/
-/build/
+app/build/
+app/android/app/debug
+app/android/app/profile
+app/android/app/release
+app/android/app/.cxx/
 
-# Symbolication related
+# Symbolication / ofuscación
 app.*.symbols
-
-# Obfuscation related
 app.*.map.json
 
-# Android Studio will place build artifacts here
-/android/app/debug
-/android/app/profile
-/android/app/release
+# ---- firmware/ : Arduino / PlatformIO ----
+# Arduino IDE compila fuera del sketch, pero exports y PlatformIO sí ensucian.
+firmware/**/build/
+firmware/**/.pio/
+firmware/**/*.bin
+firmware/**/*.elf
+firmware/**/*.hex
+firmware/**/*.map
+
+# ---- tools/ ----
+tools/__pycache__/
+tools/.venv/
+
+# ---- Restos de la estructura anterior (Flutter estaba en la raiz) ----
+# Artefactos regenerables; se pueden borrar sin riesgo.
+/build/
+/.dart_tool/
+/.flutter-plugins
+/.flutter-plugins-dependencies

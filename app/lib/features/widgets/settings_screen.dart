@@ -1246,14 +1246,14 @@ class _ControllersTab extends StatelessWidget {
     return AnimatedBuilder(
       animation: Listenable.merge([
         pairing.pairings,
-        pairing.lastUnpairedBox,
+        pairing.unpairedBoxes,
         teamService.team1Selection,
         teamService.team2Selection,
       ]),
       builder: (context, _) {
         final entries = pairing.pairings.value.entries.toList()
           ..sort((a, b) => a.key.compareTo(b.key));
-        final unpaired = pairing.lastUnpairedBox.value;
+        final unpairedList = pairing.unpairedBoxes.value;
 
         final team1Name = teamService.getTeam1()?.displayName ?? 'Equipo 1';
         final team2Name = teamService.getTeam2()?.displayName ?? 'Equipo 2';
@@ -1285,18 +1285,24 @@ class _ControllersTab extends StatelessWidget {
               ),
               const SizedBox(height: 16),
 
-              // Aviso de mando nuevo detectado sin emparejar.
-              if (unpaired != null) ...[
-                _UnpairedBoxCard(
-                  boxId: unpaired,
-                  team1Color: team1Color,
-                  team2Color: team2Color,
-                  team1Name: team1Name,
-                  team2Name: team2Name,
-                  onAssign: (idx) => pairing.setPairing(unpaired, idx),
-                  onDismiss: pairing.clearUnpairedBox,
+              // Avisos de mandos nuevos detectados sin emparejar: uno por
+              // cada caja pendiente, ninguna tapa a otra.
+              if (unpairedList.isNotEmpty) ...[
+                ...unpairedList.map(
+                  (id) => Padding(
+                    padding: const EdgeInsets.only(bottom: 10),
+                    child: _UnpairedBoxCard(
+                      boxId: id,
+                      team1Color: team1Color,
+                      team2Color: team2Color,
+                      team1Name: team1Name,
+                      team2Name: team2Name,
+                      onAssign: (idx) => pairing.setPairing(id, idx),
+                      onDismiss: () => pairing.clearUnpairedBox(id),
+                    ),
+                  ),
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 6),
               ],
 
               if (entries.isEmpty)
@@ -1321,10 +1327,24 @@ class _ControllersTab extends StatelessWidget {
                       team1Name: team1Name,
                       team2Name: team2Name,
                       onSelect: (idx) => pairing.setPairing(e.key, idx),
+                      onUnassign: () => pairing.unassignBox(e.key),
                       onRemove: () => pairing.removeBox(e.key),
                     ),
                   ),
                 ),
+
+              const SizedBox(height: 16),
+
+              // Alta manual por ID: no depende de que llegue un comando en
+              // vivo de la caja (útil si se borró por error, o para probar
+              // el emparejamiento sin tener el hardware conectado).
+              _ManualAddBoxCard(
+                team1Color: team1Color,
+                team2Color: team2Color,
+                team1Name: team1Name,
+                team2Name: team2Name,
+                onAdd: (id, idx) => pairing.setPairing(id, idx),
+              ),
             ],
           ),
         );
@@ -1333,7 +1353,130 @@ class _ControllersTab extends StatelessWidget {
   }
 }
 
-/// Fila de un mando emparejado: ID + selector de equipo + eliminar.
+/// Alta manual de una caja por ID (sin depender de un comando en vivo).
+/// Cubre el caso de haber borrado una caja por error, y sirve para probar
+/// el emparejamiento/marcador sin tener el hardware conectado.
+class _ManualAddBoxCard extends StatefulWidget {
+  const _ManualAddBoxCard({
+    required this.team1Color,
+    required this.team2Color,
+    required this.team1Name,
+    required this.team2Name,
+    required this.onAdd,
+  });
+
+  final Color team1Color;
+  final Color team2Color;
+  final String team1Name;
+  final String team2Name;
+  final void Function(String boxId, int teamIndex) onAdd;
+
+  @override
+  State<_ManualAddBoxCard> createState() => _ManualAddBoxCardState();
+}
+
+class _ManualAddBoxCardState extends State<_ManualAddBoxCard> {
+  final _controller = TextEditingController();
+  String? _error;
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _submit(int teamIndex) {
+    final raw = _controller.text.trim();
+    final id = raw.replaceAll(RegExp(r'^0x', caseSensitive: false), '');
+    if (!RegExp(r'^[0-9A-Fa-f]{1,4}$').hasMatch(id)) {
+      setState(() => _error = 'ID inválido (hex, ej: 0201)');
+      return;
+    }
+    widget.onAdd(id.padLeft(4, '0'), teamIndex);
+    setState(() {
+      _controller.clear();
+      _error = null;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.12),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Agregar caja manualmente',
+            style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Si borraste una caja por error, o para probar sin hardware.',
+            style: TextStyle(
+              fontSize: 11,
+              color: Theme.of(context)
+                  .colorScheme
+                  .onSurface
+                  .withValues(alpha: 0.6),
+            ),
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              SizedBox(
+                width: 100,
+                child: TextField(
+                  controller: _controller,
+                  maxLength: 6,
+                  style: const TextStyle(fontSize: 14),
+                  decoration: InputDecoration(
+                    hintText: 'ID (0201)',
+                    counterText: '',
+                    errorText: _error,
+                    isDense: true,
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 8,
+                    ),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              _TeamPickChip(
+                color: widget.team1Color,
+                label: widget.team1Name,
+                selected: false,
+                onTap: () => _submit(1),
+              ),
+              const SizedBox(width: 8),
+              _TeamPickChip(
+                color: widget.team2Color,
+                label: widget.team2Name,
+                selected: false,
+                onTap: () => _submit(2),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Fila de un mando: ID + selector de equipo (o "Sin equipo") + eliminar.
 class _BoxPairingRow extends StatelessWidget {
   const _BoxPairingRow({
     required this.boxId,
@@ -1343,6 +1486,7 @@ class _BoxPairingRow extends StatelessWidget {
     required this.team1Name,
     required this.team2Name,
     required this.onSelect,
+    required this.onUnassign,
     required this.onRemove,
   });
 
@@ -1353,17 +1497,27 @@ class _BoxPairingRow extends StatelessWidget {
   final String team1Name;
   final String team2Name;
   final ValueChanged<int> onSelect;
+  final VoidCallback onUnassign;
   final VoidCallback onRemove;
 
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final unassigned = teamIndex == BoxPairingService.unassigned;
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
         color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
         borderRadius: BorderRadius.circular(12),
+        border: unassigned
+            ? Border.all(
+                color: Theme.of(context)
+                    .colorScheme
+                    .onSurface
+                    .withValues(alpha: 0.2),
+              )
+            : null,
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.08),
@@ -1374,12 +1528,41 @@ class _BoxPairingRow extends StatelessWidget {
       ),
       child: Row(
         children: [
-          const Icon(Icons.sports_esports, size: 20),
+          Icon(
+            Icons.sports_esports,
+            size: 20,
+            color: unassigned
+                ? Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.4)
+                : null,
+          ),
           const SizedBox(width: 10),
           Text(
             'Mando ${boxId.toUpperCase()}',
-            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              color: unassigned
+                  ? Theme.of(context)
+                      .colorScheme
+                      .onSurface
+                      .withValues(alpha: 0.5)
+                  : null,
+            ),
           ),
+          if (unassigned) ...[
+            const SizedBox(width: 8),
+            Text(
+              '(sin equipo)',
+              style: TextStyle(
+                fontSize: 11,
+                fontStyle: FontStyle.italic,
+                color: Theme.of(context)
+                    .colorScheme
+                    .onSurface
+                    .withValues(alpha: 0.4),
+              ),
+            ),
+          ],
           const Spacer(),
           _TeamPickChip(
             color: team1Color,
@@ -1394,7 +1577,13 @@ class _BoxPairingRow extends StatelessWidget {
             selected: teamIndex == 2,
             onTap: () => onSelect(2),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: 8),
+          _FocusableSquareButton(
+            icon: Icons.link_off,
+            color: unassigned ? Colors.grey : Colors.grey.shade600,
+            onTap: onUnassign,
+          ),
+          const SizedBox(width: 8),
           _FocusableSquareButton(
             icon: Icons.delete_outline,
             color: Colors.red.shade400,

@@ -75,8 +75,6 @@ static const size_t   slaveCount  = sizeof(slaveList) / sizeof(slaveList[0]);
 // ===== TIMING =====
 static const uint32_t COMMAND_DEBOUNCE_MS = 200;  // Evitar comandos duplicados
 static uint32_t lastCommandTimeBySlave[slaveCount] = { 0 };
-static uint32_t lastOnlineLogBySlave[slaveCount] = { 0 };
-static const uint32_t ONLINE_LOG_INTERVAL_MS = 2000;
 static uint32_t lastRs485DebugLogMs = 0;
 static uint32_t rs485Polls = 0;
 static uint32_t rs485RxBytes = 0;
@@ -87,9 +85,36 @@ static uint32_t rs485WrongId = 0;
 static uint32_t rs485Valid = 0;
 static uint8_t lastRs485Byte = 0;
 
-// ===== WATCHDOG / HEARTBEAT =====
-static uint32_t lastHeartbeat = 0;
-static const uint32_t HEARTBEAT_INTERVAL_MS = 30000;  // Cada 30 segundos
+// ===== TELEMETRIA POR ESCLAVO =====
+// El maestro ya sabia que esclavo respondia, pero solo publicaba contadores
+// globales. Sin esto es imposible saber DESDE LA APP cual de las 4 cajas
+// falla, que es justo lo que hace falta al instalar el sistema en pista.
+static const uint8_t FW_VERSION = 2;
+
+// Fallos seguidos tras los cuales se considera la caja desconectada.
+static const uint8_t OFFLINE_AFTER_FAILS = 3;
+// Cuando una caja esta offline no se poleA en cada ciclo: esperar el timeout
+// completo de una caja ausente ralentiza el poleo de las que SI estan vivas.
+// Se reintenta 1 de cada OFFLINE_RETRY_EVERY ciclos (~0.3 s de redeteccion).
+static const uint8_t OFFLINE_RETRY_EVERY = 8;
+
+struct SlaveHealth {
+  bool     online;
+  uint8_t  consecutiveFails;
+  uint8_t  retrySkips;      // ciclos que quedan por saltar (si esta offline)
+  uint32_t replies;         // respuestas validas acumuladas
+  uint32_t timeouts;        // polls sin respuesta
+  uint32_t crcErrors;       // tramas suyas con CRC malo
+  uint32_t commands;        // comandos reales (p/u/g) reenviados a la app
+  uint32_t lastReplyMs;     // millis() de la ultima respuesta valida
+  uint16_t lastRttMs;       // ida y vuelta de la ultima respuesta
+};
+static SlaveHealth health[slaveCount];
+
+static uint32_t lastStatusEmitMs = 0;
+static const uint32_t STATUS_INTERVAL_MS = 2000;
+static uint32_t cycleStartMs = 0;
+static uint16_t lastCycleMs = 0;
 
 // ===== CRC16-CCITT (poly=0x1021, init=0xFFFF) =====
 static uint16_t crc16_ccitt(const uint8_t* data, size_t len) {
@@ -104,6 +129,18 @@ static uint16_t crc16_ccitt(const uint8_t* data, size_t len) {
     }
   }
   return crc;
+}
+
+// Descarta el primer byte del buffer y busca la siguiente cabecera 0xAA
+// dentro de lo ya leido, sin tirar el resto. Devuelve el nuevo indice de
+// escritura. Evita perder la trama que venga pegada detras de una mala.
+static uint8_t resyncFrame(uint8_t* buf, uint8_t len) {
+  uint8_t n = len;
+  do {
+    for (uint8_t i = 1; i < n; ++i) buf[i - 1] = buf[i];
+    n--;
+  } while (n > 0 && buf[0] != 0xAA);
+  return n;
 }
 
 #ifdef RS485_EN_PIN
@@ -155,19 +192,66 @@ static bool debounceSlaveCommand(size_t slaveIndex, uint16_t slaveId, char cmd) 
   return true;
 }
 
+// Publica el estado de cada caja y del propio maestro. Todas las lineas van
+// con prefijo "[" para que la app las trate como diagnostico y nunca como
+// comando de puntuacion.
+//
+//   [PS] dev=0201 on=1 rep=412 to=0 crc=0 cmd=7 rtt=18 age=31
+//   [MS] fw=2 up=125340 cyc=34 on=4/4 polls=2010 ...
+//
+// age = ms desde la ultima respuesta valida, o -1 si nunca respondio.
+static void emitStatus() {
+  uint32_t now = millis();
+  lastStatusEmitMs = now;
+
+  uint8_t onlineCount = 0;
+  for (size_t i = 0; i < slaveCount; ++i) {
+    if (health[i].online) onlineCount++;
+    long age = (health[i].lastReplyMs == 0)
+                 ? -1L
+                 : (long)(now - health[i].lastReplyMs);
+    USB_SERIAL.printf(
+      "[PS] dev=%04X on=%u rep=%lu to=%lu crc=%lu cmd=%lu rtt=%u age=%ld\n",
+      slaveList[i],
+      health[i].online ? 1u : 0u,
+      (unsigned long)health[i].replies,
+      (unsigned long)health[i].timeouts,
+      (unsigned long)health[i].crcErrors,
+      (unsigned long)health[i].commands,
+      (unsigned)health[i].lastRttMs,
+      age);
+  }
+
+  USB_SERIAL.printf(
+    "[MS] fw=%u up=%lu cyc=%u on=%u/%u polls=%lu rxb=%lu frm=%lu crc=%lu wid=%lu rs485=%d usb=%d\n",
+    (unsigned)FW_VERSION,
+    (unsigned long)now,
+    (unsigned)lastCycleMs,
+    (unsigned)onlineCount, (unsigned)slaveCount,
+    (unsigned long)rs485Polls,
+    (unsigned long)rs485RxBytes,
+    (unsigned long)rs485Frames,
+    (unsigned long)rs485CrcErrors,
+    (unsigned long)rs485WrongId,
+    RS485_BAUD, USB_BAUD);
+}
+
 static void handleTabletLine(const char* line) {
   if (line[0] == '\0') return;
-  USB_SERIAL.printf("[RX] Recibido del tablet: %s\n", line);
   if (strcmp(line, "STATUS") == 0) {
-    USB_SERIAL.println("[STATUS] OK - ESP32 Master activo");
+    // Informe completo inmediato: lo pide la pantalla de diagnostico de la
+    // app para no esperar al siguiente envio periodico.
+    emitStatus();
   } else if (strcmp(line, "PING") == 0) {
     USB_SERIAL.println("PONG");
+  } else {
+    USB_SERIAL.printf("[RX] Recibido del tablet: %s\n", line);
   }
 }
 
 // ===== pollOneSlave =====
 // Devuelve true si recibió respuesta válida
-static bool pollOneSlave(uint16_t slaveId, char &outCmd) {
+static bool pollOneSlave(size_t slaveIndex, uint16_t slaveId, char &outCmd) {
   rs485Polls++;
   const uint8_t devLo = (uint8_t)(slaveId & 0xFF);
   const uint8_t devHi = (uint8_t)(slaveId >> 8);
@@ -214,23 +298,22 @@ static bool pollOneSlave(uint16_t slaveId, char &outCmd) {
       continue;
     }
 
-    // Si encontramos otro 0xAA, reiniciar
-    if (b == 0xAA) {
-      rs485StartBytes++;
-      buf[0] = 0xAA;
-      idx = 1;
-      continue;
-    }
-
+    // OJO: aqui NO se puede resincronizar con "si es 0xAA, empezar de nuevo".
+    // Los dos bytes de CRC son pseudoaleatorios, asi que ~1 de cada 128
+    // respuestas VALIDAS lleva un 0xAA dentro y se perdia entera, dejando
+    // ademas el parser desalineado para la siguiente. Se acumulan los 7 bytes
+    // y, si la trama no valida, se descarta solo el primer byte y se vuelve a
+    // buscar cabecera dentro de lo ya leido.
     buf[idx++] = b;
     if (idx < 7) continue;
 
     // Frame completo
-    idx = 0;
     rs485Frames++;
 
-    // Verificar estructura del frame
-    if (buf[0] != 0xAA || buf[6] != 0x55) continue;
+    if (buf[0] != 0xAA || buf[6] != 0x55) {
+      idx = resyncFrame(buf, 7);
+      continue;
+    }
 
     uint8_t  rDevLo = buf[1];
     uint8_t  rDevHi = buf[2];
@@ -244,15 +327,30 @@ static bool pollOneSlave(uint16_t slaveId, char &outCmd) {
 
     if (crcCalc != crcRx) {
       rs485CrcErrors++;
+      health[slaveIndex].crcErrors++;
+      idx = resyncFrame(buf, 7);
       continue;
     }
     if (rDevId != slaveId) {
       rs485WrongId++;
+      idx = resyncFrame(buf, 7);
       continue;
     }
 
+    idx = 0;
     outCmd = cmd;
     rs485Valid++;
+
+    // Salud de esta caja: respondio, con su tiempo de ida y vuelta.
+    uint32_t nowMs = millis();
+    health[slaveIndex].replies++;
+    health[slaveIndex].lastReplyMs = nowMs;
+    health[slaveIndex].lastRttMs = (uint16_t)(nowMs - t_tx);
+    health[slaveIndex].consecutiveFails = 0;
+    if (!health[slaveIndex].online) {
+      health[slaveIndex].online = true;
+      USB_SERIAL.printf("[EVT] dev=%04X online\n", slaveId);
+    }
     
     // Log si es comando real (con prefijo [xxx] para que app lo filtre)
     if (cmd == 'p' || cmd == 'u' || cmd == 'g') {
@@ -264,7 +362,16 @@ static bool pollOneSlave(uint16_t slaveId, char &outCmd) {
     return true;
   }
 
-  // Sin respuesta
+  // Sin respuesta dentro del timeout
+  health[slaveIndex].timeouts++;
+  if (health[slaveIndex].consecutiveFails < 255) {
+    health[slaveIndex].consecutiveFails++;
+  }
+  if (health[slaveIndex].online &&
+      health[slaveIndex].consecutiveFails >= OFFLINE_AFTER_FAILS) {
+    health[slaveIndex].online = false;
+    USB_SERIAL.printf("[EVT] dev=%04X offline\n", slaveId);
+  }
   return false;
 }
 
@@ -284,6 +391,7 @@ void processSlaveCommand(size_t slaveIndex, uint16_t slaveId, char cmd) {
   }
 
   // La app espera exactamente esta línea (sin prefijo de debug).
+  health[slaveIndex].commands++;
   USB_SERIAL.printf("BTN:%04X:%c\n", slaveId, letter);
 }
 
@@ -332,24 +440,32 @@ void setup() {
     USB_SERIAL.println("[INFO] Modo: ESP32-WROOM (chip USB externo)");
   #endif
   
-  lastHeartbeat = millis();
+  lastStatusEmitMs = millis();
 }
 
 // ===== Loop principal =====
 void loop() {
+  cycleStartMs = millis();
+
   // === Polear todos los esclavos ===
   for (size_t i = 0; i < slaveCount; ++i) {
+    // Una caja ausente cuesta el timeout entero (70 ms) en cada vuelta, lo
+    // que ralentiza el poleo de las que SI responden: con una caja muerta el
+    // ciclo pasa de ~30 ms a ~100 ms y en pista se nota como "va lento".
+    // Estando ya offline se saltan ciclos y se reintenta cada
+    // OFFLINE_RETRY_EVERY vueltas, asi que si vuelve se detecta en ~0.3 s.
+    if (!health[i].online && health[i].retrySkips > 0) {
+      health[i].retrySkips--;
+      continue;
+    }
+
     char cmd = 'n';
-    if (pollOneSlave(slaveList[i], cmd)) {
+    if (pollOneSlave(i, slaveList[i], cmd)) {
       if (cmd == 'p' || cmd == 'u' || cmd == 'g') {
         processSlaveCommand(i, slaveList[i], cmd);
-      } else {
-        uint32_t now = millis();
-        if (now - lastOnlineLogBySlave[i] >= ONLINE_LOG_INTERVAL_MS) {
-          lastOnlineLogBySlave[i] = now;
-          USB_SERIAL.printf("[RS485] dev=0x%04X ok cmd='%c'\n", slaveList[i], cmd);
-        }
       }
+    } else if (!health[i].online) {
+      health[i].retrySkips = OFFLINE_RETRY_EVERY;
     }
     delay(2);  // Pausa entre esclavos (igual que versión BLE)
   }
@@ -373,6 +489,12 @@ void loop() {
     }
   }
   
+  lastCycleMs = (uint16_t)(millis() - cycleStartMs);
+
+  if (millis() - lastStatusEmitMs >= STATUS_INTERVAL_MS) {
+    emitStatus();
+  }
+
   logRs485Debug();
   delay(5);  // Pausa principal del loop (igual que versión BLE)
 }

@@ -17,8 +17,11 @@ import 'package:Puntazo/features/models/scoring_models.dart';
 import 'package:Puntazo/features/scoring/bloc/scoring_bloc.dart';
 import 'package:Puntazo/features/scoring/bloc/scoring_event.dart';
 import 'package:Puntazo/features/scoring/bloc/scoring_state.dart';
+import 'package:Puntazo/features/usb_serial/diagnostics_screen.dart';
+import 'package:Puntazo/features/usb_serial/hardware_health.dart';
 import 'package:Puntazo/features/usb_serial/simple_usb_serial_listener.dart';
 import 'package:Puntazo/features/usb_serial/usb_connection_cubit.dart';
+import 'package:Puntazo/features/usb_serial/usb_diagnostic_widget.dart';
 import 'package:Puntazo/features/widgets/scoreboard.dart';
 import 'package:Puntazo/features/widgets/testing_overlay.dart';
 import 'package:Puntazo/features/widgets/winner_overlay.dart';
@@ -196,9 +199,26 @@ class _MatchScreenState extends State<MatchScreen> {
   SimpleUsbSerialListener? _usbListener;
   StreamSubscription<String>? _commandSub;
   StreamSubscription<bool>? _connectionSub;
+  StreamSubscription<String>? _debugSub;
 
   /// Capa de lógica de app que traduce comandos (hardware o testing) a eventos.
   late final HardwareCommandHandler _commandHandler;
+
+  /// Estado del panel de diagnóstico USB (ver Ajustes > mostrar botón debug).
+  /// Se alimenta de los streams de [SimpleUsbSerialListener] para que en una
+  /// instalación real se pueda ver EN PANTALLA en qué etapa falla la
+  /// comunicación (sin dispositivo / detectado / conectado sin datos /
+  /// recibiendo pero mal formateado / operativo) en lugar de tener que
+  /// adivinarlo a ciegas.
+  final ValueNotifier<UsbDiagnosticInfo> _usbDiagnostic =
+      ValueNotifier(const UsbDiagnosticInfo());
+
+  /// Salud del hardware: consume la telemetría por caja que envía el maestro
+  /// (`[PS]`/`[MS]`) y la convierte en un diagnóstico accionable. Alimenta la
+  /// pantalla de Diagnóstico, pensada para la instalación en pista.
+  late final HardwareHealthMonitor _health;
+
+  StreamSubscription<int>? _deviceCountSub;
 
   // Overlay para testing manual de puntos
   bool _showTestingOverlay = false;
@@ -211,6 +231,9 @@ class _MatchScreenState extends State<MatchScreen> {
       bloc: context.read<ScoringBloc>(),
       pairing: context.read<BoxPairingService>(),
     );
+    _health = HardwareHealthMonitor(
+      onSend: (line) async => _usbListener?.send(line),
+    );
     _startUsbSerial();
   }
 
@@ -219,23 +242,93 @@ class _MatchScreenState extends State<MatchScreen> {
     WakelockPlus.disable();
     _commandSub?.cancel();
     _connectionSub?.cancel();
+    _debugSub?.cancel();
+    _deviceCountSub?.cancel();
     _usbListener?.stop();
     _commandHandler.dispose();
+    _usbDiagnostic.dispose();
+    _health.dispose();
     super.dispose();
+  }
+
+  void _appendDiagnosticLog(String log) {
+    final logs = List<String>.of(_usbDiagnostic.value.recentLogs)..add(log);
+    if (logs.length > 50) logs.removeRange(0, logs.length - 50);
+    _usbDiagnostic.value = _usbDiagnostic.value.copyWith(recentLogs: logs);
   }
 
   Future<void> _startUsbSerial() async {
     _usbListener = SimpleUsbSerialListener();
 
-    // Estado de conexión USB → Cubit
+    // Estado de conexión USB → Cubit + diagnóstico
     _connectionSub = _usbListener!.connectionStatus.listen((connected) {
       if (mounted) {
         context.read<UsbConnectionCubit>().setConnected(connected);
       }
+      _usbDiagnostic.value = _usbDiagnostic.value.copyWith(
+        isConnected: connected,
+        deviceName: connected ? _usbListener!.deviceName : null,
+        state:
+            connected
+                ? UsbDiagnosticState.connectedNoData
+                : UsbDiagnosticState.noDevice,
+      );
+      _health.setUsbConnected(connected, deviceName: _usbListener!.deviceName);
+      _health.setUsbError(_usbListener!.lastError);
+    });
+
+    // Cuántos dispositivos USB ve Android: distingue "no hay nada enchufado"
+    // de "está enchufado pero el puerto no abre" (permiso sin aceptar).
+    _deviceCountSub = _usbListener!.deviceCount.listen(_health.setUsbDevicesFound);
+
+    // Logs internos del listener (dispositivos encontrados, TX/RX, errores)
+    _debugSub = _usbListener!.debugMessages.listen((msg) {
+      _appendDiagnosticLog(msg);
+      _health.ingestLine(msg);
+
+      if (msg.startsWith('ESP32:')) {
+        // Línea cruda del ESP32 (debug, no necesariamente un comando válido).
+        final current = _usbDiagnostic.value;
+        _usbDiagnostic.value = current.copyWith(
+          state:
+              current.state == UsbDiagnosticState.fullyOperational
+                  ? current.state
+                  : UsbDiagnosticState.connectedReceiving,
+          bytesReceived: current.bytesReceived + msg.length,
+          lastDataTime: DateTime.now(),
+        );
+      } else if (msg.contains('dispositivos USB encontrados') &&
+          !msg.startsWith('0 ') &&
+          _usbDiagnostic.value.state == UsbDiagnosticState.noDevice) {
+        _usbDiagnostic.value = _usbDiagnostic.value.copyWith(
+          state: UsbDiagnosticState.deviceFound,
+        );
+      } else if (msg.startsWith('No se pudo conectar')) {
+        _usbDiagnostic.value = _usbDiagnostic.value.copyWith(
+          state: UsbDiagnosticState.noDevice,
+          lastError: msg,
+        );
+      }
     });
 
     // Comandos del hardware → misma capa de lógica que usa el overlay de testing
-    _commandSub = _usbListener!.commands.listen(_commandHandler.handle);
+    _commandSub = _usbListener!.commands.listen((cmd) {
+      _health.ingestCommand(cmd);
+
+      // Con el modo prueba activo (pantalla de Diagnóstico) las pulsaciones
+      // se registran para verificar la botonera pero NO puntúan: si no,
+      // comprobar los botones durante la instalación destrozaría el marcador.
+      if (!_health.buttonTestMode) {
+        _commandHandler.handle(cmd);
+      }
+
+      _usbDiagnostic.value = _usbDiagnostic.value.copyWith(
+        state: UsbDiagnosticState.fullyOperational,
+        commandsReceived: _usbDiagnostic.value.commandsReceived + 1,
+        lastCommand: cmd,
+        lastDataTime: DateTime.now(),
+      );
+    });
 
     await _usbListener!.start();
   }
@@ -264,49 +357,28 @@ class _MatchScreenState extends State<MatchScreen> {
             // Overlay de ganador
             const WinnerOverlay(),
 
-          // Indicador USB (solo cuando NO hay conexión)
-          // Positioned(
-          //   left: 12,
-          //   top: 12,
-          //   child: BlocBuilder<UsbConnectionCubit, UsbConnectionState>(
-          //     builder: (context, state) {
-          //       if (state.isConnected) return const SizedBox.shrink();
+          // Panel de diagnóstico USB: mismo gate que el overlay de testing
+          // (Ajustes > mostrar botón debug) para no ensuciar la pantalla en
+          // uso normal, pero visible durante una instalación/prueba para ver
+          // en qué etapa falla la comunicación con el maestro.
+          if (showDebugButton)
+            Positioned(
+              left: 12,
+              top: 12,
+              child: UsbDiagnosticWidget(diagnosticNotifier: _usbDiagnostic),
+            ),
 
-          //       return Container(
-          //         padding: const EdgeInsets.symmetric(
-          //           horizontal: 10,
-          //           vertical: 6,
-          //         ),
-          //         decoration: BoxDecoration(
-          //           color: Colors.red.withOpacity(0.85),
-          //           borderRadius: BorderRadius.circular(16),
-          //           boxShadow: [
-          //             BoxShadow(
-          //               color: Colors.black.withOpacity(0.3),
-          //               blurRadius: 4,
-          //               offset: const Offset(0, 2),
-          //             ),
-          //           ],
-          //         ),
-          //         child: const Row(
-          //           mainAxisSize: MainAxisSize.min,
-          //           children: [
-          //             Icon(Icons.usb_off, color: Colors.white, size: 18),
-          //             SizedBox(width: 6),
-          //             Text(
-          //               'Sin USB',
-          //               style: TextStyle(
-          //                 color: Colors.white,
-          //                 fontSize: 12,
-          //                 fontWeight: FontWeight.w600,
-          //               ),
-          //             ),
-          //           ],
-          //         ),
-          //       );
-          //     },
-          //   ),
-          // ),
+          // Acceso directo al diagnóstico del hardware. Siempre visible: es
+          // la pantalla que hace falta durante una instalación, justo cuando
+          // el modo debug todavía no está activado.
+          Positioned(
+            bottom: 16,
+            right: 74,
+            child: _HealthBadge(
+              health: _health,
+              onTap: () => DiagnosticsScreen.open(context, _health),
+            ),
+          ),
 
           // Botón de configuración → abre pantalla completa
           Positioned(
@@ -402,6 +474,59 @@ class _MatchScreenState extends State<MatchScreen> {
         ],
         ),
       ),
+    );
+  }
+}
+
+/// Indicador permanente del estado del hardware, abajo a la derecha.
+///
+/// Su color resume la cadena completa de un vistazo, sin abrir nada: rojo si
+/// el maestro no está o no responde, ámbar si falta alguna caja, verde si
+/// todo contesta. Al pulsarlo abre el diagnóstico detallado.
+class _HealthBadge extends StatelessWidget {
+  const _HealthBadge({required this.health, required this.onTap});
+
+  final HardwareHealthMonitor health;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return ListenableBuilder(
+      listenable: health,
+      builder: (context, _) {
+        final master = health.master;
+        final Color color;
+        if (!health.usbConnected || !health.masterAlive) {
+          color = const Color(0xFFE74C3C);
+        } else if (master == null || master.onlineCount < master.slaveCount) {
+          color = const Color(0xFFF39C12);
+        } else {
+          color = const Color(0xFF2ECC71);
+        }
+
+        return Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: onTap,
+            borderRadius: BorderRadius.circular(12),
+            child: Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: color, width: 2),
+                boxShadow: [
+                  BoxShadow(
+                    color: color.withValues(alpha: 0.4),
+                    blurRadius: 8,
+                  ),
+                ],
+              ),
+              child: Icon(Icons.settings_input_antenna, color: color, size: 20),
+            ),
+          ),
+        );
+      },
     );
   }
 }
