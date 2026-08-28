@@ -167,13 +167,47 @@ void main() {
       expect(issue.action, contains('DEV_ID'));
     });
 
-    test('IDs inesperados sugieren DEV_ID duplicado', () {
+    test('ID inesperado se reporta como corrupcion del bus, no DEV_ID', () {
+      // El esclavo devuelve SIEMPRE el ID que se le pidio, asi que wid>0 no
+      // puede significar "DEV_ID duplicado": es corrupcion del bus.
       final m = _monitor();
       m.ingestLine('[MS] fw=2 up=1 cyc=30 on=4/4 polls=1 rxb=1 frm=1 crc=0 '
           'wid=12 rs485=9600 usb=115200');
       final issue =
           m.issues().firstWhere((i) => i.title.contains('ID inesperado'));
-      expect(issue.action, contains('mismo DEV_ID'));
+      expect(issue.action, contains('bus'));
+      expect(issue.action, isNot(contains('DEV_ID')));
+    });
+
+    test('DEV_ID duplicado se deduce de CRC + una caja que nunca responde', () {
+      final m = _monitor();
+      m.ingestLine('[MS] fw=2 up=1 cyc=90 on=3/4 polls=1 rxb=1 frm=1 crc=7 '
+          'wid=0 rs485=9600 usb=115200');
+      // 0203 recibe golpes de dos cajas a la vez -> CRC malo.
+      m.ingestLine('[PS] dev=0201 on=1 rep=50 to=0 crc=0 cmd=0 rtt=18 age=5');
+      m.ingestLine('[PS] dev=0202 on=1 rep=50 to=0 crc=0 cmd=0 rtt=18 age=5');
+      m.ingestLine('[PS] dev=0203 on=1 rep=30 to=5 crc=7 cmd=0 rtt=19 age=6');
+      // ...y 0204, el ID que ya no tiene nadie, jamas contesta.
+      m.ingestLine('[PS] dev=0204 on=0 rep=0 to=40 crc=0 cmd=0 rtt=0 age=-1');
+
+      final issue =
+          m.issues().firstWhere((i) => i.title.contains('DEV_ID duplicado'));
+      expect(issue.detail, contains('0203'));
+      expect(issue.detail, contains('0204'));
+      expect(issue.action, contains('DEV_ID'));
+    });
+
+    test('CRC sin ninguna caja muda NO sugiere DEV_ID duplicado', () {
+      final m = _monitor();
+      m.ingestLine('[MS] fw=2 up=1 cyc=30 on=2/2 polls=1 rxb=1 frm=1 crc=3 '
+          'wid=0 rs485=9600 usb=115200');
+      m.ingestLine('[PS] dev=0201 on=1 rep=50 to=0 crc=3 cmd=0 rtt=18 age=5');
+      m.ingestLine('[PS] dev=0202 on=1 rep=50 to=0 crc=0 cmd=0 rtt=18 age=5');
+
+      expect(
+        m.issues().map((i) => i.title),
+        isNot(contains('Posible DEV_ID duplicado')),
+      );
     });
 
     test('caja viva pero sin emparejar se avisa como info', () {

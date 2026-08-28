@@ -524,6 +524,32 @@ class HardwareHealthMonitor extends ChangeNotifier {
       }
     }
 
+    // DEV_ID duplicado. No se detecta por "ID inesperado": el esclavo solo
+    // contesta si el ID coincide y además devuelve el que le llegó, así que
+    // la trama nunca trae un ID raro. Lo que pasa de verdad es que las dos
+    // cajas con el mismo ID contestan A LA VEZ, se pisan en el bus (CRC malo)
+    // y el ID que quedó sin asignar no contesta nunca. Ese par de síntomas
+    // juntos es la firma del problema.
+    final noisy = known.where((b) => b.crcErrors > 0).toList();
+    final never = known.where((b) => b.neverSeen).toList();
+    if (hasTelemetry &&
+        noisy.isNotEmpty &&
+        never.isNotEmpty &&
+        never.length < known.length) {
+      final dup = noisy.first.id.toUpperCase();
+      final missing = never.first.id.toUpperCase();
+      out.add(HealthIssue(
+        level: IssueLevel.warning,
+        title: 'Posible DEV_ID duplicado',
+        detail: 'La caja $dup acumula errores de CRC y $missing no ha '
+            'respondido nunca. Dos cajas flasheadas con el mismo DEV_ID '
+            'contestan a la vez y se pisan en el bus, dejando mudo el ID que '
+            'nadie tiene.',
+        action: 'Revisa el #define DEV_ID de las 4 cajas: probablemente una '
+            'lleva $dup cuando debería llevar $missing.',
+      ));
+    }
+
     // Cajas con ruido en el bus.
     for (final box in known) {
       if (box.crcErrors > 0) {
@@ -531,9 +557,10 @@ class HardwareHealthMonitor extends ChangeNotifier {
           level: IssueLevel.warning,
           title: 'Ruido en el bus con la caja ${box.id.toUpperCase()}',
           detail: '${box.crcErrors} trama(s) descartadas por CRC incorrecto.',
-          action: 'Cable demasiado largo, sin par trenzado o sin terminación. '
-              'Añade 120Ω en los extremos del bus y separa el cable de la '
-              'corriente de 220V.',
+          action: 'Cable demasiado largo, sin par trenzado o sin terminación: '
+              'añade 120Ω en los extremos y aléjalo de la corriente de 220V. '
+              'Si además hay una caja que no responde nunca, sospecha de dos '
+              'cajas con el mismo DEV_ID contestando a la vez.',
         ));
       }
       if (box.online && box.lossRatio > 0.1) {
@@ -550,13 +577,18 @@ class HardwareHealthMonitor extends ChangeNotifier {
 
     final m = _master;
     if (m != null && m.wrongId > 0) {
+      // Con el firmware correcto esto es prácticamente imposible: el esclavo
+      // devuelve el mismo ID que se le pidió. Si aparece, es una trama
+      // corrupta que aun así ha pasado el CRC, o un dispositivo ajeno
+      // hablando en el bus.
       out.add(HealthIssue(
         level: IssueLevel.warning,
         title: 'Respuestas con ID inesperado',
-        detail: '${m.wrongId} trama(s) de una caja con un ID que el maestro '
-            'no espera.',
-        action: 'Casi siempre son DOS cajas con el mismo DEV_ID: colisionan en '
-            'el bus y el fallo parece de cableado. Revisa el DEV_ID de las 4.',
+        detail: '${m.wrongId} trama(s) con un ID distinto del que se pidió. '
+            'Con el firmware correcto esto no debería pasar nunca.',
+        action: 'Indica corrupción seria en el bus o un dispositivo ajeno '
+            'conectado al RS-485. Revisa el cableado y que no haya nada más '
+            'compartiendo el par.',
       ));
     }
 

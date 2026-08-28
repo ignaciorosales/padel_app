@@ -155,7 +155,12 @@ que llevan a revisar cosas distintas.
 | `up` | ms desde que arrancó el maestro (si se resetea solo, aquí se ve) |
 | `cyc` | Duración de la última vuelta de poleo. ~30 ms con las 4 cajas vivas |
 | `on` | Cajas conectadas / configuradas |
-| `wid` | Tramas con ID inesperado → casi siempre **dos cajas con el mismo `DEV_ID`** |
+| `wid` | Tramas con ID inesperado. En la práctica **siempre 0**: el esclavo solo contesta si el ID coincide y devuelve el mismo que se le pidió, así que un valor distinto de 0 indica corrupción seria del bus, no un `DEV_ID` duplicado |
+
+> **Cómo se detecta un `DEV_ID` duplicado.** No por `wid`. Dos cajas con el
+> mismo ID contestan *a la vez*, sus tramas se pisan eléctricamente y el
+> síntoma es **`crc` subiendo en ese ID** mientras el ID que nadie tiene
+> **nunca responde** (`age=-1`). La app busca esa combinación.
 
 Como `[MS]` llega cada 2 s, sirve además de latido: si la app deja de recibirlo
 durante más de 6 s, da el maestro por colgado.
