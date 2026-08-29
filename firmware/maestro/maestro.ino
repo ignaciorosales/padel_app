@@ -31,15 +31,102 @@
 #include <Arduino.h>
 #include "driver/uart.h"
 
-// ===== Detectar tipo de ESP32 para USB =====
-#if CONFIG_IDF_TARGET_ESP32C3 || CONFIG_IDF_TARGET_ESP32S2 || CONFIG_IDF_TARGET_ESP32S3
+// ===== ENLACE CON EL TABLET =========================================
+//
+// Cual de los caminos posibles llega de verdad al box NO se puede saber
+// desde el codigo: depende de una opcion de compilacion del IDE y del
+// puerto fisico que se cablee.
+//
+//   Herramientas > USB CDC On Boot = Disabled  (VALOR POR DEFECTO)
+//       -> "Serial" es UART0, en los GPIO 20/21
+//   Herramientas > USB CDC On Boot = Enabled
+//       -> "Serial" es el USB nativo del chip
+//
+// Un maestro flasheado con el valor por defecto y conectado al box por su
+// USB nativo escribe a unos pines que no van a ninguna parte: la app ve el
+// puerto abierto y no recibe un solo byte. Desde fuera es indistinguible de
+// un cable roto.
+//
+// Para no depender de eso, se escribe SIEMPRE en los dos caminos:
+//   - UART0, que es el que llega al USB en las placas con puente CH340/CP210x
+//   - el USB nativo (USB Serial/JTAG), en los chips que lo tienen
+//
+// Escribir en un puerto sin nadie escuchando NO bloquea: HWCDC::write
+// comprueba isCDC_Connected() y, si no hay host, descarta los bytes y
+// vuelve (ver HWCDC.cpp en el core de ESP32).
+#if SOC_USB_SERIAL_JTAG_SUPPORTED
   #define HAS_NATIVE_USB 1
-  #define USB_SERIAL Serial
+  // El core solo crea la instancia global HWCDCSerial cuando se compila con
+  // "USB CDC On Boot = Enabled" (ver la guarda al final de HWCDC.h). La CLASE
+  // existe siempre, asi que con la opcion desactivada creamos la instancia
+  // aqui. Los buffers de HWCDC son estaticos de fichero en el core, de modo
+  // que solo puede haber una viva: en esta rama la del core no existe.
+  #if ARDUINO_USB_MODE && ARDUINO_USB_CDC_ON_BOOT
+    #define NATIVE_USB HWCDCSerial
+  #else
+    static HWCDC NativeUsbCdc;
+    #define NATIVE_USB NativeUsbCdc
+  #endif
 #else
-  // ESP32-WROOM usa Serial normal (va al chip USB-UART externo)
   #define HAS_NATIVE_USB 0
-  #define USB_SERIAL Serial
 #endif
+
+class TabletLink : public Stream {
+public:
+  void begin(unsigned long baud) {
+    Serial0.begin(baud);            // UART0 (puente USB-UART si lo hay)
+#if HAS_NATIVE_USB
+    NATIVE_USB.begin();            // USB nativo; begin es idempotente
+#endif
+  }
+
+  size_t write(uint8_t c) override {
+#if HAS_NATIVE_USB
+    NATIVE_USB.write(c);
+#endif
+    return Serial0.write(c);
+  }
+
+  size_t write(const uint8_t *buffer, size_t size) override {
+#if HAS_NATIVE_USB
+    NATIVE_USB.write(buffer, size);
+#endif
+    return Serial0.write(buffer, size);
+  }
+
+  // De entrada se atiende al que tenga datos: da igual por cual hable la app.
+  int available() override {
+#if HAS_NATIVE_USB
+    int n = NATIVE_USB.available();
+    if (n > 0) return n;
+#endif
+    return Serial0.available();
+  }
+
+  int read() override {
+#if HAS_NATIVE_USB
+    if (NATIVE_USB.available()) return NATIVE_USB.read();
+#endif
+    return Serial0.read();
+  }
+
+  int peek() override {
+#if HAS_NATIVE_USB
+    if (NATIVE_USB.available()) return NATIVE_USB.peek();
+#endif
+    return Serial0.peek();
+  }
+
+  void flush() override {
+    Serial0.flush();
+#if HAS_NATIVE_USB
+    NATIVE_USB.flush();
+#endif
+  }
+};
+
+static TabletLink Tablet;
+#define USB_SERIAL Tablet
 
 // ===== RS-485 MASTER =====
 // Pines dependen del tipo de ESP32:
@@ -114,7 +201,11 @@ static SlaveHealth health[slaveCount];
 static uint32_t lastStatusEmitMs = 0;
 static const uint32_t STATUS_INTERVAL_MS = 2000;
 static uint32_t cycleStartMs = 0;
-static uint16_t lastCycleMs = 0;
+// Maximo de la vuelta de poleo desde el ultimo informe. Se usa el maximo
+// y no la ultima vuelta porque, con el backoff, los ciclos que saltan una
+// caja ausente son cortos y los que la reintentan largos: informar solo
+// del ultimo haria parpadear el aviso de ciclo lento en la app.
+static uint16_t maxCycleMs = 0;
 
 // ===== CRC16-CCITT (poly=0x1021, init=0xFFFF) =====
 static uint16_t crc16_ccitt(const uint8_t* data, size_t len) {
@@ -197,12 +288,14 @@ static bool debounceSlaveCommand(size_t slaveIndex, uint16_t slaveId, char cmd) 
 // comando de puntuacion.
 //
 //   [PS] dev=0201 on=1 rep=412 to=0 crc=0 cmd=7 rtt=18 age=31
-//   [MS] fw=2 up=125340 cyc=34 on=4/4 polls=2010 ...
+//   [MS] fw=2 up=125340 cyc=82 on=4/4 polls=2010 ...
 //
 // age = ms desde la ultima respuesta valida, o -1 si nunca respondio.
 static void emitStatus() {
   uint32_t now = millis();
   lastStatusEmitMs = now;
+  const uint16_t cycleToReport = maxCycleMs;
+  maxCycleMs = 0;
 
   uint8_t onlineCount = 0;
   for (size_t i = 0; i < slaveCount; ++i) {
@@ -226,7 +319,7 @@ static void emitStatus() {
     "[MS] fw=%u up=%lu cyc=%u on=%u/%u polls=%lu rxb=%lu frm=%lu crc=%lu wid=%lu rs485=%d usb=%d\n",
     (unsigned)FW_VERSION,
     (unsigned long)now,
-    (unsigned)lastCycleMs,
+    (unsigned)cycleToReport,
     (unsigned)onlineCount, (unsigned)slaveCount,
     (unsigned long)rs485Polls,
     (unsigned long)rs485RxBytes,
@@ -434,11 +527,15 @@ void setup() {
   USB_SERIAL.println("[READY] Esperando comandos...");
   USB_SERIAL.printf("[INFO] Esclavos: 0x0201-0x0202 (Team A), 0x0203-0x0204 (Team B)\n");
   
-  #if HAS_NATIVE_USB
-    USB_SERIAL.println("[INFO] Modo: ESP32-C3/S2/S3 USB nativo");
-  #else
-    USB_SERIAL.println("[INFO] Modo: ESP32-WROOM (chip USB externo)");
-  #endif
+  // Que caminos de salida estan activos. Si la app recibe esta linea, es
+  // que al menos uno de ellos llega al box.
+#if HAS_NATIVE_USB
+  USB_SERIAL.println("[INFO] Salida al tablet: UART0 (GPIO20/21) + USB nativo");
+#else
+  USB_SERIAL.println("[INFO] Salida al tablet: UART0 -> puente USB-UART externo");
+#endif
+  USB_SERIAL.printf("[INFO] cdc_on_boot=%d (no importa: se escribe en ambos)\n",
+                    (int)ARDUINO_USB_CDC_ON_BOOT);
   
   lastStatusEmitMs = millis();
 }
@@ -450,8 +547,10 @@ void loop() {
   // === Polear todos los esclavos ===
   for (size_t i = 0; i < slaveCount; ++i) {
     // Una caja ausente cuesta el timeout entero (70 ms) en cada vuelta, lo
-    // que ralentiza el poleo de las que SI responden: con una caja muerta el
-    // ciclo pasa de ~30 ms a ~100 ms y en pista se nota como "va lento".
+    // que ralentiza el poleo de las que SI responden. A 9600 baudios una
+    // trama de 7 bytes tarda 7,3 ms, asi que ida + espera del esclavo +
+    // vuelta son ~16 ms por caja: el ciclo sano ronda los 80 ms y una caja
+    // muerta lo sube a ~140 ms, que en pista se nota como "va lento".
     // Estando ya offline se saltan ciclos y se reintenta cada
     // OFFLINE_RETRY_EVERY vueltas, asi que si vuelve se detecta en ~0.3 s.
     if (!health[i].online && health[i].retrySkips > 0) {
@@ -489,7 +588,10 @@ void loop() {
     }
   }
   
-  lastCycleMs = (uint16_t)(millis() - cycleStartMs);
+  {
+    uint16_t elapsed = (uint16_t)(millis() - cycleStartMs);
+    if (elapsed > maxCycleMs) maxCycleMs = elapsed;
+  }
 
   if (millis() - lastStatusEmitMs >= STATUS_INTERVAL_MS) {
     emitStatus();

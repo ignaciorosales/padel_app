@@ -137,7 +137,7 @@ Se emiten **cada 2 segundos**, y de forma inmediata si la app envía `STATUS`.
 | `to` | Polls sin respuesta (timeouts) |
 | `crc` | Tramas suyas descartadas por CRC incorrecto → bus con ruido |
 | `cmd` | Pulsaciones reales reenviadas a la app |
-| `rtt` | Ida y vuelta de la última respuesta, en ms (~18 ms es lo normal a 9600 baudios) |
+| `rtt` | Ida y vuelta de la última respuesta. A 9600 baudios una trama de 7 bytes tarda 7,3 ms, así que ida + 1,5 ms de espera del esclavo + vuelta dan **~16 ms de mínimo físico**. Normal: 16-25 ms |
 | `age` | ms desde la última respuesta válida; **`-1` = nunca ha respondido** |
 
 `age=-1` distingue "esta caja nunca arrancó" de "funcionaba y se ha caído",
@@ -153,7 +153,7 @@ que llevan a revisar cosas distintas.
 |---|---|
 | `fw` | Versión del firmware. La app exige ≥ 2 para el diagnóstico por caja |
 | `up` | ms desde que arrancó el maestro (si se resetea solo, aquí se ve) |
-| `cyc` | Duración de la última vuelta de poleo. ~30 ms con las 4 cajas vivas |
+| `cyc` | Vuelta de poleo más lenta desde el informe anterior. **~80 ms con las 4 cajas vivas** (4 × 16 ms + pausas). Una caja ausente cuesta su timeout de 70 ms y lo sube a ~140 ms |
 | `on` | Cajas conectadas / configuradas |
 | `wid` | Tramas con ID inesperado. En la práctica **siempre 0**: el esclavo solo contesta si el ID coincide y devuelve el mismo que se le pidió, así que un valor distinto de 0 indica corrupción seria del bus, no un `DEV_ID` duplicado |
 
