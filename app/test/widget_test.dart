@@ -48,14 +48,18 @@ class _Harness extends StatelessWidget {
                   },
                 ),
                 const SizedBox(height: 12),
-                ElevatedButton(
-                  key: const Key('btnPointTeam1'),
-                  onPressed: () {
-                    context
-                        .read<ScoringBloc>()
-                        .add(const ScoringEvent.pointFor(Team.blue));
-                  },
-                  child: const Text('Punto Equipo 1'),
+                // Builder para obtener un context POR DEBAJO del BlocProvider:
+                // el de build() esta por encima y read<ScoringBloc>() falla.
+                Builder(
+                  builder: (context) => ElevatedButton(
+                    key: const Key('btnPointTeam1'),
+                    onPressed: () {
+                      context
+                          .read<ScoringBloc>()
+                          .add(const ScoringEvent.pointFor(Team.blue));
+                    },
+                    child: const Text('Punto Equipo 1'),
+                  ),
                 ),
               ],
             ),
