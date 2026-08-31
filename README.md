@@ -27,8 +27,9 @@ padel_app/
 │   ├── hardware/           montaje RS-485, diagnóstico USB, pruebas
 │   ├── app/                temas, colores, selección de equipos
 │   ├── deployment/         Android TV, publicación en Google Play
-│   └── archive/            documentación de la era BLE (obsoleta)
-└── tools/                  utilidades de desarrollo
+│   ├── archive/            documentación de la era BLE (obsoleta)
+│   └── lanes.md            ⭐ trabajar en dos lanes en paralelo
+└── tools/                  utilidades de desarrollo (lane.sh: estado de las lanes)
 ```
 
 Las dos mitades se cruzarán más adelante (fase 3-4 del plan de producto), y
@@ -64,6 +65,7 @@ antes de tocar cualquier capa: un cambio de protocolo siempre afecta a las tres.
 | Configurar el Android TV | [docs/deployment/ANDROID_TV_SETUP.md](docs/deployment/ANDROID_TV_SETUP.md) |
 | Levantar el panel web | [web/README.md](web/README.md) |
 | Saber a dónde va el producto | [docs/producto/README.md](docs/producto/README.md) |
+| Trabajar en dos lanes a la vez | [docs/lanes.md](docs/lanes.md) |
 
 ## Por qué un solo repositorio
 
