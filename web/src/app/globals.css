@@ -1,0 +1,112 @@
+@import "tailwindcss";
+
+/* =============================================================================
+   Tokens de Puntazo — los mismos del plan de producto.
+   Paleta fría con sesgo teal, acento de pista, y colores semánticos aparte
+   del acento para los estados de suscripción.
+   ========================================================================== */
+
+:root {
+  --ground:      #f5f7f5;
+  --surface:     #ffffff;
+  --surface-alt: #ecf0ee;
+  --ink:         #131b1d;
+  --ink-soft:    #4c5d5f;
+  --ink-faint:   #7c8c8d;
+  --rule:        #d9e0dd;
+  --rule-strong: #b6c2bf;
+
+  --accent:      #0e6e78;
+  --accent-ink:  #0a545c;
+  --accent-soft: #e1efef;
+
+  --ok:          #2f6b3f;
+  --ok-soft:     #e2efe4;
+  --warn:        #8a5a10;
+  --warn-soft:   #f7ecd8;
+  --danger:      #9a2f2a;
+  --danger-soft: #f6e3e1;
+
+  --focus:       #0e6e78;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --ground:      #0b1416;
+    --surface:     #101b1e;
+    --surface-alt: #16262a;
+    --ink:         #e7edeb;
+    --ink-soft:    #a3b4b4;
+    --ink-faint:   #7a8c8c;
+    --rule:        #223437;
+    --rule-strong: #35494d;
+
+    --accent:      #52c0cb;
+    --accent-ink:  #8ad8e0;
+    --accent-soft: #102e33;
+
+    --ok:          #7fc08d;
+    --ok-soft:     #14291a;
+    --warn:        #e0b269;
+    --warn-soft:   #2c2110;
+    --danger:      #e89a94;
+    --danger-soft: #2e1614;
+
+    --focus:       #52c0cb;
+  }
+}
+
+@theme inline {
+  --color-ground:      var(--ground);
+  --color-surface:     var(--surface);
+  --color-surface-alt: var(--surface-alt);
+  --color-ink:         var(--ink);
+  --color-ink-soft:    var(--ink-soft);
+  --color-ink-faint:   var(--ink-faint);
+  --color-rule:        var(--rule);
+  --color-rule-strong: var(--rule-strong);
+  --color-accent:      var(--accent);
+  --color-accent-ink:  var(--accent-ink);
+  --color-accent-soft: var(--accent-soft);
+  --color-ok:          var(--ok);
+  --color-ok-soft:     var(--ok-soft);
+  --color-warn:        var(--warn);
+  --color-warn-soft:   var(--warn-soft);
+  --color-danger:      var(--danger);
+  --color-danger-soft: var(--danger-soft);
+
+  --font-display: var(--font-archivo), "Helvetica Neue", Arial, sans-serif;
+  --font-mono:    var(--font-plex-mono), ui-monospace, Consolas, monospace;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  background: var(--ground);
+  color: var(--ink);
+  font-family: var(--font-display);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Foco visible en todo lo interactivo: se usa con prisa y a veces con teclado. */
+:where(a, button, input, select, textarea, [tabindex]):focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+  border-radius: 3px;
+}
+
+/* Cifras alineadas en columnas: marcadores, clasificaciones, horas. */
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

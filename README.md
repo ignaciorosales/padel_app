@@ -1,25 +1,39 @@
 # Puntazo
 
-Marcador de pádel para pistas: un Android TV muestra el marcador y cuatro cajas
-de botones en la pista lo controlan.
+Puntazo tiene dos mitades que hoy no se hablan entre sí, y es a propósito:
 
-Este repositorio contiene **las tres partes del sistema**.
+- **La pista** — un Android TV muestra el marcador y cuatro cajas de botones lo
+  controlan. Funciona sin red y así se queda.
+- **El club** — un panel web para montar torneos y llevar la gestión del local.
+  Necesita conexión, pero la de recepción; nunca la de la pista.
 
 ```
 padel_app/
-├── app/                    Aplicación Flutter (Android TV)
+├── app/                    Aplicación Flutter (Android TV) — el marcador
 ├── firmware/
 │   ├── maestro/            1 unidad — RS-485 ▸ USB, junto al TV
 │   ├── esclavo/            4 unidades — cajas de botones en pista
 │   └── legacy/             generaciones anteriores, no se compila
+├── web/                    Panel del club (Next.js) — torneos y administración
+│   └── src/
+│       ├── app/            rutas: /login, /admin (Puntazo), /panel (el club)
+│       ├── components/     piezas de interfaz
+│       └── lib/            autorización, cliente de Supabase, generador de rondas
+├── backend/
+│   └── migrations/         esquema y políticas RLS de Supabase
 ├── docs/
-│   ├── protocol/           ⭐ contrato entre las 3 capas
+│   ├── protocol/           ⭐ contrato entre las 3 capas de la pista
+│   ├── producto/           ⭐ plan de producto: qué se construye y por qué
 │   ├── hardware/           montaje RS-485, diagnóstico USB, pruebas
 │   ├── app/                temas, colores, selección de equipos
 │   ├── deployment/         Android TV, publicación en Google Play
 │   └── archive/            documentación de la era BLE (obsoleta)
 └── tools/                  utilidades de desarrollo
 ```
+
+Las dos mitades se cruzarán más adelante (fase 3-4 del plan de producto), y
+cuando lo hagan será sin conectar la tele a internet. Hasta entonces se pueden
+desarrollar por separado: **el panel no depende del firmware ni de la app**.
 
 ## Cómo funciona
 
@@ -48,11 +62,19 @@ antes de tocar cualquier capa: un cambio de protocolo siempre afecta a las tres.
 | Montar el bus RS-485 | [docs/hardware/HARDWARE_SETUP_RS485.md](docs/hardware/HARDWARE_SETUP_RS485.md) |
 | Depurar "no llega nada" | [docs/hardware/USB_TROUBLESHOOTING.md](docs/hardware/USB_TROUBLESHOOTING.md) |
 | Configurar el Android TV | [docs/deployment/ANDROID_TV_SETUP.md](docs/deployment/ANDROID_TV_SETUP.md) |
+| Levantar el panel web | [web/README.md](web/README.md) |
+| Saber a dónde va el producto | [docs/producto/README.md](docs/producto/README.md) |
 
 ## Por qué un solo repositorio
 
-Las tres partes comparten un protocolo. Cuando estaban en repos separados (y el
-esclavo en ninguno), un cambio de formato de trama se aplicaba a una capa y se
-olvidaba en otra, y el fallo resultante era indistinguible de un problema de
-cableado. Aquí un mismo commit puede tocar las tres capas y el checklist del
-documento de protocolo obliga a repasarlas.
+Las tres capas de la pista comparten un protocolo. Cuando estaban en repos
+separados (y el esclavo en ninguno), un cambio de formato de trama se aplicaba a
+una capa y se olvidaba en otra, y el fallo resultante era indistinguible de un
+problema de cableado. Aquí un mismo commit puede tocar las tres y el checklist
+del documento de protocolo obliga a repasarlas.
+
+`web/` entra por el mismo motivo, aunque hoy no comparta código con nadie:
+cuando la pista y el club se junten (fase 3-4 del plan de producto) lo harán a
+través de un formato de datos —el QR con el partido dentro— que tendrán que
+entender a la vez el marcador en Dart y la web en TypeScript. Ese es exactamente
+el tipo de contrato que se desincroniza cuando vive en dos repositorios.

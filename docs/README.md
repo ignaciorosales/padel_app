@@ -6,6 +6,7 @@
 | [hardware/](hardware/) | Montaje RS-485, diagnóstico USB, pruebas serie | vigente |
 | [app/](app/) | Temas, colores, selección de equipos | vigente |
 | [deployment/](deployment/) | Android TV, publicación en Google Play | vigente |
+| [producto/](producto/) | Plan de producto: qué se construye después del marcador | vigente |
 | [archive/](archive/) | Documentación de la era BLE | **obsoleta** |
 
 ## Sobre `archive/`
