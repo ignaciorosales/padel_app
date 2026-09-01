@@ -14,8 +14,12 @@ Crea un proyecto en [supabase.com](https://supabase.com) (el plan gratuito sobra
 
 ### 2. Esquema
 
-Abre el editor SQL del proyecto y ejecuta entero
-[`../backend/migrations/0001_fundacion.sql`](../backend/migrations/0001_fundacion.sql).
+Abre el editor SQL del proyecto y ejecuta enteros, **en orden de número**,
+todos los ficheros de [`../backend/migrations/`](../backend/migrations/):
+empezando por `0001_fundacion.sql` y terminando por el último que haya.
+
+Sobre una base de datos que ya existe sólo hacen falta las que aún no se hayan
+ejecutado. Cada fichero se puede ejecutar entero de una vez.
 
 ### 3. Variables de entorno
 

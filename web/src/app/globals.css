@@ -110,3 +110,53 @@ body {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* =============================================================================
+   Impresión — el plan B del sábado.
+   Si se cae la conexión en mitad del torneo, el club imprime las rondas y sigue
+   a mano. Eso lo hace alguien con prisa y 24 personas esperando, así que
+   Ctrl+P tiene que salir bien a la primera, sin ajustar nada en el diálogo.
+   ========================================================================== */
+@media print {
+  /* Los tokens en claro pase lo que pase. Va después del bloque de modo oscuro
+     a propósito: si el portátil del club está en oscuro, sin esto sale una hoja
+     negra que se come el tóner y no se lee. */
+  :root {
+    --ground: #ffffff;
+    --surface: #ffffff;
+    --surface-alt: #ffffff;
+    --ink: #000000;
+    --ink-soft: #2b2b2b;
+    --ink-faint: #555555;
+    --rule: #cccccc;
+    --rule-strong: #888888;
+    --accent: #000000;
+    --accent-ink: #000000;
+    --accent-soft: #ffffff;
+  }
+
+  body {
+    background: #fff;
+  }
+
+  /* Las sombras salen como manchas grises en papel. */
+  * {
+    box-shadow: none !important;
+  }
+
+  /* Las casillas del marcador tienen que verse aunque estén vacías: son el
+     hueco donde se apunta el resultado a boli. */
+  input {
+    border: 1px solid #888 !important;
+  }
+
+  /* Ni un partido ni una fila de la clasificación partidos entre dos hojas. */
+  li,
+  tr {
+    break-inside: avoid;
+  }
+
+  @page {
+    margin: 15mm;
+  }
+}
