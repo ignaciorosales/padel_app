@@ -75,11 +75,15 @@ for (const tabla of [
   "tournament_players",
   "rounds",
   "matches",
+  "tournament_pairs",
+  "courts",
+  "tournament_courts",
+  "court_occupancies",
 ]) {
   const { error } = await admin.from(tabla).select("*").limit(1);
   if (!error) ok(`Tabla ${tabla}`);
   else if (error.code === "42P01" || /does not exist/i.test(error.message)) {
-    mal(`No existe la tabla ${tabla}`, "Ejecuta backend/migrations/0001_fundacion.sql en el editor SQL.");
+    mal(`No existe la tabla ${tabla}`, "Ejecuta en el editor SQL las migraciones de backend/migrations/ que falten, en orden de número.");
   } else {
     mal(`Tabla ${tabla}: ${error.message}`, "Revisa la migración.");
   }
@@ -102,13 +106,14 @@ titulo("Funciones de permisos");
   else mal(`can_write_club(): ${error.message}`, "La migración no se aplicó entera.");
 }
 
-for (const fn of ["club_de_torneo", "torneo_es_publico", "torneo_de_ronda"]) {
-  const parametro = fn === "torneo_de_ronda" ? "p_ronda" : "p_torneo";
+for (const fn of ["club_de_torneo", "torneo_es_publico", "torneo_de_ronda", "club_de_pista"]) {
+  const parametro =
+    fn === "torneo_de_ronda" ? "p_ronda" : fn === "club_de_pista" ? "p_pista" : "p_torneo";
   const { error } = await admin.rpc(fn, {
     [parametro]: "00000000-0000-0000-0000-000000000000",
   });
   if (!error) ok(`${fn}()`);
-  else mal(`${fn}(): ${error.message}`, "Ejecuta backend/migrations/0003_torneos.sql.");
+  else mal(`${fn}(): ${error.message}`, "Falta una migración por aplicar.");
 }
 
 // --------------------------------------------------------------------- RLS

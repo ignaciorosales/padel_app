@@ -145,3 +145,38 @@ Los tokens de color y la escala tipográfica salen del plan de producto y viven 
 `src/app/globals.css`: paleta fría con acento teal, colores semánticos aparte del
 acento para los estados, Archivo para interfaz e IBM Plex Mono para datos.
 Funciona en claro y en oscuro según la preferencia del sistema.
+
+## La agenda del club
+
+`src/lib/agenda/ocupacion.ts` y la migración
+[`0012`](../backend/migrations/0012_ocupacion_de_pista.sql).
+
+El objeto central del modelo no es el torneo: es la **ocupación de pista**
+(pista + rango horario + motivo). Un torneo genera ocupaciones, una clase
+también, y una reserva *es* una. Está puesto ahora, con la fase 1 a medio
+terminar y ningún club en producción, porque es lo que decide si la agenda de la
+fase 2 es una pantalla nueva o una reescritura.
+
+Tres tablas:
+
+| Tabla | Qué es |
+|---|---|
+| `courts` | Las pistas de verdad del club, las que tienen nombre en la puerta. |
+| `tournament_courts` | Qué pista real es «la pista 1» de este torneo. |
+| `court_occupancies` | Pista, rango horario y motivo. El calendario. |
+
+Dos cosas no pueden ocupar la misma pista a la vez, y eso no lo vigila la
+interfaz: es una restricción de exclusión (`exclude using gist`) en Postgres. El
+día que alguien reserve por teléfono la pista donde hay un torneo, la base de
+datos dice que no aunque la pantalla se haya despistado.
+
+**El torneo no depende de su agenda.** El panel escribe las ocupaciones después
+de generar las rondas, y si chocan con algo, el torneo funciona igual. Es
+deliberado: un sábado por la mañana, con 24 personas esperando, el calendario no
+puede ser lo que impida generar unas rondas. La contrapartida es que un choque
+hoy se traga en silencio — cuando exista la pantalla de agenda, ahí es donde
+tiene que salir (`sincronizarAgenda` en `panel/[club]/actions.ts`).
+
+Las pistas del club se crean solas la primera vez que monta un torneo
+(«Pista 1», «Pista 2»…) y se renombran cuando quiera. Un formulario de alta de
+pistas entre el club y sus rondas se come el objetivo de los cinco minutos.

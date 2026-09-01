@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { ocupacionesDeTorneo, pistasQueFaltan } from "@/lib/agenda/ocupacion";
 import { requireClubAccess } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { generarAmericano } from "@/lib/torneo/americano";
@@ -380,6 +381,158 @@ export async function quitarPareja(formData: FormData) {
   revalidarTorneo(clubSlug, torneoSlug);
 }
 
+// ---------------------------------------------------------- agenda del club
+//
+// Un torneo genera ocupaciones de pista (migración 0012). El torneo NO depende
+// de ellas: si algo falla al escribirlas, el sábado sigue funcionando y lo
+// único que pasa es que la agenda —que hoy ni tiene pantalla— se entera más
+// tarde. Ese orden de prioridades es deliberado y no debería invertirse cuando
+// llegue la fase 2: nada del calendario puede impedir generar unas rondas.
+
+type Supabase = Awaited<ReturnType<typeof createClient>>;
+
+type TorneoEnAgenda = {
+  id: string;
+  club_id: string;
+  fecha: string;
+  pistas: number;
+  minutos_por_ronda: number;
+};
+
+/**
+ * Qué pista real del club es cada número de pista del torneo, creando lo que
+ * falte: las pistas del club la primera vez que monta un torneo, y el mapeo de
+ * este torneo si aún no lo tiene.
+ *
+ * Se hace aquí y no en un formulario de alta de pistas porque la métrica que
+ * manda es «de cero a rondas generadas en menos de cinco minutos». Un club que
+ * ya tenga sus pistas nombradas no pasa por aquí; uno nuevo no se entera.
+ */
+async function pistasDelTorneo(
+  supabase: Supabase,
+  torneo: TorneoEnAgenda,
+): Promise<Map<number, string>> {
+  const { data: mapeadas } = await supabase
+    .from("tournament_courts")
+    .select("orden, court_id")
+    .eq("tournament_id", torneo.id);
+
+  const mapa = new Map<number, string>(
+    (mapeadas ?? []).map((m) => [m.orden as number, m.court_id as string]),
+  );
+  if (mapa.size >= torneo.pistas) return mapa;
+
+  const leerPistasDelClub = async () => {
+    const { data } = await supabase
+      .from("courts")
+      .select("id, orden")
+      .eq("club_id", torneo.club_id)
+      .order("orden", { ascending: true });
+    return (data ?? []) as { id: string; orden: number }[];
+  };
+
+  let pistasClub = await leerPistasDelClub();
+  const faltan = pistasQueFaltan(
+    pistasClub.map((p) => p.orden),
+    torneo.pistas,
+  );
+
+  if (faltan.length > 0) {
+    await supabase
+      .from("courts")
+      .insert(faltan.map((p) => ({ ...p, club_id: torneo.club_id })));
+
+    // Si dos pestañas montan torneos a la vez, una de las dos choca contra el
+    // `unique (club_id, orden)`. No es un problema: las pistas ya están, sólo
+    // hay que volver a leerlas.
+    pistasClub = await leerPistasDelClub();
+  }
+
+  const nuevas = pistasClub
+    .filter((p) => p.orden <= torneo.pistas && !mapa.has(p.orden))
+    .map((p) => ({ tournament_id: torneo.id, court_id: p.id, orden: p.orden }));
+
+  if (nuevas.length > 0) {
+    const { data: puestas } = await supabase
+      .from("tournament_courts")
+      .insert(nuevas)
+      .select("orden, court_id");
+
+    for (const m of puestas ?? []) mapa.set(m.orden as number, m.court_id as string);
+  }
+
+  return mapa;
+}
+
+/**
+ * Reescribe las ocupaciones del torneo a partir de lo que hay guardado ahora.
+ *
+ * Borra y vuelve a insertar en vez de ir apuntando cada cambio, por lo mismo
+ * que `sincronizarCuadro` recalcula el cuadro entero desde los resultados: una
+ * sola función llamada después de cualquier cosa que mueva pistas u horas no se
+ * puede quedar a medias, y cinco sitios actualizando ocupaciones a mano sí.
+ *
+ * Cuesta tres consultas, y un torneo tiene decenas de partidos, no miles.
+ */
+async function sincronizarAgenda(supabase: Supabase, torneo: TorneoEnAgenda) {
+  const { data: rondas } = await supabase
+    .from("rounds")
+    .select("id, hora")
+    .eq("tournament_id", torneo.id);
+
+  const borrarLasDeAntes = () =>
+    supabase.from("court_occupancies").delete().eq("tournament_id", torneo.id);
+
+  if (!rondas || rondas.length === 0) {
+    await borrarLasDeAntes();
+    return;
+  }
+
+  const pistaAPista = await pistasDelTorneo(supabase, torneo);
+
+  const horaDeRonda = new Map(
+    rondas.map((r) => [r.id as string, r.hora as string | null]),
+  );
+
+  const { data: partidos } = await supabase
+    .from("matches")
+    .select("id, round_id, pista")
+    .in(
+      "round_id",
+      rondas.map((r) => r.id),
+    );
+
+  const filas = ocupacionesDeTorneo({
+    clubId: torneo.club_id,
+    torneoId: torneo.id,
+    fecha: torneo.fecha,
+    minutosPorRonda: torneo.minutos_por_ronda,
+    pistaAPista,
+    partidos: (partidos ?? []).map((p) => ({
+      id: p.id as string,
+      pista: p.pista as number,
+      hora: horaDeRonda.get(p.round_id as string) ?? null,
+    })),
+  });
+
+  await borrarLasDeAntes();
+  if (filas.length === 0) return;
+
+  const { error } = await supabase.from("court_occupancies").insert(filas);
+  if (!error) return;
+
+  // El insert entero se cae si UNA fila choca con algo que ya ocupaba esa pista
+  // —otro torneo del mismo club, y en la fase 2 una clase o una reserva—, así
+  // que se reintenta fila a fila y entra todo lo que sí cabe.
+  //
+  // El choque se traga aquí a sabiendas: la pantalla que tiene que enseñarlo es
+  // la agenda, y la agenda es de la fase 2. Cuando exista, esto es lo primero
+  // que hay que revisar.
+  for (const fila of filas) {
+    await supabase.from("court_occupancies").insert(fila);
+  }
+}
+
 // ------------------------------------------------------------ generar rondas
 
 export type EstadoGeneracion = { error?: string };
@@ -466,6 +619,8 @@ export async function generarRondas(
     .from("tournaments")
     .update({ estado: "en_juego", semilla })
     .eq("id", torneo.id);
+
+  await sincronizarAgenda(supabase, torneo);
 
   revalidarTorneo(clubSlug, torneoSlug);
   return {};
@@ -633,6 +788,8 @@ export async function generarGrupos(
 
   const { error } = await supabase.from("matches").insert(partidos);
   if (error) return { error: error.message };
+
+  await sincronizarAgenda(supabase, torneo);
 
   revalidarTorneo(clubSlug, torneoSlug);
   return {};
@@ -881,6 +1038,8 @@ export async function generarCuadroFinal(
   const { error } = await supabase.from("matches").insert(filas);
   if (error) return { error: error.message };
 
+  await sincronizarAgenda(supabase, torneo);
+
   revalidarTorneo(clubSlug, torneoSlug);
   return {};
 }
@@ -923,7 +1082,7 @@ async function rondaDelPartido(
     .eq("round_id", ronda.id)
     .order("pista", { ascending: true });
 
-  return { supabase, partidos: (partidos ?? []) as PartidoCorregible[] };
+  return { supabase, torneo, partidos: (partidos ?? []) as PartidoCorregible[] };
 }
 
 export async function corregirJugador(formData: FormData) {
@@ -979,6 +1138,9 @@ export async function corregirPista(formData: FormData) {
     await ctx.supabase.from("matches").update(cambio.campos).eq("id", cambio.id);
   }
 
+  // Mover un partido de pista lo mueve también en el calendario del club.
+  await sincronizarAgenda(ctx.supabase, ctx.torneo);
+
   revalidarTorneo(clubSlug, torneoSlug);
 }
 
@@ -999,6 +1161,10 @@ export async function corregirHora(formData: FormData) {
     .update({ hora: hora === "" ? null : hora })
     .eq("id", rondaId)
     .eq("tournament_id", torneo.id);
+
+  // Cambiar la hora de una ronda mueve en bloque todas sus pistas, y vaciarla
+  // saca esa ronda del calendario: sin hora no se sabe cuándo ocupa.
+  await sincronizarAgenda(supabase, torneo);
 
   revalidarTorneo(clubSlug, torneoSlug);
 }
@@ -1093,6 +1259,14 @@ export async function actualizarAjustes(
     .eq("id", torneo.id);
 
   if (error) return { error: error.message };
+
+  // Cambiar las pistas o la duración de la ronda recoloca lo que el torneo
+  // ocupa en el calendario, aunque los partidos sigan siendo los mismos.
+  await sincronizarAgenda(supabase, {
+    ...torneo,
+    pistas,
+    minutos_por_ronda: minutos,
+  });
 
   revalidarTorneo(clubSlug, torneoSlug);
   return { ok: true };
