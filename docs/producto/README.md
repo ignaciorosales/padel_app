@@ -29,7 +29,7 @@ Versión presentable del mismo plan, para enseñar a terceros:
 | 1 | **Torneos y americanos**, todo a mano | Evento aislado: si sale mal el club pierde una mañana, no su negocio. Riesgo bajo para él, y es donde el cuaderno peor funciona. |
 | 2 | **Agenda de pistas** | Se usa a diario y toca el dinero. Cuesta más que se lo jueguen contigo, pero una vez dentro no se van. Llega cuando ya te han visto funcionar. |
 | 3 | **Clases y escuela** + hardware conectado | Ingreso recurrente del club. Encaja sobre la agenda casi sin trabajo extra y justifica subir el precio. |
-| 4 | **App del jugador** (perfil, historial, stats) | Es lo que permite cobrar por las dos apps, pero antes de tener clubes usando el panel a diario no tiene a quién enganchar. |
+| 4 | **App del jugador** (perfil, historial, stats) — plan en [app-jugador.md](app-jugador.md), sistema de rating en [puntazo-rating.md](puntazo-rating.md) | Es lo que permite cobrar por las dos apps, pero antes de tener clubes usando el panel a diario no tiene a quién enganchar. |
 
 **Al revés no funciona**: empezar por la agenda obliga al club a cambiar su forma
 de trabajar un lunes por la mañana sin haberte probado nunca.
