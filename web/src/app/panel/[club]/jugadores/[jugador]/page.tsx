@@ -5,7 +5,9 @@ import { requireClubAccess } from "@/lib/auth";
 import { cargarPerfil } from "@/lib/jugador/desde-supabase";
 import { ESCALA_UY } from "@/lib/rating/divisiones";
 import { Badge, Card, Eyebrow, PageHeader, Vacio } from "@/components/ui";
-import { BarraDeProgreso, Evolucion } from "./evolucion";
+import { BarraDeProgreso, Evolucion } from "@/components/evolucion";
+import { ETIQUETA_FAMILIA } from "@/lib/logros/catalogo";
+import { PaginaPublica } from "./pagina-publica";
 
 type Params = { params: Promise<{ club: string; jugador: string }> };
 
@@ -43,12 +45,12 @@ function conSigno(numero: number): string {
  */
 export default async function PerfilPage({ params }: Params) {
   const { club: slug, jugador } = await params;
-  const { club } = await requireClubAccess(slug);
+  const { club, canWrite } = await requireClubAccess(slug);
 
   const cargado = await cargarPerfil(club.id, jugador, hoyISO());
   if (!cargado) notFound();
 
-  const { persona, perfil, nombrePor, torneoPor } = cargado;
+  const { persona, perfil, logros, resumenDeLogros, nombrePor, torneoPor } = cargado;
   const nombre = [persona.nombre, persona.apellido].filter(Boolean).join(" ");
   const nombreDe = (id: string) => nombrePor.get(id) ?? "—";
 
@@ -188,6 +190,63 @@ export default async function PerfilPage({ params }: Params) {
           </div>
         </>
       ) : null}
+
+      {/* ------------------------------------------------------------- los logros */}
+      <Eyebrow>
+        Logros · {resumenDeLogros.conseguidos} de {resumenDeLogros.total}
+      </Eyebrow>
+      <p className="mb-3 text-sm text-ink-soft">
+        Doce de diecisiete se sacan sin ganar un solo partido. El rating ya premia
+        jugar bien; los logros premian aparecer, apuntar el resultado y confirmar el
+        del rival, que es lo que un número de habilidad no puede premiar.
+      </p>
+      <div className="mb-6 grid gap-2 sm:grid-cols-2">
+        {logros.map(({ logro, conseguido, llevado, falta, fraccion }) => (
+          <div
+            key={logro.id}
+            className={`rounded border px-4 py-3 ${
+              conseguido ? "border-rule bg-surface" : "border-dashed border-rule-strong"
+            }`}
+          >
+            <div className="flex items-baseline justify-between gap-2">
+              <span
+                className={conseguido ? "font-semibold text-ink" : "font-semibold text-ink-faint"}
+              >
+                {logro.nombre}
+              </span>
+              <span className="font-mono text-[0.67rem] tracking-wide text-accent uppercase">
+                {ETIQUETA_FAMILIA[logro.familia]}
+              </span>
+            </div>
+            <p className="mt-0.5 text-sm text-ink-soft">{logro.descripcion}</p>
+            {conseguido ? null : (
+              <>
+                <div className="mt-2 h-1 w-full overflow-hidden rounded-full bg-surface-alt">
+                  <div
+                    className="h-full rounded-full bg-accent"
+                    style={{ width: `${Math.round(fraccion * 100)}%` }}
+                  />
+                </div>
+                <p className="mt-1 font-mono text-xs text-ink-faint">
+                  {llevado} de {logro.meta ?? 1} · faltan {falta}
+                </p>
+              </>
+            )}
+          </div>
+        ))}
+      </div>
+
+      {/* --------------------------------------------------- la página pública */}
+      <Eyebrow>Compartir</Eyebrow>
+      <Card className="mb-6">
+        <PaginaPublica
+          clubSlug={club.slug}
+          personaId={persona.id}
+          encendida={persona.publico}
+          nombre={nombre}
+          editable={canWrite}
+        />
+      </Card>
 
       {/* ------------------------------------------------------------ el récord */}
       <Eyebrow>Récord</Eyebrow>

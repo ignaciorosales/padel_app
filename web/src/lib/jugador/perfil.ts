@@ -152,7 +152,16 @@ export type Perfil = {
   /** Cambio a 7, 30 y 90 días, en ese orden. */
   movimientos: Movimiento[];
   evolucion: PuntoDeEvolucion[];
+  /** Las cinco mejores, para enseñar. No sirve para contar: está recortada. */
   mejoresVictorias: Victoria[];
+  /**
+   * Cuentas sobre **todas** las transacciones, no sobre las cinco de arriba.
+   *
+   * Están aparte porque `mejoresVictorias` es una lista para pintar y contar sobre
+   * ella daría un máximo de cinco. Los logros y las estadísticas leen de aquí.
+   */
+  gestas: number;
+  victoriasContraMasFuertes: number;
 
   /** Del historial: victorias, derrotas, racha, partidos jugados. */
   resumen: Resumen;
@@ -182,6 +191,14 @@ export type EntradaDelPerfil = {
 
 /** Las tres ventanas del perfil. Son las que la gente mira. */
 export const VENTANAS = [7, 30, 90];
+
+/**
+ * Probabilidad por debajo de la cual ganar es una gesta.
+ *
+ * Una de cada cuatro: lo bastante raro para que signifique algo y lo bastante
+ * común para que le pase a cualquiera alguna vez.
+ */
+export const PROBABILIDAD_DE_GESTA = 0.25;
 
 /** Redondeo de lo que se enseña. Nunca de lo que se guarda. */
 export function comoSeDice(rating: number): number {
@@ -287,6 +304,8 @@ export function perfilDe(entrada: EntradaDelPerfil): Perfil {
   // delta. Son casi lo mismo, pero no del todo: un delta grande también sale de
   // tener el rating desajustado, y "le ganaste a una pareja de 1780" es lo que
   // de verdad se cuenta.
+  const victorias = suyas.filter((t) => t.resultado === 1);
+
   const mejoresVictorias: Victoria[] = suyas
     .filter((t) => t.resultado === 1)
     .sort(
@@ -319,6 +338,11 @@ export function perfilDe(entrada: EntradaDelPerfil): Perfil {
     movimientos,
     evolucion,
     mejoresVictorias,
+    gestas: victorias.filter((t) => t.probabilidad_esperada < PROBABILIDAD_DE_GESTA).length,
+    // Contra una pareja más fuerte que él en el momento del partido, no que su
+    // rating de hoy: si no, subir de rating le borraría gestas del pasado.
+    victoriasContraMasFuertes: victorias.filter((t) => t.rating_rivales > t.rating_antes)
+      .length,
 
     resumen: resumen(entrada.jugadorId, entrada.partidos),
     eventos: porEvento(entrada.jugadorId, entrada.partidos),

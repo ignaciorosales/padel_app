@@ -33,6 +33,13 @@ import {
   type FilaDeTransaccion,
   type Perfil,
 } from "@/lib/jugador/perfil";
+import {
+  logrosDelPerfil,
+  ordenados,
+  resumirLogros,
+  type LogroConseguido,
+  type Resumen as ResumenDeLogros,
+} from "@/lib/logros/catalogo";
 import type { Partido } from "@/lib/historial/partidos";
 
 export type PersonaCargada = {
@@ -41,11 +48,15 @@ export type PersonaCargada = {
   apellido: string | null;
   apodo: string | null;
   division_declarada: string | null;
+  publico: boolean;
 };
 
 export type PerfilCargado = {
   persona: PersonaCargada;
   perfil: Perfil;
+  /** Qué tiene y qué le falta. Los conseguidos primero. */
+  logros: LogroConseguido[];
+  resumenDeLogros: ResumenDeLogros;
   /** Los nombres de los demás, para no enseñar uuids en el cara a cara. */
   nombrePor: Map<string, string>;
   /** Nombre del torneo de cada evento del historial. */
@@ -70,7 +81,7 @@ export async function cargarPerfil(
 
   const { data: personaBruta } = await supabase
     .from("players")
-    .select("id, nombre, apellido, apodo, division_declarada")
+    .select("id, nombre, apellido, apodo, division_declarada, publico")
     .eq("id", personaId)
     .maybeSingle();
 
@@ -168,9 +179,13 @@ export async function cargarPerfil(
     hoy,
   });
 
+  const logros = ordenados(logrosDelPerfil(perfil));
+
   return {
     persona,
     perfil,
+    logros,
+    resumenDeLogros: resumirLogros(logros),
     nombrePor: await nombresDe(supabase, gentePresente(partidos, personaId)),
     torneoPor: new Map(torneos.map((t) => [t.id, t.nombre])),
   };

@@ -1,7 +1,7 @@
 # Puntazo Rating
 
-Estado: **motor, esquema y servicio construidos. Sin aplicar a la base de datos
-todavía** (migraciones 0014 y 0015 escritas y sin correr).
+Estado: **el MVP del rating, completo en código. Sin aplicar a la base de datos
+todavía** — migraciones 0014, 0015, 0016, 0018 y 0019 escritas y sin correr.
 Última revisión: 2026-09-08.
 
 Un sistema de rating propio para toda la red Puntazo, sin depender de la AUP ni
@@ -44,6 +44,19 @@ Y el esquema, en dos migraciones:
 |---|---|
 | [`0014_esquema_del_rating.sql`](../../backend/migrations/0014_esquema_del_rating.sql) | `player_ratings`, `rating_transactions`, `player_division_history`, `club_memberships`, `matches.rating_processed_at`, `players.division_declarada` y `aplicar_rating()` |
 | [`0015_confirmacion_de_resultados.sql`](../../backend/migrations/0015_confirmacion_de_resultados.sql) | `friendly_matches`, `friendly_match_confirmations`, `players.user_id` y el disparador que confirma |
+| [`0016_ambitos_del_ranking.sql`](../../backend/migrations/0016_ambitos_del_ranking.sql) | `clubs.ciudad`, `clubs.pais` y las funciones de ámbito |
+| [`0018_torneos_por_rating.sql`](../../backend/migrations/0018_torneos_por_rating.sql) | Rango, divisiones admitidas y la excepción del organizador |
+| [`0019_pagina_publica_del_jugador.sql`](../../backend/migrations/0019_pagina_publica_del_jugador.sql) | `players.publico` y las cuatro funciones de la página pública |
+
+Y las pantallas, todas en el panel salvo la última:
+
+| Pantalla | Qué |
+|---|---|
+| `/panel/[club]/jugadores` | Unificación: quién es quién, con el motivo al lado del botón |
+| `/panel/[club]/jugadores/[jugador]` | Perfil: rating, división, progreso, evolución, logros y el interruptor |
+| `/panel/[club]/ranking` | Ranking en cuatro ámbitos, con el aviso de «estimado» |
+| `/panel/[club]/torneo/[torneo]/nivel` | A quién está abierto el torneo y quién no encaja |
+| `/j/[jugador]` | La página pública: el canal de reparto |
 
 ### Las tres decisiones que dan forma a la fórmula
 
@@ -239,25 +252,63 @@ temprano diría del mismo partido algo distinto de lo que dice el ranking.
 - [`lib/jugador/desde-el-panel.ts`](../../web/src/lib/jugador/desde-el-panel.ts)
   — de las filas del panel a partidos puntuables.
 
+## Logros
+
+Todo en [`web/src/lib/logros/`](../../web/src/lib/logros/), calculado y no
+guardado — un logro es una consulta sobre el historial, igual que el rating es una
+consulta sobre los partidos. Guardarlos obligaría a migrarlos cada vez que se añade
+uno, y a que un logro nuevo no exista para quien ya se lo había ganado.
+
+**Doce de diecisiete se sacan sin ganar un solo partido.** No es un descuido: el
+rating ya premia jugar bien contra gente buena, así que unos logros que premiaran
+lo mismo serían una segunda tabla que sólo gana quien ya gana. Los logros premian
+lo que el rating no puede premiar — aparecer, apuntar el resultado, confirmar el
+del rival, jugar con gente nueva — y son la única recompensa que tiene confirmar el
+amistoso de otro.
+
+Ninguno se puede perder. Un logro que se pierde es una amenaza, y el sistema ya
+tiene un número que baja.
+
+---
+
+## La página pública
+
+`/j/<id>`, **apagada por defecto**. Un rating dice lo bueno que eres y con qué
+frecuencia juegas; que sea interesante no lo hace público.
+
+Lo que no enseña es tan deliberado como lo que enseña: **ningún nombre de otra
+persona.** El historial de alguien lleva dentro con quién jugó, y esas otras tres
+personas no han encendido nada — así que las funciones de la 0019 devuelven ids y
+nunca nombres de terceros, y la página no puede enseñarlos ni por descuido porque
+no los tiene.
+
+Hoy la enciende el club desde el perfil, que es la deuda declarada del asunto: la
+app del jugador no existe y el club es el único con sesión que puede preguntarle.
+Cuando exista, la política se estrecha a `players.user_id = auth.uid()`.
+
+---
+
 ## Pendiente
 
-Lo primero, y no es código: **aplicar 0014 y 0015 a Supabase**. La base de datos
-es la misma para las dos lanes, así que se avisa antes (docs/lanes.md).
+Lo primero, y no es código: **aplicar 0014, 0015, 0016, 0018 y 0019 a Supabase.**
+La base de datos es la misma para las dos lanes, así que se avisa antes
+(docs/lanes.md). Nada de lo de arriba funciona en ejecución hasta entonces: el
+código está probado, el esquema no está aplicado.
 
-Después, por orden:
+Después:
 
-1. **Pantalla de unificación** en el panel: el motor ya propone y explica por
-   qué; falta pintarlo.
-2. **Perfil del jugador**: rating, división, barra de progreso, historial,
-   gráfico de evolución y la pantalla de después del partido con el 1532 → 1547
-   de cada uno.
-3. **Rankings por ámbito**: club, ciudad, país, división, con filtros. El cálculo
-   está y la pertenencia a club ya tiene tabla; faltan las consultas.
-4. **Torneos por rating**: restringir inscripción por rango o por división, con
-   la excepción que apruebe el organizador.
-5. **Logros y página pública**: lo último del MVP a propósito — los logros son la
-   recompensa del amistoso y la página pública es el canal de reparto.
-6. Más adelante: matchmaking, interclubes, rating de club, temporadas.
+1. **Pantallas de amistosos.** El esquema, la confirmación y el disparador están;
+   falta dónde carga un amistoso el club y dónde lo confirman los cuatro. Vive con
+   la app del jugador, porque son los jugadores los que confirman.
+2. **La pantalla de después del partido.** `despuesDelPartido()` ya da el
+   1532 → 1547 de los cuatro; falta pintarla donde se mete el resultado.
+3. **Imagen de vista previa** de la página pública, como la que ya tiene un torneo
+   (`/t/[club]/[torneo]/opengraph-image`). El enlace se comparte por WhatsApp y ahí
+   la imagen es la mitad del reparto.
+4. **La app del jugador**: es lo que convierte todo esto en producto. Ver
+   [app-jugador.md](app-jugador.md).
+5. Más adelante: matchmaking, interclubes, rating de club, temporadas.
+
 
 ## Sin decidir
 
