@@ -210,7 +210,9 @@ export type RatingParaGuardar = {
 };
 
 export type TransaccionParaGuardar = {
-  match_id: string;
+  /** Uno de los dos, nunca los dos: es la restricción `transaccion_de_un_solo_partido`. */
+  match_id: string | null;
+  friendly_match_id: string | null;
   player_id: string;
   fecha: string;
   rating_antes: number;
@@ -224,7 +226,8 @@ export type TransaccionParaGuardar = {
 
 export type CambioParaGuardar = {
   player_id: string;
-  match_id: string;
+  match_id: string | null;
+  friendly_match_id: string | null;
   fecha: string;
   escala: string;
   anterior: string;
@@ -237,8 +240,10 @@ export type Payload = {
   ratings: RatingParaGuardar[];
   transacciones: TransaccionParaGuardar[];
   divisiones: CambioParaGuardar[];
-  /** Los partidos que de verdad movieron un rating. */
+  /** Los partidos de torneo que de verdad movieron un rating. */
   partidos: string[];
+  /** Lo mismo, para los amistosos. Van aparte porque son otra tabla. */
+  amistosos: string[];
 };
 
 /**
@@ -258,10 +263,16 @@ export type Payload = {
  * todavía nadie ha confirmado— siguen pendientes, y tienen que seguirlo: el día
  * que los cuatro lo confirmen hay que volver a mirarlos. Marcar todo lo que se
  * mira dejaría fuera para siempre a los que aún no podían puntuar.
+ *
+ * El tercer argumento es la lista de ids que son amistosos. El motor trabaja con
+ * ids sueltos y no sabe —ni tiene por qué— de qué tabla salió cada uno; quien lo
+ * sabe es el servicio, que hizo las dos consultas. Pasarlo aquí es más barato
+ * que enseñarle al motor que existen dos clases de partido.
  */
 export function paraGuardar(
   estado: Estado,
   escala: EscalaDeDivisiones = ESCALA_UY,
+  amistosos: ReadonlySet<string> = new Set(),
 ): Payload {
   // Con qué versión se calculó el rating de cada uno: la de su última
   // transacción. No la constante del código, que es la versión de hoy — al
@@ -289,8 +300,15 @@ export function paraGuardar(
     });
   }
 
+  // De las dos columnas, exactamente una lleva el id. Es lo que exige la
+  // restricción `transaccion_de_un_solo_partido` de la 0015.
+  const columnaDe = (partidoId: string) =>
+    amistosos.has(partidoId)
+      ? { match_id: null, friendly_match_id: partidoId }
+      : { match_id: partidoId, friendly_match_id: null };
+
   const transacciones: TransaccionParaGuardar[] = estado.transacciones.map((t) => ({
-    match_id: t.partidoId,
+    ...columnaDe(t.partidoId),
     player_id: t.jugadorId,
     fecha: t.fecha,
     rating_antes: t.ratingAntes,
@@ -304,7 +322,7 @@ export function paraGuardar(
 
   const divisiones: CambioParaGuardar[] = estado.historialDeDivision.map((c) => ({
     player_id: c.jugadorId,
-    match_id: c.partidoId,
+    ...columnaDe(c.partidoId),
     fecha: c.fecha,
     escala: escala.id,
     anterior: c.anterior,
@@ -313,9 +331,15 @@ export function paraGuardar(
     rating_al_cambiar: c.ratingAlCambiar,
   }));
 
-  const partidos = [...new Set(estado.transacciones.map((t) => t.partidoId))];
+  const puntuados = new Set(estado.transacciones.map((t) => t.partidoId));
 
-  return { ratings, transacciones, divisiones, partidos };
+  return {
+    ratings,
+    transacciones,
+    divisiones,
+    partidos: [...puntuados].filter((id) => !amistosos.has(id)),
+    amistosos: [...puntuados].filter((id) => amistosos.has(id)),
+  };
 }
 
 /**

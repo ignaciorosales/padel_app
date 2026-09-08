@@ -33,7 +33,11 @@ export type { JugadorId, OrigenDelPartido };
  */
 export type Origen = OrigenDelPartido;
 
-export type Formato = "americano" | "parejas";
+/**
+ * Cómo se jugó. `amistoso` no es un formato de torneo: es la ausencia de uno, y
+ * está en la misma lista porque el historial enseña las tres cosas seguidas.
+ */
+export type Formato = "americano" | "parejas" | "amistoso";
 export type Unidad = "juegos" | "sets" | "puntos";
 
 export type Partido = {

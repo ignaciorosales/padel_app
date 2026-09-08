@@ -1,6 +1,7 @@
 # Puntazo Rating
 
-Estado: **motor construido y medido; sin esquema ni servicio todavía.**
+Estado: **motor, esquema y servicio construidos. Sin aplicar a la base de datos
+todavía** (migraciones 0014 y 0015 escritas y sin correr).
 Última revisión: 2026-09-08.
 
 Un sistema de rating propio para toda la red Puntazo, sin depender de la AUP ni
@@ -33,6 +34,16 @@ Todo en [`web/src/lib/rating/`](../../web/src/lib/rating/), puro y con tests:
 | [`divisiones.ts`](../../web/src/lib/rating/divisiones.ts) | Escala uruguaya, ascenso y descenso con histéresis, progreso |
 | [`motor.ts`](../../web/src/lib/rating/motor.ts) | Procesa el historial: transacciones, divisiones, reconstrucción |
 | [`simulacion.ts`](../../web/src/lib/rating/simulacion.ts) | Banco de pruebas: jugadores de fuerza conocida sobre americanos reales |
+| [`consultas.ts`](../../web/src/lib/rating/consultas.ts) | Filas de Postgres ↔ motor. Puro, y la mitad que se equivoca |
+| [`amistosos.ts`](../../web/src/lib/rating/amistosos.ts) | El ciclo de vida de un amistoso traducido a origen y confianza |
+| [`servicio.ts`](../../web/src/lib/rating/servicio.ts) | Lee la red entera, llama al motor, guarda en una transacción |
+
+Y el esquema, en dos migraciones:
+
+| Migración | Qué |
+|---|---|
+| [`0014_esquema_del_rating.sql`](../../backend/migrations/0014_esquema_del_rating.sql) | `player_ratings`, `rating_transactions`, `player_division_history`, `club_memberships`, `matches.rating_processed_at`, `players.division_declarada` y `aplicar_rating()` |
+| [`0015_confirmacion_de_resultados.sql`](../../backend/migrations/0015_confirmacion_de_resultados.sql) | `friendly_matches`, `friendly_match_confirmations`, `players.user_id` y el disparador que confirma |
 
 ### Las tres decisiones que dan forma a la fórmula
 
@@ -116,6 +127,60 @@ Cada cambio queda registrado con fecha, rating y tipo.
 
 ---
 
+---
+
+## Cómo se guarda
+
+**Una sola puerta de escritura**: la función `aplicar_rating()`. El cliente de
+Supabase no tiene transacciones —cada `insert` es la suya—, y aquí hay cuatro
+escrituras que tienen que entrar juntas: un rating sin su transacción es un
+número que nadie puede explicar, y un partido marcado como procesado sin su
+rating se pierde para siempre. El cuerpo de una función de Postgres **es** una
+transacción, así que las cuatro viven dentro.
+
+Sólo la puede llamar `service_role`. Las tablas de rating no tienen políticas de
+escritura a propósito: un rating escrito a mano es un rating que ya no se puede
+reconstruir.
+
+**Lo que da la idempotencia es el índice único `(match_id, player_id)`**, no la
+marca `rating_processed_at`. Entre leer que está a null y escribirla hay una
+ventana donde caben dos procesos; los dos calcularían lo mismo y el segundo
+choca con el índice, y su transacción se cae entera. La marca es el índice de
+trabajo: sirve para contar lo pendiente sin recorrer la historia.
+
+**El servicio reconstruye entero en cada pasada**, y no es un apaño. `procesar()`
+acepta ratings de partida pero no un estado previo: la desviación, la cuenta de
+partidos y la de la histéresis no se pueden inyectar. Pasarle sólo los partidos
+nuevos devolvería a todo el mundo a la desviación de un recién llegado, y un
+torneo movería los ratings el triple de lo que debe. Cuando la red no quepa en
+memoria, el camino es ampliar `EntradaDelMotor` para aceptar el estado completo y
+puntuar incremental sólo cuando lo nuevo sea posterior a todo lo procesado.
+
+---
+
+## Amistosos, y por qué no viven en `matches`
+
+Los cuatro jugadores de `matches` son `tournament_players`: inscritos de un
+torneo, con el nombre escrito a mano esa mañana. Los de un amistoso son
+`players`: personas. Las claves ajenas apuntan a otra tabla, así que forzarlo
+obligaría a inventar un torneo fantasma por cada partido suelto.
+
+Lo que sí comparten es todo lo de después: las dos clases entran al mismo motor y
+dejan transacciones en la misma tabla, con dos columnas anulables y la garantía
+de que exactamente una está puesta.
+
+**Un amistoso nace sin puntuar.** Pasa a `confirmado` cuando los cuatro lo
+aceptan, y uno que dice que no lo tumba — asimétrico a propósito: el coste de no
+puntuar un partido real es que no cuenta, el de puntuar uno inventado es que el
+rating deja de significar nada.
+
+El recuento lo hace un disparador y no la app, porque el último de los cuatro en
+aceptar es el que confirma y dos móviles pueden aceptar a la vez. Y un amistoso
+que carga el club no espera a nadie: es la autoridad de sus pistas, y el 0,9 de
+confianza ya dice que se le cree más que a los propios jugadores.
+
+---
+
 ## Auditoría y reconstrucción
 
 **Nunca se toca un rating sin dejar escrito cómo se llegó a él.** Cada partido
@@ -176,20 +241,23 @@ temprano diría del mismo partido algo distinto de lo que dice el ranking.
 
 ## Pendiente
 
-Por orden:
+Lo primero, y no es código: **aplicar 0014 y 0015 a Supabase**. La base de datos
+es la misma para las dos lanes, así que se avisa antes (docs/lanes.md).
 
-1. **Esquema**: `player_ratings`, `rating_transactions`, `player_division_history`,
-   `club_memberships`, y `matches.rating_processed_at` con constraint único.
-2. **Servicio**: la frontera que aísla el algoritmo del resto (`Match`, `Player`,
-   `Tournament` no deben saber qué fórmula se usa). El motor ya está desacoplado;
-   falta el envoltorio que lo llama y persiste.
-3. **Confirmación de resultados** de partidos cargados a mano, antes de puntuar.
-4. **Rankings por ámbito**: club, ciudad, país, división, con filtros.
-5. **Perfil**: los derivados (pico histórico, cambio a 7/30/90 días, mejores
-   victorias, rachas) y la pantalla de después del partido.
-6. **Torneos por rating**: restringir inscripción por rango o por división, con
-   excepción del organizador.
-7. Más adelante: matchmaking, interclubes, rating de club, temporadas.
+Después, por orden:
+
+1. **Pantalla de unificación** en el panel: el motor ya propone y explica por
+   qué; falta pintarlo.
+2. **Perfil del jugador**: rating, división, barra de progreso, historial,
+   gráfico de evolución y la pantalla de después del partido con el 1532 → 1547
+   de cada uno.
+3. **Rankings por ámbito**: club, ciudad, país, división, con filtros. El cálculo
+   está y la pertenencia a club ya tiene tabla; faltan las consultas.
+4. **Torneos por rating**: restringir inscripción por rango o por división, con
+   la excepción que apruebe el organizador.
+5. **Logros y página pública**: lo último del MVP a propósito — los logros son la
+   recompensa del amistoso y la página pública es el canal de reparto.
+6. Más adelante: matchmaking, interclubes, rating de club, temporadas.
 
 ## Sin decidir
 

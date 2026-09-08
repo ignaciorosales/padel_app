@@ -50,6 +50,12 @@ import {
   type FilaDeTorneo,
   type Huerfano,
 } from "./consultas.ts";
+import {
+  partidosDeLosAmistosos,
+  type DescarteDeAmistoso,
+  type FilaDeAmistoso,
+} from "./amistosos.ts";
+import { paraRating } from "../jugador/desde-el-panel.ts";
 import type { Descarte } from "../jugador/desde-el-panel.ts";
 import type { Opciones } from "./algoritmo.ts";
 import type { ReglasDeDivision } from "./divisiones.ts";
@@ -107,9 +113,12 @@ export type Reconstruccion = {
   jugadores: number;
   transacciones: number;
   cambiosDeDivision: number;
-  /** Por qué se quedó fuera cada fila que no puntuó, agrupado. */
+  /** Por qué se quedó fuera cada fila que no puntuó. */
   descartes: Descarte[];
+  descartesDeAmistosos: DescarteDeAmistoso[];
   huerfanos: Huerfano[];
+  /** Amistosos que existen pero todavía no puntúan: les faltan confirmaciones. */
+  amistososSinConfirmar: number;
   /** Quién parece estar en la división equivocada. Es una tarea para el club. */
   revisiones: Revision[];
 };
@@ -127,7 +136,7 @@ export async function reconstruirRating(
   const db = createAdminClient();
   const escala = opcion.escala ?? ESCALA_UY;
 
-  const [matches, rondas, torneos, inscritos, jugadores] = await Promise.all([
+  const [matches, rondas, torneos, inscritos, jugadores, amistosos] = await Promise.all([
     todasLasFilas<FilaDeMatch>(db, {
       tabla: "matches",
       columnas: "id, round_id, pista, a1, a2, b1, b2, juegos_a, juegos_b",
@@ -148,6 +157,12 @@ export async function reconstruirRating(
       tabla: "players",
       columnas: "id, division_declarada",
     }),
+    todasLasFilas<FilaDeAmistoso>(db, {
+      tabla: "friendly_matches",
+      columnas:
+        "id, club_id, fecha, a1, a2, b1, b2, marcador_a, marcador_b, unidad, " +
+        "estado, origen_confirmado",
+    }),
   ]);
 
   const { partidos, descartes, huerfanos } = puntuablesDeLasFilas(
@@ -157,14 +172,20 @@ export async function reconstruirRating(
     inscritos,
   );
 
-  const estado = procesar(partidos, {
+  // Los amistosos entran todos, también los pendientes: el motor los ignora por
+  // el origen y los deja sin marcar, y así el día que se confirmen vuelven a
+  // pasar. Filtrarlos aquí los perdería de vista.
+  const deAmistosos = partidosDeLosAmistosos(amistosos);
+  const idsDeAmistosos = new Set(deAmistosos.partidos.map((p) => p.id));
+
+  const estado = procesar([...partidos, ...deAmistosos.partidos.map(paraRating)], {
     ratingsIniciales: ratingsInicialesDe(jugadores, escala),
     opciones: opcion.opciones,
     escala,
     reglas: opcion.reglas,
   });
 
-  await guardar(db, estado, escala, true);
+  await guardar(db, estado, escala, idsDeAmistosos, true);
 
   return {
     puntuados: new Set(estado.transacciones.map((t) => t.partidoId)).size,
@@ -172,7 +193,11 @@ export async function reconstruirRating(
     transacciones: estado.transacciones.length,
     cambiosDeDivision: estado.historialDeDivision.length,
     descartes,
+    descartesDeAmistosos: deAmistosos.descartes,
     huerfanos,
+    amistososSinConfirmar: deAmistosos.partidos.filter(
+      (p) => p.origen === "sin_puntuar",
+    ).length,
     revisiones: revisarDivisionDeclarada(estado),
   };
 }
@@ -189,15 +214,17 @@ async function guardar(
   db: ReturnType<typeof createAdminClient>,
   estado: Estado,
   escala: EscalaDeDivisiones,
+  amistosos: ReadonlySet<string>,
   desdeCero: boolean,
 ): Promise<void> {
-  const payload = paraGuardar(estado, escala);
+  const payload = paraGuardar(estado, escala, amistosos);
 
   const { error } = await db.rpc("aplicar_rating", {
     p_ratings: payload.ratings,
     p_transacciones: payload.transacciones,
     p_divisiones: payload.divisiones,
     p_partidos: payload.partidos,
+    p_amistosos: payload.amistosos,
     p_desde_cero: desdeCero,
   });
 
@@ -206,25 +233,46 @@ async function guardar(
   }
 }
 
+export type Pendientes = {
+  deTorneo: number;
+  amistosos: number;
+  total: number;
+};
+
 /**
- * Cuántos partidos con resultado no han pasado nunca por el motor.
+ * Cuántos partidos que ya pueden puntuar no han pasado nunca por el motor.
  *
- * Es la pregunta que decide si hace falta reconstruir, y se responde con un
- * `count` sobre un índice parcial en vez de leyendo la historia entera. Cuando
- * da cero, no hay nada que hacer.
+ * Es la pregunta que decide si hace falta reconstruir, y se responde con dos
+ * `count` sobre índices parciales en vez de leyendo la historia entera. Cuando da
+ * cero, no hay nada que hacer.
+ *
+ * Un amistoso sin confirmar **no cuenta como pendiente**, aunque tenga la marca a
+ * null y un resultado escrito. No lo está: está esperando a tres personas, y
+ * contarlo dejaría este número clavado por encima de cero para siempre — que es
+ * la forma más rápida de que nadie vuelva a mirarlo.
  */
-export async function pendientesDePuntuar(): Promise<number> {
+export async function pendientesDePuntuar(): Promise<Pendientes> {
   const db = createAdminClient();
 
-  const { count, error } = await db
-    .from("matches")
-    .select("id", { count: "exact", head: true })
-    .is("rating_processed_at", null)
-    .not("juegos_a", "is", null);
+  const [torneo, amistoso] = await Promise.all([
+    db
+      .from("matches")
+      .select("id", { count: "exact", head: true })
+      .is("rating_processed_at", null)
+      .not("juegos_a", "is", null),
+    db
+      .from("friendly_matches")
+      .select("id", { count: "exact", head: true })
+      .is("rating_processed_at", null)
+      .eq("estado", "confirmado"),
+  ]);
 
+  const error = torneo.error ?? amistoso.error;
   if (error) {
     throw new Error(`No se pudo contar lo pendiente: ${error.message}`);
   }
 
-  return count ?? 0;
+  const deTorneo = torneo.count ?? 0;
+  const amistosos = amistoso.count ?? 0;
+  return { deTorneo, amistosos, total: deTorneo + amistosos };
 }
