@@ -93,6 +93,24 @@ export function puestosDe(filas: readonly FilaRanking[]): Map<JugadorId, number>
  * hay forma de comparar son dos grupos sin ningún partido en común.
  */
 export function gruposConectados(partidos: readonly Partido[]): JugadorId[][] {
+  return gruposDeCamarillas(partidos.map((p) => [...p.a, ...p.b]));
+}
+
+/**
+ * Lo mismo, a partir de "estos jugaron juntos" y sin saber qué es un partido.
+ *
+ * Existe porque hay dos formas de saber quién coincidió con quién, y las dos son
+ * legítimas: la lista de partidos (cuando se tiene el historial completo) y las
+ * transacciones de rating (cuando se pregunta por una ciudad y traerse todos los
+ * partidos de doce clubes no tiene sentido). Con una sola función, las dos dan la
+ * misma respuesta por construcción.
+ *
+ * Cada camarilla es un grupo de jugadores que compartieron un partido. No hace
+ * falta que sean cuatro: dos basta para unirlos.
+ */
+export function gruposDeCamarillas(
+  camarillas: readonly (readonly JugadorId[])[],
+): JugadorId[][] {
   const padre = new Map<JugadorId, JugadorId>();
 
   const raiz = (x: JugadorId): JugadorId => {
@@ -112,10 +130,9 @@ export function gruposConectados(partidos: readonly Partido[]): JugadorId[][] {
     if (rx !== ry) padre.set(rx, ry);
   };
 
-  for (const partido of partidos) {
-    const cuatro = [...partido.a, ...partido.b];
-    for (const jugador of cuatro) raiz(jugador);
-    for (let i = 1; i < cuatro.length; i++) unir(cuatro[0], cuatro[i]);
+  for (const camarilla of camarillas) {
+    for (const jugador of camarilla) raiz(jugador);
+    for (let i = 1; i < camarilla.length; i++) unir(camarilla[0], camarilla[i]);
   }
 
   const grupos = new Map<JugadorId, JugadorId[]>();
@@ -151,8 +168,23 @@ export function fiabilidadDelRanking(
   filas: readonly FilaRanking[],
   partidos: readonly Partido[],
 ): Fiabilidad {
+  return fiabilidadDeLosGrupos(filas, gruposConectados(partidos));
+}
+
+/**
+ * Lo mismo, con los grupos ya calculados.
+ *
+ * Para un ranking de ciudad los grupos no salen de la lista de partidos —traerse
+ * el historial de doce clubes para dibujar un aviso no tiene sentido— sino de las
+ * transacciones de rating. La regla de "cuántos grupos hay" es una sola y vive
+ * aquí; de dónde salen los grupos es cosa de quien llama.
+ */
+export function fiabilidadDeLosGrupos(
+  filas: readonly FilaRanking[],
+  gruposDeTodos: readonly (readonly JugadorId[])[],
+): Fiabilidad {
   const enLaTabla = new Set(filas.map((f) => f.jugadorId));
-  const grupos = gruposConectados(partidos)
+  const grupos = gruposDeTodos
     .map((g) => g.filter((id) => enLaTabla.has(id)))
     .filter((g) => g.length > 0);
 
