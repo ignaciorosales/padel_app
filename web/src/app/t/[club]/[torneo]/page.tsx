@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { BotonImprimir } from "@/components/boton-imprimir";
 import { ClasificacionGrupos } from "@/components/clasificacion-grupos";
 import { Badge } from "@/components/ui";
+import { porcentajeJugado, rondaDestacada } from "@/lib/torneo/directo";
 import { cargarTorneoPublico, fechaLarga } from "@/lib/torneo/publico";
 import { ETIQUETA_TORNEO, soloHoraMinuto, tituloDeRonda } from "@/lib/torneo/tipos";
 
@@ -85,6 +86,23 @@ export default async function TorneoPublicoPage({ params }: Params) {
   const hora = soloHoraMinuto(torneo.hora_inicio);
   const etiqueta = ETIQUETA_TORNEO[torneo.estado];
 
+  // La ronda que toca. Con seis rondas pintadas todas igual, «¿voy yo ahora?»
+  // se contesta leyendo la página entera.
+  const destacada = rondaDestacada(
+    rondas.map((r) => {
+      const suyos = partidosPorRonda.get(r.id) ?? [];
+      return {
+        id: r.id,
+        jugados: suyos.filter((p) => p.juegos_a !== null && p.juegos_b !== null).length,
+        total: suyos.length,
+      };
+    }),
+  );
+  const porcentaje = porcentajeJugado(jugados, total);
+  const rondaActual = destacada
+    ? (rondas.find((r) => r.id === destacada.id) ?? null)
+    : null;
+
   return (
     <main className="mx-auto w-full max-w-3xl px-5 py-8 sm:px-6 sm:py-12 print:max-w-none print:py-0">
       {/* ------------------------------------------------------ cabecera */}
@@ -103,10 +121,64 @@ export default async function TorneoPublicoPage({ params }: Params) {
             <Badge tono={etiqueta.tono}>{etiqueta.texto}</Badge>
           </span>
         </div>
+        {/* El progreso como línea y no como número suelto: saber por dónde va
+            el torneo es media razón para volver a abrir el enlace. Se imprime
+            también — en papel es el único sitio donde queda dicho hasta dónde
+            llegaba la copia que alguien lleva en la mano. */}
         {total > 0 ? (
-          <p className="mt-2 font-mono text-xs text-ink-faint tabular">
-            {jugados} de {total} partidos jugados
-          </p>
+          <div className="mt-3 flex flex-col gap-1.5">
+            <div className="flex items-baseline justify-between gap-3">
+              <p className="font-mono text-xs text-ink-faint tabular">
+                {jugados} de {total} partidos jugados
+              </p>
+              {torneo.estado !== "terminado" && porcentaje > 0 ? (
+                <p className="font-mono text-xs text-accent tabular">{porcentaje}%</p>
+              ) : null}
+            </div>
+            <div
+              className="h-1 w-full overflow-hidden rounded-full bg-surface-alt print:border print:border-rule"
+              role="img"
+              aria-label={`${jugados} de ${total} partidos jugados`}
+            >
+              <div
+                className={`h-full rounded-full ${
+                  torneo.estado === "terminado" ? "bg-ok" : "bg-accent"
+                }`}
+                style={{ width: `${porcentaje}%` }}
+              />
+            </div>
+          </div>
+        ) : null}
+
+        {/* El atajo a la ronda que toca.
+            Sin esto, contestar «¿voy yo ahora?» en un móvil obliga a pasar la
+            clasificación entera —doce filas— antes de ver el primer cruce. La
+            tabla sigue arriba porque al terminar el torneo es lo que se viene a
+            ver; mientras se juega, este enlace se salta el viaje. */}
+        {destacada && rondaActual ? (
+          <a
+            href="#ahora"
+            className="mt-4 flex items-center gap-2.5 rounded-sm border border-accent/30 bg-accent-soft px-3 py-2 text-sm text-accent-ink transition-colors hover:border-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent print:hidden"
+          >
+            {/* «Ahora», no «en juego»: la insignia del torneo justo encima ya
+                dice «en juego», y dos veces la misma palabra en cuatro
+                centímetros se lee como un error. Aquí lo que importa es que
+                esto es un atajo, no un estado. */}
+            <span className="font-mono text-[0.6rem] font-medium tracking-[0.1em] uppercase">
+              {destacada.marca === "en juego" ? "Ahora" : "Siguiente"}
+            </span>
+            <span className="font-semibold">
+              {tituloDeRonda(rondaActual, torneo.formato)}
+            </span>
+            {soloHoraMinuto(rondaActual.hora) ? (
+              <span className="ml-auto font-mono text-xs tabular">
+                {soloHoraMinuto(rondaActual.hora)}
+              </span>
+            ) : null}
+            <span aria-hidden="true" className="font-mono text-xs">
+              ↓
+            </span>
+          </a>
         ) : null}
       </header>
 
@@ -174,7 +246,17 @@ export default async function TorneoPublicoPage({ params }: Params) {
                       : ""
                   }`}
                 >
-                  <td className="py-2.5 pr-2 font-mono text-xs text-ink-faint tabular">
+                  {/* Quien va primero se ve mientras se juega, no sólo al
+                      acabar: es el dato que más se mira y el que hace que el
+                      enlace se vuelva a abrir. Al terminar, la fila entera se
+                      tiñe; antes basta con el número. */}
+                  <td
+                    className={`py-2.5 pr-2 font-mono text-xs tabular ${
+                      fila.puesto === 1
+                        ? "font-semibold text-accent"
+                        : "text-ink-faint"
+                    }`}
+                  >
                     {fila.puesto}
                   </td>
                   <td className="py-2.5 pr-3 font-semibold text-ink">
@@ -236,14 +318,33 @@ export default async function TorneoPublicoPage({ params }: Params) {
               const descansan = inscritos.filter((j) => !jugando.has(j.id));
               const horaRonda = soloHoraMinuto(ronda.hora);
 
+              const esLaQueToca = destacada?.id === ronda.id;
+
               return (
-                <div key={ronda.id} className="print:break-inside-avoid">
-                  <div className="mb-2 flex items-baseline justify-between gap-3 border-b border-rule pb-1">
+                <div
+                  key={ronda.id}
+                  id={esLaQueToca ? "ahora" : undefined}
+                  className={`scroll-mt-4 print:break-inside-avoid ${
+                    esLaQueToca
+                      ? "-mx-3 rounded-sm border-l-2 border-accent bg-accent-soft/40 px-3 py-3 print:mx-0 print:border-l print:bg-transparent print:px-0 print:py-0"
+                      : ""
+                  }`}
+                >
+                  <div
+                    className={`mb-2 flex flex-wrap items-baseline gap-x-3 gap-y-1 border-b pb-1 ${
+                      esLaQueToca ? "border-accent/30" : "border-rule"
+                    }`}
+                  >
                     <h3 className="font-semibold text-ink">
                       {tituloDeRonda(ronda, torneo.formato)}
                     </h3>
+                    {esLaQueToca ? (
+                      <span className="rounded-sm bg-accent px-1.5 py-0.5 font-mono text-[0.6rem] font-medium tracking-[0.1em] text-surface uppercase print:hidden">
+                        {destacada.marca}
+                      </span>
+                    ) : null}
                     {horaRonda ? (
-                      <span className="font-mono text-xs text-ink-faint tabular">
+                      <span className="ml-auto font-mono text-xs text-ink-faint tabular">
                         {horaRonda}
                       </span>
                     ) : null}
