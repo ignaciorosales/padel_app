@@ -31,6 +31,28 @@ export type Inscrito = {
   nombre: string;
   telefono: string | null;
   orden: number;
+  /**
+   * Lo que paga por la inscripción, y si el club ya lo cobró (0013).
+   *
+   * Nulo es «este torneo no cobra»; 0 es «éste no paga». No cruzan a la página
+   * pública: el anónimo tiene revocado el permiso sobre esas columnas.
+   */
+  importe: number | null;
+  pagado: boolean;
+};
+
+/**
+ * Un inscrito visto desde la página pública: su nombre y su sitio en la lista.
+ *
+ * Tipo aparte, y no un `Partial<Inscrito>`, porque la diferencia no es
+ * casualidad: el teléfono y el dinero no cruzan esa puerta, y el tipo tiene que
+ * decirlo tan claro como lo dicen los permisos de la base de datos.
+ */
+export type InscritoPublico = {
+  id: string;
+  tournament_id: string;
+  nombre: string;
+  orden: number;
 };
 
 export type PartidoFila = {

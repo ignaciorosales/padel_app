@@ -8,7 +8,7 @@ import {
 } from "./clasificacion.ts";
 import { clasificacionPorGrupo } from "./parejas.ts";
 import { resumenPublico } from "./resumen.ts";
-import type { Inscrito, PartidoFila, RondaFila, Torneo } from "./tipos.ts";
+import type { InscritoPublico, PartidoFila, RondaFila, Torneo } from "./tipos.ts";
 
 export { fechaLarga } from "./resumen.ts";
 
@@ -17,7 +17,7 @@ export type ClubPublico = { id: string; slug: string; nombre: string };
 export type TorneoPublico = {
   club: ClubPublico;
   torneo: Torneo;
-  inscritos: Inscrito[];
+  inscritos: InscritoPublico[];
   rondas: RondaFila[];
   partidosPorRonda: Map<string, PartidoFila[]>;
   clasificacion: FilaClasificacion[];
@@ -74,9 +74,14 @@ export async function cargarTorneoPublico(
   const torneo = torneoBruto as Torneo;
 
   const [{ data: inscritosBrutos }, { data: rondasBrutas }] = await Promise.all([
+    // Columnas por su nombre, nunca `*`: desde la 0013 esta tabla guarda
+    // también el importe de la inscripción y si está pagado, y eso no sale de
+    // aquí. El anónimo tiene revocado el permiso sobre esas dos columnas, así
+    // que un `*` que se cuele falla en vez de filtrar; esta lista es la puerta
+    // y el permiso es la red debajo.
     supabase
       .from("tournament_players")
-      .select("*")
+      .select("id, tournament_id, nombre, orden")
       .eq("tournament_id", torneo.id)
       .order("orden", { ascending: true }),
     supabase
@@ -86,7 +91,7 @@ export async function cargarTorneoPublico(
       .order("numero", { ascending: true }),
   ]);
 
-  const inscritos = (inscritosBrutos ?? []) as Inscrito[];
+  const inscritos = (inscritosBrutos ?? []) as InscritoPublico[];
   const rondas = (rondasBrutas ?? []) as RondaFila[];
 
   let partidos: PartidoFila[] = [];

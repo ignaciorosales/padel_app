@@ -192,3 +192,42 @@ es su sitio natural.
 Las pistas del club se crean solas la primera vez que monta un torneo
 («Pista 1», «Pista 2»…) y se renombran cuando quiera. Un formulario de alta de
 pistas entre el club y sus rondas se come el objetivo de los cinco minutos.
+
+## El dinero, que en la fase 1 es casi nada
+
+`src/lib/torneo/cobros.ts` y la migración
+[`0013`](../backend/migrations/0013_importe_de_la_inscripcion.sql).
+
+El plan lo deja escrito: cobros fuera, pero con sitio. No hay caja, ni bonos, ni
+recibos, ni pasarela. Hay dos columnas en `tournament_players` —`importe` y
+`pagado`— y una frase en el panel: «120,00 € cobrados · 36,00 € de 3 personas
+sin cobrar». El club cobra como cobra hoy y aquí sólo apunta si ya cobró.
+
+El precio se pone de una vez para todos y se corrige por persona. Escribirlo
+veinticuatro veces se come el objetivo de los cinco minutos.
+
+**Lo que esas dos columnas obligaron a arreglar.** `tournament_players` la puede
+leer cualquiera sin sesión cuando el torneo es público — es lo que hace
+funcionar el enlace de WhatsApp. Con dinero dentro, esa puerta deja de ser
+inofensiva: con la clave anónima, que viaja en el navegador, se podía preguntar
+a la API cuánto debe cada socio.
+
+Y al mirarlo se vio que la puerta ya estaba dejando pasar algo: la página
+pública hacía `select *`, así que el **teléfono** de los 24 inscritos salía en
+la respuesta desde la 0003. Nadie lo pintaba y daba igual.
+
+El cierre son dos cosas, y hacen falta las dos:
+
+| | Qué hace |
+|---|---|
+| Permisos de columna | `anon` sólo puede leer `id`, `tournament_id`, `nombre` y `orden`. |
+| Política por rol | La lectura de torneos públicos se acota a `anon`; con sesión, sólo tu club. |
+
+Cuidado al tocarlo: **un permiso de columna no resta de uno de tabla**. Hay que
+quitar el `select` de la tabla y conceder las columnas, no revocar las que
+sobran — si no, queda una migración que parece cerrar la puerta y la deja
+abierta.
+
+De rebote, `select *` con la clave anónima ahora falla en vez de devolver de
+más, así que un `select *` que se cuele en el futuro se cae en desarrollo en
+lugar de filtrar en producción.

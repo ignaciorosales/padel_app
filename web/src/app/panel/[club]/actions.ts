@@ -11,6 +11,7 @@ import {
   DESEMPATES_POR_DEFECTO,
   normalizarDesempates,
 } from "@/lib/torneo/clasificacion";
+import { leerImporte } from "@/lib/torneo/cobros";
 import {
   moverJugador,
   moverPista,
@@ -221,6 +222,80 @@ export async function anadirInscritos(
 
   revalidarTorneo(clubSlug, torneoSlug);
   return { anadidos: aInsertar.length };
+}
+
+// ------------------------------------------------------------------- cobros
+//
+// Todo lo que hay de dinero en la fase 1: un importe por inscripción y si el
+// club ya lo cobró. Ver la decisión en docs/producto/README.md y la 0013.
+
+/**
+ * Marcar cobrado o descobrado, de un toque.
+ *
+ * Sin confirmación al desmarcar: equivocarse es un clic y arreglarlo es otro,
+ * y el sábado por la mañana nadie lee un diálogo.
+ */
+export async function cambiarPago(formData: FormData) {
+  const clubSlug = String(formData.get("clubSlug") ?? "");
+  const torneoSlug = String(formData.get("torneoSlug") ?? "");
+  const jugadorId = String(formData.get("jugadorId") ?? "");
+  const pagado = String(formData.get("pagado") ?? "") === "si";
+
+  const { supabase, torneo, canWrite } = await torneoEditable(clubSlug, torneoSlug);
+  if (!canWrite || !torneo || !jugadorId) return;
+
+  await supabase
+    .from("tournament_players")
+    .update({ pagado })
+    .eq("id", jugadorId)
+    .eq("tournament_id", torneo.id);
+
+  revalidarTorneo(clubSlug, torneoSlug);
+}
+
+export type EstadoImportes = { error?: string; puestos?: number };
+
+/**
+ * El precio de la inscripción, de una vez para todos.
+ *
+ * Escribirlo persona a persona son veinticuatro campos para un dato que casi
+ * siempre es el mismo, y eso se come el objetivo de los cinco minutos. Quien
+ * pague otra cosa se corrige después; el caso raro no manda sobre el normal.
+ *
+ * Vaciar el campo quita los importes: el torneo pasa a no cobrar y la línea de
+ * dinero desaparece del panel.
+ */
+export async function ponerImporte(
+  _previo: EstadoImportes,
+  formData: FormData,
+): Promise<EstadoImportes> {
+  const clubSlug = String(formData.get("clubSlug") ?? "");
+  const torneoSlug = String(formData.get("torneoSlug") ?? "");
+  const { supabase, torneo, canWrite } = await torneoEditable(clubSlug, torneoSlug);
+
+  if (!canWrite) return { error: SUSPENDIDO };
+  if (!torneo) return { error: "Ese torneo ya no existe." };
+
+  const importe = leerImporte(String(formData.get("importe") ?? ""));
+  if (importe === undefined) {
+    return { error: "Eso no es un importe. Escribe algo como 12 o 12,50." };
+  }
+
+  // Sólo a quien no tenga ya uno distinto puesto a mano, salvo que se esté
+  // vaciando: entonces se limpia todo, que es lo que significa vaciarlo.
+  const consulta = supabase
+    .from("tournament_players")
+    .update({ importe })
+    .eq("tournament_id", torneo.id);
+
+  const { data, error } = await (importe === null
+    ? consulta.select("id")
+    : consulta.is("importe", null).select("id"));
+
+  if (error) return { error: error.message };
+
+  revalidarTorneo(clubSlug, torneoSlug);
+  return { puestos: (data ?? []).length };
 }
 
 export async function quitarInscrito(formData: FormData) {

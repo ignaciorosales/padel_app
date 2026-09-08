@@ -24,7 +24,9 @@ import { BotonImprimir } from "@/components/boton-imprimir";
 import { CopiarTexto } from "@/components/copiar-texto";
 import { textoClasificacion, textoRonda } from "@/lib/torneo/texto";
 import { quitarInscrito, quitarPareja } from "../../actions";
+import { fraseCobros, masRepetido, resumirCobros } from "@/lib/torneo/cobros";
 import { AccionesTorneo } from "./acciones-torneo";
+import { BotonPago, PrecioInscripcion } from "./cobros";
 import { AjustesCuadro } from "./ajustes-cuadro";
 import { CorregirHora, CorregirPartido } from "./corregir";
 import { Desempates } from "./desempates";
@@ -73,8 +75,23 @@ export default async function TorneoPage({ params }: Params) {
       .order("numero", { ascending: true }),
   ]);
 
-  const inscritos = (inscritosBrutos ?? []) as Inscrito[];
+  // Las dos columnas de dinero son de la 0013, y el código puede estar
+  // desplegado antes de que la migración se aplique: en esa ventana la fila no
+  // las trae. Se normalizan aquí, una vez, en vez de defenderse en cada sitio
+  // que las usa.
+  const inscritos = ((inscritosBrutos ?? []) as Inscrito[]).map((j) => ({
+    ...j,
+    importe: typeof j.importe === "number" ? j.importe : null,
+    pagado: j.pagado === true,
+  }));
   const rondas = (rondasBrutas ?? []) as RondaFila[];
+
+  // El precio que se ofrece al abrir el desplegable es el que más se repite: si
+  // hay veinte a 12 € y uno a 0 €, lo que el club quiere volver a escribir es 12.
+  const cobros = resumirCobros(inscritos);
+  const precioMasComun = masRepetido(
+    inscritos.map((j) => j.importe).filter((i): i is number => i !== null),
+  );
 
   let partidos: PartidoFila[] = [];
   if (rondas.length > 0) {
@@ -449,6 +466,12 @@ export default async function TorneoPage({ params }: Params) {
           <Card>
             <Eyebrow>Inscritos · {inscritos.length}</Eyebrow>
 
+            {cobros.hayImportes ? (
+              <p className="mb-3 text-xs font-medium text-ink-soft">
+                {fraseCobros(cobros)}
+              </p>
+            ) : null}
+
             {inscritos.length === 0 ? (
               <p className="text-sm text-ink-faint">Todavía no hay nadie apuntado.</p>
             ) : (
@@ -461,24 +484,54 @@ export default async function TorneoPage({ params }: Params) {
                       </span>{" "}
                       {j.nombre}
                     </span>
-                    {canWrite ? (
-                      <form action={quitarInscrito}>
-                        <input type="hidden" name="clubSlug" value={club.slug} />
-                        <input type="hidden" name="torneoSlug" value={torneo.slug} />
-                        <input type="hidden" name="jugadorId" value={j.id} />
-                        <button
-                          type="submit"
-                          aria-label={`Quitar a ${j.nombre}`}
-                          className="text-ink-faint hover:text-danger"
-                        >
-                          ×
-                        </button>
-                      </form>
-                    ) : null}
+                    <span className="flex shrink-0 items-center gap-2">
+                      {j.importe !== null && canWrite ? (
+                        <BotonPago
+                          clubSlug={club.slug}
+                          torneoSlug={torneo.slug}
+                          jugadorId={j.id}
+                          nombre={j.nombre}
+                          importe={j.importe}
+                          pagado={j.pagado}
+                        />
+                      ) : null}
+                      {canWrite ? (
+                        <form action={quitarInscrito}>
+                          <input type="hidden" name="clubSlug" value={club.slug} />
+                          <input type="hidden" name="torneoSlug" value={torneo.slug} />
+                          <input type="hidden" name="jugadorId" value={j.id} />
+                          <button
+                            type="submit"
+                            aria-label={`Quitar a ${j.nombre}`}
+                            className="text-ink-faint hover:text-danger"
+                          >
+                            ×
+                          </button>
+                        </form>
+                      ) : null}
+                    </span>
                   </li>
                 ))}
               </ol>
             )}
+
+            {canWrite && inscritos.length > 0 ? (
+              <details className="group mb-4">
+                <summary className="cursor-pointer list-none text-sm text-accent-ink [&::-webkit-details-marker]:hidden">
+                  <span className="inline-block transition-transform group-open:rotate-90">
+                    ▸
+                  </span>{" "}
+                  {cobros.hayImportes ? "Cambiar el precio" : "Cobrar la inscripción"}
+                </summary>
+                <div className="mt-3">
+                  <PrecioInscripcion
+                    clubSlug={club.slug}
+                    torneoSlug={torneo.slug}
+                    actual={precioMasComun}
+                  />
+                </div>
+              </details>
+            ) : null}
 
             {canWrite ? (
               rondas.length === 0 ? (
