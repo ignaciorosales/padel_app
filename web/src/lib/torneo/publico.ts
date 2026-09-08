@@ -10,7 +10,7 @@ import { clasificacionPorGrupo } from "./parejas.ts";
 import { resumenPublico } from "./resumen.ts";
 import type { InscritoPublico, PartidoFila, RondaFila, Torneo } from "./tipos.ts";
 
-export { fechaLarga } from "./resumen.ts";
+export { descripcionDelTorneo, fechaLarga } from "./resumen.ts";
 
 export type ClubPublico = { id: string; slug: string; nombre: string };
 

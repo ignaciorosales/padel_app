@@ -876,6 +876,16 @@ export async function generarGrupos(
   const { error } = await supabase.from("matches").insert(partidos);
   if (error) return { error: error.message };
 
+  // Igual que al generar las rondas de un americano. Sin esto un torneo de
+  // parejas se quedaba en «borrador» para siempre, con la gente jugando: la
+  // insignia de la página pública lo decía, y peor, el resumen que WhatsApp
+  // enseña al pegar el enlace se elige por el estado y anunciaba un torneo que
+  // aún no ha empezado cuando ya iba por la mitad.
+  await supabase
+    .from("tournaments")
+    .update({ estado: "en_juego" })
+    .eq("id", torneo.id);
+
   await sincronizarAgenda(supabase, torneo);
 
   revalidarTorneo(clubSlug, torneoSlug);

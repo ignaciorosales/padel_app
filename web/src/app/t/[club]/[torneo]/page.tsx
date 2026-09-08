@@ -4,7 +4,11 @@ import { BotonImprimir } from "@/components/boton-imprimir";
 import { ClasificacionGrupos } from "@/components/clasificacion-grupos";
 import { Badge } from "@/components/ui";
 import { porcentajeJugado, rondaDestacada } from "@/lib/torneo/directo";
-import { cargarTorneoPublico, fechaLarga } from "@/lib/torneo/publico";
+import {
+  cargarTorneoPublico,
+  descripcionDelTorneo,
+  fechaLarga,
+} from "@/lib/torneo/publico";
 import { ETIQUETA_TORNEO, soloHoraMinuto, tituloDeRonda } from "@/lib/torneo/tipos";
 
 type Params = { params: Promise<{ club: string; torneo: string }> };
@@ -408,8 +412,7 @@ export default async function TorneoPublicoPage({ params }: Params) {
 
       <footer className="mt-12 border-t border-rule pt-5 text-xs text-ink-faint print:mt-6">
         <p>
-          {club.nombre} · {torneo.formato === "americano" ? "Americano" : torneo.formato}{" "}
-          de {torneo.rondas} rondas
+          {club.nombre} · {descripcionDelTorneo(torneo)}
         </p>
         <div className="mt-1 flex flex-wrap items-baseline justify-between gap-3 print:hidden">
           <p>Esta página se actualiza sola conforme se meten los resultados.</p>

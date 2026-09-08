@@ -12,6 +12,28 @@ export type DatosResumen = {
   campeon: string | null;
 };
 
+/**
+ * Cómo se describe un torneo en una línea, para el pie de la página pública.
+ *
+ * Existe porque ese pie decía «parejas de 1 rondas»: el formato en crudo tal y
+ * como está en la base de datos, un número que en un torneo de parejas no
+ * significa nada —`rondas` es del americano— y sin concordancia. Tres errores
+ * en cinco palabras, en la página que el club enseña a sus socios.
+ */
+export function descripcionDelTorneo(t: {
+  formato: string;
+  rondas: number;
+  /** Indefinido mientras la 0006 no esté aplicada; nulo si nadie los fijó. */
+  grupos?: number | null;
+}): string {
+  if (t.formato === "parejas") {
+    const grupos = t.grupos ?? 1;
+    return `Torneo de parejas · ${grupos} grupo${grupos === 1 ? "" : "s"}`;
+  }
+
+  return `Americano de ${t.rondas} ronda${t.rondas === 1 ? "" : "s"}`;
+}
+
 /** "sábado, 6 de septiembre de 2026" */
 export function fechaLarga(fecha: string): string {
   return new Date(`${fecha}T00:00:00`).toLocaleDateString("es-ES", {

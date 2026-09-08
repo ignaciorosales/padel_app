@@ -1,6 +1,11 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { fechaLarga, resumenPublico, type DatosResumen } from "./resumen.ts";
+import {
+  descripcionDelTorneo,
+  fechaLarga,
+  resumenPublico,
+  type DatosResumen,
+} from "./resumen.ts";
 
 const BASE: DatosResumen = {
   estado: "borrador",
@@ -73,4 +78,38 @@ test("fechaLarga no se va de día por la zona horaria", () => {
   // negativo se enseñaría el día 4.
   assert.match(fechaLarga("2026-09-05"), /5 de septiembre de 2026/);
   assert.match(fechaLarga("2026-01-01"), /1 de enero de 2026/);
+});
+
+test("el pie de un americano concuerda en plural", () => {
+  assert.equal(
+    descripcionDelTorneo({ formato: "americano", rondas: 6, grupos: null }),
+    "Americano de 6 rondas",
+  );
+});
+
+test("y en singular, que un torneo de una ronda existe", () => {
+  assert.equal(
+    descripcionDelTorneo({ formato: "americano", rondas: 1, grupos: null }),
+    "Americano de 1 ronda",
+  );
+});
+
+test("un torneo de parejas se describe por sus grupos, no por unas rondas que no tiene", () => {
+  // Antes salia «parejas de 1 rondas»: el formato en crudo y el campo del
+  // americano, que en parejas no significa nada.
+  assert.equal(
+    descripcionDelTorneo({ formato: "parejas", rondas: 1, grupos: 2 }),
+    "Torneo de parejas · 2 grupos",
+  );
+  assert.equal(
+    descripcionDelTorneo({ formato: "parejas", rondas: 1, grupos: 1 }),
+    "Torneo de parejas · 1 grupo",
+  );
+});
+
+test("un torneo de parejas sin grupos declarados cuenta como uno", () => {
+  assert.equal(
+    descripcionDelTorneo({ formato: "parejas", rondas: 4, grupos: null }),
+    "Torneo de parejas · 1 grupo",
+  );
 });
