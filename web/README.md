@@ -231,3 +231,27 @@ abierta.
 De rebote, `select *` con la clave anónima ahora falla en vez de devolver de
 más, así que un `select *` que se cuele en el futuro se cae en desarrollo en
 lugar de filtrar en producción.
+
+## La página pública, que es el argumento de venta
+
+`src/app/t/[club]/[torneo]/` y `src/lib/torneo/directo.ts`.
+
+El plan la marca como el riesgo vivo número uno: «lo que se paga no es ahorrar
+trabajo, es parecer un club serio ante sus socios. Si esa página no impresiona,
+el argumento de venta se cae». Por eso merece más esfuerzo de diseño que el
+propio panel.
+
+Se abre veinticuatro veces a media mañana, casi siempre desde el móvil, y casi
+siempre con la misma pregunta: **¿voy yo ahora?** Con las seis rondas pintadas
+todas igual, esa pregunta se contestaba leyendo la página entera.
+
+| Qué | Por qué |
+|---|---|
+| La ronda que toca, con carril de acento y etiqueta | Contesta la pregunta de un vistazo. `rondaDestacada()` la calcula: la primera sin completar, «en juego» si ya tiene algún resultado y «siguiente» si no. |
+| Atajo en la cabecera con ancla a esa ronda | En un móvil, llegar al primer cruce obligaba a pasar doce filas de clasificación. La tabla sigue arriba porque al acabar es lo que se viene a ver. |
+| Barra de progreso del torneo | Saber por dónde va es media razón para volver a abrir el enlace. Se imprime: en papel es el único sitio donde queda dicho hasta dónde llegaba esa copia. |
+| Quien va primero, marcado mientras se juega | Antes sólo se teñía al terminar, justo cuando ya da igual. Es el dato más social del día. |
+
+Que una ronda posterior tenga un resultado suelto —pasa cuando cuatro que van
+sobrados se adelantan— no la convierte en la ronda actual: la que manda es la
+que el torneo está esperando.
