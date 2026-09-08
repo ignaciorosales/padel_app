@@ -23,10 +23,18 @@ el tema, es que dos sesiones no editen el mismo fichero a la vez.
 sh tools/lane.sh
 ```
 
-Dice qué ficheros ha tocado ya la otra lane y avisa si vais a chocar. Lee las
-ramas del `.git` compartido: no hace falta ni red ni que la otra lane haya
-hecho push. **Ejecútalo al empezar una tarea y antes de integrar.** Es la única
-disciplina que no se puede saltar; el resto de este documento explica por qué.
+Dice qué ficheros ha tocado ya la otra lane y avisa si vais a chocar. Lee el
+`.git` compartido **y los directorios de trabajo de las otras lanes**: no hace
+falta ni red, ni push, ni que nadie haya commiteado. **Ejecútalo al empezar una
+tarea y antes de integrar.** Es la única disciplina que no se puede saltar; el
+resto de este documento explica por qué.
+
+> Mirar sólo lo commiteado es mirar donde ya no hay peligro. La primera versión
+> de esta herramienta hacía eso, y por eso no vio venir el único choque para el
+> que existe: las dos lanes escribieron una migración `0009` distinta y las dos
+> la tenían sin commitear. Ahora cuenta el trabajo en curso, que es justo el que
+> todavía se puede reconducir sin dolor, y comprueba aparte los **números de
+> migración repetidos**.
 
 ---
 

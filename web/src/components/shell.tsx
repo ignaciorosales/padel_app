@@ -16,7 +16,8 @@ export function Shell({
 }) {
   return (
     <div className="min-h-screen">
-      <header className="border-b border-rule bg-surface">
+      {/* En papel no sirve de nada: ni navegación ni botón de salir. */}
+      <header className="border-b border-rule bg-surface print:hidden">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-5 gap-y-2 px-6 py-3">
           <Link
             href="/"
@@ -48,7 +49,9 @@ export function Shell({
         </div>
       </header>
 
-      <main className="mx-auto max-w-6xl px-6 py-10">{children}</main>
+      <main className="mx-auto max-w-6xl px-6 py-10 print:max-w-none print:px-0 print:py-0">
+        {children}
+      </main>
     </div>
   );
 }
