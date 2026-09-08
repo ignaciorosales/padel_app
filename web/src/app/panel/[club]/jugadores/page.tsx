@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { requireClubAccess } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import {
@@ -232,8 +233,13 @@ export default async function JugadoresPage({ params }: Params) {
                 {yaUnificados.map((fila) => (
                   <tr key={fila.id} className="border-b border-rule/60">
                     <td className="py-2 pr-4 text-ink">{fila.nombre}</td>
-                    <td className="py-2 pr-4 font-semibold text-ink">
-                      {nombrePor[fila.player_id!] ?? "—"}
+                    <td className="py-2 pr-4 font-semibold">
+                      <Link
+                        href={`/panel/${club.slug}/jugadores/${fila.player_id}`}
+                        className="text-accent-ink underline underline-offset-4"
+                      >
+                        {nombrePor[fila.player_id!] ?? "—"}
+                      </Link>
                     </td>
                     <td className="py-2 pr-4 text-ink-faint">
                       {nombreDeTorneo.get(fila.tournament_id) ?? "—"}
