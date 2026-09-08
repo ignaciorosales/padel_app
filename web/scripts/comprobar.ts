@@ -135,6 +135,26 @@ if (errorAnonimo) {
   );
 }
 
+// Una tabla con RLS y ninguna política no la puede usar nadie —ni el club— y no
+// avisa: no falla al migrar, ni al arrancar, ni en los tests. Así se coló
+// `tournament_pairs` desde la 0006 hasta la 0017, y el fallo apareció el día que
+// alguien intentó apuntar una pareja a mano.
+{
+  const { data: mudas, error } = await admin.rpc("tablas_sin_politicas");
+
+  if (error) {
+    aviso(`No se pudo comprobar si hay tablas sin políticas: ${error.message}`);
+  } else if ((mudas as { tabla: string }[] | null)?.length) {
+    const nombres = (mudas as { tabla: string }[]).map((t) => t.tabla).join(", ");
+    mal(
+      `Tablas con RLS y sin ninguna política: ${nombres}`,
+      "Nadie puede leerlas ni escribirlas. Escribe sus políticas, como en 0017_politicas_de_tournament_pairs.sql.",
+    );
+  } else {
+    ok("Ninguna tabla con RLS se quedó sin políticas");
+  }
+}
+
 // ------------------------------------------------------------------ cuentas
 titulo("Cuentas");
 
