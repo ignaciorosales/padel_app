@@ -39,6 +39,7 @@ export default async function ClubPanelPage({ params }: Params) {
           <>
             <Badge tono={etiqueta.tono}>{etiqueta.texto}</Badge>
             <LinkButton href={`/panel/${club.slug}/jugadores`}>Jugadores</LinkButton>
+            <LinkButton href={`/panel/${club.slug}/ranking`}>Ranking</LinkButton>
             {canWrite ? (
               <LinkButton href={`/panel/${club.slug}/torneo/nuevo`} variante="primario">
                 Crear torneo

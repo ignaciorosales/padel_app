@@ -48,6 +48,35 @@ async function inscritosDelClub(
 
 function revalidar(clubSlug: string) {
   revalidatePath(`/panel/${clubSlug}/jugadores`);
+  // El ranking del club sale de `club_memberships`, y identificar a alguien es
+  // justo lo que escribe esa fila. Si no se revalida, el ranking enseña la tabla
+  // de antes y parece que la unificación no ha servido de nada.
+  revalidatePath(`/panel/${clubSlug}/ranking`);
+}
+
+/**
+ * El club se queda con esta persona.
+ *
+ * Identificar a alguien es el momento en que el club dice "éste es de los
+ * nuestros", y es la única señal de pertenencia que existe sin pedirle al
+ * encargado una pantalla más. Sin esta fila el ranking del club sale vacío el
+ * primer día, que es el día que hay que enseñarlo.
+ *
+ * `ignoreDuplicates` porque volver a identificar a la misma persona en otro
+ * torneo no la da de alta dos veces, y porque una baja manual (`activo = false`)
+ * no se debe reactivar sola: si el club la dio de baja, la dio de baja.
+ */
+async function anotarEnElClub(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  clubId: string,
+  personaId: string,
+): Promise<void> {
+  await supabase
+    .from("club_memberships")
+    .upsert(
+      { club_id: clubId, player_id: personaId },
+      { onConflict: "club_id,player_id", ignoreDuplicates: true },
+    );
 }
 
 // ------------------------------------------------------- «es esta persona»
@@ -83,6 +112,8 @@ export async function unificarInscrito(
         : `No se pudo unificar: ${error.message}`,
     };
   }
+
+  await anotarEnElClub(supabase, club.id, personaId);
 
   revalidar(clubSlug);
   return { hecho: "Unificado." };
@@ -144,6 +175,8 @@ export async function crearPersonaConInscritos(
       };
     }
   }
+
+  await anotarEnElClub(supabase, club.id, (persona as { id: string }).id);
 
   revalidar(clubSlug);
   return {
