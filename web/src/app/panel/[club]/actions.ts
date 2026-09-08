@@ -18,6 +18,7 @@ import {
   type PartidoCorregible,
   type Posicion,
 } from "@/lib/torneo/correccion";
+import { cambiarHoraDeRonda, type RondaConHora } from "@/lib/torneo/horario";
 import { parsearLista, parsearParejas, type ProblemaPareja } from "@/lib/torneo/lista";
 import {
   clasificacionPorGrupo,
@@ -464,6 +465,9 @@ async function pistasDelTorneo(
   return mapa;
 }
 
+/** Cuántos partidos del torneo caben en el calendario del club y cuántos no. */
+type ResultadoAgenda = { escritas: number; rechazadas: number };
+
 /**
  * Reescribe las ocupaciones del torneo a partir de lo que hay guardado ahora.
  *
@@ -473,8 +477,15 @@ async function pistasDelTorneo(
  * puede quedar a medias, y cinco sitios actualizando ocupaciones a mano sí.
  *
  * Cuesta tres consultas, y un torneo tiene decenas de partidos, no miles.
+ *
+ * Devuelve cuántas ocupaciones no cupieron. Quien llama decide qué hacer con
+ * ese número: durante mucho tiempo la respuesta fue «nada», y así se coló un
+ * horario imposible sin que nadie se enterara.
  */
-async function sincronizarAgenda(supabase: Supabase, torneo: TorneoEnAgenda) {
+async function sincronizarAgenda(
+  supabase: Supabase,
+  torneo: TorneoEnAgenda,
+): Promise<ResultadoAgenda> {
   const { data: rondas } = await supabase
     .from("rounds")
     .select("id, hora")
@@ -485,7 +496,7 @@ async function sincronizarAgenda(supabase: Supabase, torneo: TorneoEnAgenda) {
 
   if (!rondas || rondas.length === 0) {
     await borrarLasDeAntes();
-    return;
+    return { escritas: 0, rechazadas: 0 };
   }
 
   const pistaAPista = await pistasDelTorneo(supabase, torneo);
@@ -516,21 +527,22 @@ async function sincronizarAgenda(supabase: Supabase, torneo: TorneoEnAgenda) {
   });
 
   await borrarLasDeAntes();
-  if (filas.length === 0) return;
+  if (filas.length === 0) return { escritas: 0, rechazadas: 0 };
 
   const { error } = await supabase.from("court_occupancies").insert(filas);
-  if (!error) return;
+  if (!error) return { escritas: filas.length, rechazadas: 0 };
 
   // El insert entero se cae si UNA fila choca con algo que ya ocupaba esa pista
   // —otro torneo del mismo club, y en la fase 2 una clase o una reserva—, así
-  // que se reintenta fila a fila y entra todo lo que sí cabe.
-  //
-  // El choque se traga aquí a sabiendas: la pantalla que tiene que enseñarlo es
-  // la agenda, y la agenda es de la fase 2. Cuando exista, esto es lo primero
-  // que hay que revisar.
+  // que se reintenta fila a fila y entra todo lo que sí cabe. El torneo no se
+  // detiene por esto; lo que no puede es pasar desapercibido.
+  let escritas = 0;
   for (const fila of filas) {
-    await supabase.from("court_occupancies").insert(fila);
+    const { error: eFila } = await supabase.from("court_occupancies").insert(fila);
+    if (!eFila) escritas++;
   }
+
+  return { escritas, rechazadas: filas.length - escritas };
 }
 
 // ------------------------------------------------------------ generar rondas
@@ -1144,29 +1156,59 @@ export async function corregirPista(formData: FormData) {
   revalidarTorneo(clubSlug, torneoSlug);
 }
 
-export async function corregirHora(formData: FormData) {
+export type EstadoHora = { aviso?: string; arrastradas?: number };
+
+export async function corregirHora(
+  _previo: EstadoHora,
+  formData: FormData,
+): Promise<EstadoHora> {
   const clubSlug = String(formData.get("clubSlug") ?? "");
   const torneoSlug = String(formData.get("torneoSlug") ?? "");
   const rondaId = String(formData.get("rondaId") ?? "");
   const hora = String(formData.get("hora") ?? "").trim();
 
   // Vaciar la hora es válido: hay clubes que no las anuncian.
-  if (hora !== "" && !/^\d{2}:\d{2}$/.test(hora)) return;
+  if (hora !== "" && !/^\d{2}:\d{2}$/.test(hora)) return {};
 
   const { supabase, torneo, canWrite } = await torneoEditable(clubSlug, torneoSlug);
-  if (!canWrite || !torneo || !rondaId) return;
+  if (!canWrite || !torneo || !rondaId) return {};
 
-  await supabase
+  const { data: rondas } = await supabase
     .from("rounds")
-    .update({ hora: hora === "" ? null : hora })
-    .eq("id", rondaId)
-    .eq("tournament_id", torneo.id);
+    .select("id, numero, hora")
+    .eq("tournament_id", torneo.id)
+    .order("numero", { ascending: true });
+
+  const cambios = cambiarHoraDeRonda(
+    (rondas ?? []) as RondaConHora[],
+    rondaId,
+    hora === "" ? null : hora,
+  );
+  if (cambios.length === 0) return {};
+
+  for (const cambio of cambios) {
+    await supabase
+      .from("rounds")
+      .update({ hora: cambio.hora })
+      .eq("id", cambio.id)
+      .eq("tournament_id", torneo.id);
+  }
 
   // Cambiar la hora de una ronda mueve en bloque todas sus pistas, y vaciarla
   // saca esa ronda del calendario: sin hora no se sabe cuándo ocupa.
-  await sincronizarAgenda(supabase, torneo);
+  const agenda = await sincronizarAgenda(supabase, torneo);
 
   revalidarTorneo(clubSlug, torneoSlug);
+
+  return {
+    arrastradas: cambios.length - 1,
+    aviso:
+      agenda.rechazadas > 0
+        ? `${agenda.rechazadas} partido${agenda.rechazadas === 1 ? "" : "s"} no cabe${
+            agenda.rechazadas === 1 ? "" : "n"
+          } en la agenda del club: algo ya ocupa esa pista a esa hora.`
+        : undefined,
+  };
 }
 
 // ------------------------------------------------------------ estado y borrado

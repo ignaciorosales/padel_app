@@ -173,9 +173,21 @@ datos dice que no aunque la pantalla se haya despistado.
 **El torneo no depende de su agenda.** El panel escribe las ocupaciones después
 de generar las rondas, y si chocan con algo, el torneo funciona igual. Es
 deliberado: un sábado por la mañana, con 24 personas esperando, el calendario no
-puede ser lo que impida generar unas rondas. La contrapartida es que un choque
-hoy se traga en silencio — cuando exista la pantalla de agenda, ahí es donde
-tiene que salir (`sincronizarAgenda` en `panel/[club]/actions.ts`).
+puede ser lo que impida generar unas rondas.
+
+Lo que sí hace es contarlo. `sincronizarAgenda` devuelve cuántas ocupaciones no
+cupieron, y corregir la hora de una ronda lo enseña donde se corrige: «1 partido
+no cabe en la agenda del club: algo ya ocupa esa pista a esa hora». La primera
+versión se lo tragaba en silencio, y montando un torneo de verdad se vio lo que
+costaba: retrasar la ronda 1 media hora la ponía encima de la 2 y de la 3, seis
+ocupaciones desaparecían sin decir nada y el horario resultante no se podía
+jugar. De ahí que **cambiar la hora de una ronda arrastre las siguientes**
+(`src/lib/torneo/horario.ts`), que además es lo que quiere decir el encargado
+cuando toca una hora a media mañana.
+
+Los demás caminos —generar rondas, generar grupos, mover un partido de pista—
+siguen sin enseñar ese número. Cuando exista la pantalla de agenda de la fase 2,
+es su sitio natural.
 
 Las pistas del club se crean solas la primera vez que monta un torneo
 («Pista 1», «Pista 2»…) y se renombran cuando quiera. Un formulario de alta de

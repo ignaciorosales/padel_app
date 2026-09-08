@@ -1,7 +1,12 @@
 "use client";
 
-import { useRef } from "react";
-import { corregirHora, corregirJugador, corregirPista } from "../../actions";
+import { useActionState, useRef } from "react";
+import {
+  corregirHora,
+  corregirJugador,
+  corregirPista,
+  type EstadoHora,
+} from "../../actions";
 import type { Inscrito } from "@/lib/torneo/tipos";
 import { POSICIONES, type Posicion } from "@/lib/torneo/correccion";
 
@@ -78,6 +83,8 @@ export function CorregirPartido({
   );
 }
 
+const HORA_INICIAL: EstadoHora = {};
+
 /**
  * La hora de una ronda, corregible en el sitio donde se lee.
  *
@@ -85,6 +92,10 @@ export function CorregirPartido({
  * 18:35 y el texto que se pega en WhatsApp tiene que decir la verdad, no lo
  * que se planificó el jueves. Un `<input type="time">` en vez de desplegable
  * porque el teclado del móvil ya trae su propio selector.
+ *
+ * Tocar una hora arrastra las rondas siguientes, y la pantalla lo dice: mover
+ * seis rondas de golpe sin avisar asusta más que el retraso. Si aun así algo no
+ * cabe en el calendario del club, sale aquí en vez de perderse.
  */
 export function CorregirHora({
   clubSlug,
@@ -98,9 +109,10 @@ export function CorregirHora({
   hora: string | null;
 }) {
   const form = useRef<HTMLFormElement>(null);
+  const [estado, accion] = useActionState(corregirHora, HORA_INICIAL);
 
   return (
-    <form ref={form} action={corregirHora} className="print:hidden">
+    <form ref={form} action={accion} className="print:hidden">
       <input type="hidden" name="clubSlug" value={clubSlug} />
       <input type="hidden" name="torneoSlug" value={torneoSlug} />
       <input type="hidden" name="rondaId" value={rondaId} />
@@ -112,6 +124,20 @@ export function CorregirHora({
         aria-label="Hora de la ronda"
         className="rounded-sm border border-transparent bg-transparent px-1 py-0.5 font-mono text-xs text-ink-faint tabular hover:border-rule-strong hover:bg-surface"
       />
+
+      {estado.arrastradas ? (
+        <p role="status" className="mt-1 text-xs text-ink-faint">
+          {estado.arrastradas === 1
+            ? "La ronda siguiente se movió con ésta."
+            : `Las ${estado.arrastradas} rondas siguientes se movieron con ésta.`}
+        </p>
+      ) : null}
+
+      {estado.aviso ? (
+        <p role="alert" className="mt-1 max-w-[16rem] text-xs font-medium text-warn">
+          {estado.aviso}
+        </p>
+      ) : null}
     </form>
   );
 }
