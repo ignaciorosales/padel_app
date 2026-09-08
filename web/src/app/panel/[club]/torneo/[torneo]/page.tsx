@@ -248,6 +248,12 @@ export default async function TorneoPage({ params }: Params) {
             <Badge tono={ETIQUETA_TORNEO[torneo.estado].tono}>
               {ETIQUETA_TORNEO[torneo.estado].texto}
             </Badge>
+            <Link
+              href={`/panel/${club.slug}/torneo/${torneo.slug}/nivel`}
+              className="text-sm text-accent-ink underline underline-offset-4 print:hidden"
+            >
+              Nivel y admisión
+            </Link>
             {canWrite ? (
               <div className="print:hidden">
                 <AccionesTorneo
