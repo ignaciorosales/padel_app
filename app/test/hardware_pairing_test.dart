@@ -6,6 +6,7 @@ import 'package:Puntazo/features/match_control/hardware_command_handler.dart';
 import 'package:Puntazo/features/models/scoring_models.dart';
 import 'package:Puntazo/features/scoring/bloc/scoring_bloc.dart';
 import 'package:Puntazo/features/scoring/bloc/scoring_event.dart';
+import 'audio_stub.dart';
 
 /// Puntos del juego actual para cada equipo.
 ({int blue, int red}) _points(ScoringBloc bloc) {
@@ -14,6 +15,7 @@ import 'package:Puntazo/features/scoring/bloc/scoring_event.dart';
 }
 
 void main() {
+  stubAudioPlayers();
   TestWidgetsFlutterBinding.ensureInitialized();
 
   group('BoxPairingService', () {

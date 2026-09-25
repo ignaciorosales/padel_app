@@ -1,4 +1,5 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:audioplayers/audioplayers.dart';
 import 'dart:math' as math;
 import 'package:Puntazo/features/models/scoring_models.dart';
 import 'package:Puntazo/features/scoring/bloc/scoring_event.dart';
@@ -350,9 +351,33 @@ class ScoringBloc extends Bloc<ScoringEvent, ScoringState> {
     _pushHistory(emit, m.copyWith(sets: sets), 'Nuevo juego');
   }
 
+  /// Reproductor unico para el pitido de confirmacion. Se crea al primer punto
+  /// y se reutiliza: instanciar uno por punto anade latencia y fugas.
+  AudioPlayer? _beep;
+
+  /// Pitido de confirmacion al anotar: el arbitro oye que el punto ha entrado
+  /// sin levantar la vista. Va por el canal de media (no el de sistema) para
+  /// que siga el volumen del televisor de la pista.
+  ///
+  /// Se llama desde [_onPointFor] y no desde cada boton porque por ahi pasan
+  /// el mando USB, la barra del arbitro y la voz.
+  void _playBeep() {
+    try {
+      // Sin PlayerMode.lowLatency a proposito: ese modo usa SoundPool en
+      // Android y solo sonaba el PRIMER punto (medido: 5 pulsaciones = 1 track).
+      // El modo normal re-prepara el asset en cada punto, unos ms mas de
+      // latencia a cambio de que suene siempre.
+      final player = _beep ??= AudioPlayer()..setReleaseMode(ReleaseMode.stop);
+      // Sin audio no se anota peor: un fallo del plugin (o un test sin
+      // plataforma) nunca debe tumbar el marcador.
+      player.play(AssetSource('sounds/point.wav')).catchError((_) {});
+    } catch (_) {}
+  }
+
   void _onPointFor(PointForEvent e, Emitter<ScoringState> emit) {
     // Registrar el punto en el log ordenado (fuente de verdad del deshacer por
     // equipo independiente) y recalcular el marcador aplicando el punto.
+    _playBeep();
     _pointLog.add(e.team);
     _redoLog.clear();
     final result = _applyPointTo(state.match, e.team);

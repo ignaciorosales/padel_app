@@ -6,6 +6,7 @@ import 'package:Puntazo/features/models/scoring_models.dart';
 import 'package:Puntazo/features/scoring/bloc/scoring_bloc.dart';
 import 'package:Puntazo/features/scoring/bloc/scoring_event.dart';
 import 'package:Puntazo/features/scoring/bloc/scoring_state.dart';
+import 'audio_stub.dart';
 
 class _Harness extends StatelessWidget {
   const _Harness({super.key});
@@ -71,6 +72,7 @@ class _Harness extends StatelessWidget {
 }
 
 void main() {
+  stubAudioPlayers();
   testWidgets('Blue team increments to 15 with button', (tester) async {
     await tester.pumpWidget(const _Harness());
 

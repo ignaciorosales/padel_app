@@ -40,6 +40,7 @@ dependencies:
   collection: ^1.18.0
   shared_preferences: ^2.2.2
   usb_serial: ^0.5.1
+  audioplayers: ^6.7.1
 
 dev_dependencies:
   flutter_test:
@@ -64,6 +65,7 @@ flutter:
   assets:
     - assets/config/padel_config.json
     - assets/images/
+    - assets/sounds/
   # To add assets to your application, add an assets section, like this:
   # assets:
   #   - images/a_dot_burr.jpeg
