@@ -424,6 +424,12 @@ class HardwareHealthMonitor extends ChangeNotifier {
     return UsbStage.operational;
   }
 
+  /// Hay un USB enchufado que no se abre porque Android no ha dado permiso.
+  /// Sin ese permiso la app no recibe nada de las cajas.
+  bool get usbPermissionMissing =>
+      stage == UsbStage.deviceNotOpened &&
+      RegExp('permis', caseSensitive: false).hasMatch(_usbError ?? '');
+
   /// Pide al maestro un informe inmediato en vez de esperar al periódico.
   Future<void> requestStatus() async {
     await onSend?.call('STATUS');

@@ -30,6 +30,28 @@
 
 #include <Arduino.h>
 #include "driver/uart.h"
+#include <esp_task_wdt.h>
+
+// ===== Watchdog =====
+// Si el loop se cuelga (p. ej. el bus I2C del ToF bloqueado, o el UART) la
+// placa se reinicia sola en vez de quedarse muda hasta que alguien la
+// desenchufe. 5 s es mucho mas que una vuelta normal del loop.
+static const uint32_t WDT_TIMEOUT_MS = 5000;
+
+static void startWatchdog() {
+#if ESP_ARDUINO_VERSION_MAJOR >= 3
+  esp_task_wdt_config_t cfg = {
+    .timeout_ms = WDT_TIMEOUT_MS,
+    .idle_core_mask = 0,
+    .trigger_panic = true,
+  };
+  // El core 3.x ya arranca el watchdog: se reconfigura. Si no, se crea.
+  if (esp_task_wdt_reconfigure(&cfg) != ESP_OK) esp_task_wdt_init(&cfg);
+#else
+  esp_task_wdt_init(WDT_TIMEOUT_MS / 1000, true);
+#endif
+  esp_task_wdt_add(NULL);  // vigila la tarea del loop
+}
 
 // ===== ENLACE CON EL TABLET =========================================
 //
@@ -538,10 +560,12 @@ void setup() {
                     (int)ARDUINO_USB_CDC_ON_BOOT);
   
   lastStatusEmitMs = millis();
+  startWatchdog();
 }
 
 // ===== Loop principal =====
 void loop() {
+  esp_task_wdt_reset();
   cycleStartMs = millis();
 
   // === Polear todos los esclavos ===

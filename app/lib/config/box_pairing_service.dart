@@ -3,101 +3,103 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import 'package:Puntazo/features/models/scoring_models.dart';
 
-/// Empareja cada caja/mando físico (identificado por su ID de hardware) con
-/// un equipo del partido.
+/// Empareja cada caja física (identificada por su ID de hardware) con un
+/// LADO de la pista.
 ///
-/// El hardware ya no decide el equipo: el master reenvía `BTN:<idHex>:<P|U|G>`
-/// y esta clase resuelve a qué equipo pertenece cada caja. El emparejamiento
-/// se hace una sola vez (Ajustes > Mandos) y se recuerda de forma persistente
-/// hasta que el usuario lo cambie o elimine una caja.
+/// Las cajas están fijas en la pista y los jugadores cambian de lado al
+/// terminar cada set, así que una caja no pertenece a un equipo: pertenece a
+/// un lado, y el equipo que puntúa es el que juega en ese lado en ese momento
+/// (lo resuelve [HardwareCommandHandler] con el `isSwapped` del marcador).
 ///
-/// `teamIndex`:
-///  - 1 => Equipo 1 ([Team.blue])
-///  - 2 => Equipo 2 ([Team.red])
-///  - 0 => Sin equipo (caja conocida pero desasignada, ver [unassignBox])
+/// El maestro reenvía `BTN:<idHex>:<P|U|G>` y esta clase dice en qué lado está
+/// cada caja. Se configura una vez con el asistente ([startSetup]) o a mano en
+/// Ajustes ▸ Mandos, y se recuerda de forma persistente.
+///
+/// Valor guardado por caja:
+///  - 1 => [left], el lado que la pantalla muestra a la izquierda
+///  - 2 => [right]
+///  - 0 => [unassigned], caja conocida pero sin lado (ver [unassignBox])
+///
+/// Los valores 1/2 son los mismos que se guardaban cuando se emparejaba por
+/// equipo: el Equipo 1 se muestra a la izquierda al empezar, así que un
+/// emparejamiento antiguo sigue significando lo mismo.
 class BoxPairingService {
   static const String _key = 'box_team_pairings';
 
-  /// Valor de `teamIndex` que representa "caja conocida, sin equipo
-  /// asignado". Los IDs de las 4 cajas son fijos (los define el firmware de
-  /// cada caja), así que no tiene sentido que "borrar" el equipo haga
-  /// desaparecer la caja de la lista para siempre: queda visible con este
-  /// estado hasta que se le asigne un equipo de nuevo.
+  static const int left = 1;
+  static const int right = 2;
+
+  /// Caja conocida pero sin lado. Los IDs de las cajas son fijos (los define
+  /// su firmware), así que quitarle el lado no la borra de la lista.
   static const int unassigned = 0;
 
-  /// Emparejamiento por defecto (compatible con el reparto histórico:
-  /// 0201/0202 → Equipo 1, 0203/0204 → Equipo 2).
-  static const Map<String, int> _defaults = {
-    '0201': 1,
-    '0202': 1,
-    '0203': 2,
-    '0204': 2,
-  };
+  /// Cajas que espera el asistente en cada lado.
+  static const int boxesPerSide = 2;
 
   final SharedPreferences _prefs;
 
-  /// Mapa `idCaja (hex minúsculas) -> teamIndex (1|2)`.
+  /// Mapa `idCaja (hex minúsculas) -> lado (1|2, o 0 sin lado)`.
   final ValueNotifier<Map<String, int>> pairings;
 
   /// IDs de cajas de las que llegó al menos un comando pero todavía NO están
-  /// emparejadas con un equipo. Se acumulan TODAS las que van apareciendo
-  /// (más reciente primero) — una caja nunca tapa el aviso de otra. La UI de
-  /// Ajustes las usa para ofrecer asignarlas a un equipo sin teclear el ID.
+  /// emparejadas. Se acumulan TODAS las que van apareciendo (más reciente
+  /// primero) — una caja nunca tapa el aviso de otra. La UI de Ajustes las
+  /// usa para ofrecer asignarlas sin teclear el ID.
   final ValueNotifier<List<String>> unpairedBoxes =
       ValueNotifier<List<String>>(const []);
+
+  /// Asistente de configuración en curso, o `null` si no hay ninguno.
+  final ValueNotifier<BoxSetup?> setup = ValueNotifier<BoxSetup?>(null);
 
   BoxPairingService._(this._prefs, Map<String, int> initial)
       : pairings = ValueNotifier<Map<String, int>>(initial);
 
   /// Inicializa el servicio leyendo el emparejamiento guardado.
+  ///
+  /// Sin nada guardado arranca VACÍO, sin IDs por defecto: así la app sabe
+  /// que nadie ha configurado las cajas y abre el asistente.
   static Future<BoxPairingService> init() async {
+    final prefs = await SharedPreferences.getInstance();
     try {
-      final prefs = await SharedPreferences.getInstance();
       final raw = prefs.getString(_key);
-      Map<String, int> map;
-      if (raw == null) {
-        map = Map<String, int>.of(_defaults);
-      } else {
-        final decoded = jsonDecode(raw) as Map<String, dynamic>;
-        map = decoded.map(
-          (k, v) => MapEntry(_norm(k), (v as num).toInt()),
-        );
-      }
-      return BoxPairingService._(prefs, map);
+      if (raw == null) return BoxPairingService._(prefs, {});
+      final decoded = jsonDecode(raw) as Map<String, dynamic>;
+      return BoxPairingService._(
+        prefs,
+        decoded.map((k, v) => MapEntry(_norm(k), (v as num).toInt())),
+      );
     } catch (_) {
-      // CRASH SAFETY: si falla la lectura, arrancar con los valores por
-      // defecto (solo en memoria si SharedPreferences fallara del todo).
-      final prefs = await SharedPreferences.getInstance();
-      return BoxPairingService._(prefs, Map<String, int>.of(_defaults));
+      // CRASH SAFETY: un valor guardado corrupto equivale a no tener nada;
+      // el asistente vuelve a aparecer.
+      return BoxPairingService._(prefs, {});
     }
   }
 
-  /// Equipo emparejado con la caja, o `null` si no está emparejada (incluye
-  /// el caso de una caja conocida pero marcada como [unassigned]).
-  Team? teamForBox(String boxId) {
-    final idx = pairings.value[_norm(boxId)];
-    if (idx == null || idx == unassigned) return null;
-    return idx == 1 ? Team.blue : Team.red;
+  /// Hay al menos una caja con lado asignado.
+  bool get hasPairedBoxes => pairings.value.values.any((v) => v != unassigned);
+
+  /// Lado de la caja ([left] o [right]), o `null` si no está emparejada
+  /// (incluye una caja conocida pero marcada como [unassigned]).
+  int? sideForBox(String boxId) {
+    final side = pairings.value[_norm(boxId)];
+    if (side == null || side == unassigned) return null;
+    return side;
   }
 
-  /// Índice de equipo (1|2) emparejado con la caja, o `null`.
-  int? teamIndexForBox(String boxId) => pairings.value[_norm(boxId)];
-
-  /// Asigna (o reasigna) una caja a un equipo (1|2) y lo persiste.
-  Future<void> setPairing(String boxId, int teamIndex) async {
-    if (teamIndex != 1 && teamIndex != 2) return;
+  /// Asigna (o reasigna) una caja a un lado ([left]|[right]) y lo persiste.
+  Future<void> setPairing(String boxId, int side) async {
+    if (side != left && side != right) return;
     final id = _norm(boxId);
-    final next = Map<String, int>.of(pairings.value)..[id] = teamIndex;
+    final next = Map<String, int>.of(pairings.value)..[id] = side;
     pairings.value = next;
     _removeFromUnpaired(id);
     await _persist();
   }
 
-  /// Desasigna el equipo de una caja SIN quitarla de la lista: los IDs de
+  /// Quita el lado de una caja SIN quitarla de la lista: los IDs de
   /// las cajas son fijos, así que la caja sigue siendo visible en Ajustes
-  /// (como "Sin equipo") en vez de desaparecer y depender de que vuelva a
+  /// (como "Sin lado") en vez de desaparecer y depender de que vuelva a
   /// llegar un comando en vivo para poder reasignarla.
   Future<void> unassignBox(String boxId) async {
     final id = _norm(boxId);
@@ -137,6 +139,48 @@ class BoxPairingService {
         unpairedBoxes.value.where((e) => e != normalizedId).toList();
   }
 
+  // ---- Asistente ---------------------------------------------------------
+
+  /// Empieza el asistente "pulsa un botón de cada caja". Mientras está
+  /// abierto, las pulsaciones de las cajas NO puntúan: van a [setupPress].
+  void startSetup() => setup.value = const BoxSetup(side: left, captured: {});
+
+  /// Registra la caja pulsada en el lado que se está configurando. Al
+  /// completar [boxesPerSide] cajas pasa solo al lado siguiente.
+  void setupPress(String boxId) {
+    final s = setup.value;
+    if (s == null || s.done) return;
+    final id = _norm(boxId);
+    if (s.captured.containsKey(id)) {
+      // Misma caja pulsada otra vez: no avanza, solo avisa.
+      setup.value = BoxSetup(side: s.side, captured: s.captured, repeated: id);
+      return;
+    }
+    final captured = {...s.captured, id: s.side};
+    setup.value = BoxSetup(side: s.side, captured: captured);
+    if (captured.values.where((v) => v == s.side).length >= boxesPerSide) {
+      nextSetupSide();
+    }
+  }
+
+  /// Pasa al lado siguiente (también para un lado con menos cajas). Tras el
+  /// último lado guarda el resultado, que SUSTITUYE al emparejamiento
+  /// anterior: una caja retirada no se queda puntuando por error.
+  Future<void> nextSetupSide() async {
+    final s = setup.value;
+    if (s == null || s.done) return;
+    final next = BoxSetup(side: s.side + 1, captured: s.captured);
+    setup.value = next;
+    if (next.done) {
+      pairings.value = Map<String, int>.of(next.captured);
+      unpairedBoxes.value = const [];
+      await _persist();
+    }
+  }
+
+  /// Cierra el asistente. Si no había terminado, no cambia nada.
+  void closeSetup() => setup.value = null;
+
   Future<void> _persist() async {
     try {
       await _prefs.setString(_key, jsonEncode(pairings.value));
@@ -150,5 +194,26 @@ class BoxPairingService {
   void dispose() {
     pairings.dispose();
     unpairedBoxes.dispose();
+    setup.dispose();
   }
+}
+
+/// Estado del asistente de configuración de cajas.
+@immutable
+class BoxSetup {
+  const BoxSetup({required this.side, required this.captured, this.repeated});
+
+  /// Lado que se está configurando; pasado [BoxPairingService.right] es que
+  /// ya terminó.
+  final int side;
+
+  /// Cajas registradas en este asistente: `id -> lado`.
+  final Map<String, int> captured;
+
+  /// Caja que se acaba de pulsar por segunda vez, para avisar.
+  final String? repeated;
+
+  bool get done => side > BoxPairingService.right;
+
+  int countOn(int side) => captured.values.where((v) => v == side).length;
 }

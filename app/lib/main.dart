@@ -22,6 +22,7 @@ import 'package:Puntazo/features/usb_serial/hardware_health.dart';
 import 'package:Puntazo/features/usb_serial/simple_usb_serial_listener.dart';
 import 'package:Puntazo/features/usb_serial/usb_connection_cubit.dart';
 import 'package:Puntazo/features/usb_serial/usb_diagnostic_widget.dart';
+import 'package:Puntazo/features/widgets/box_setup_wizard.dart';
 import 'package:Puntazo/features/widgets/scoreboard.dart';
 import 'package:Puntazo/features/widgets/testing_overlay.dart';
 import 'package:Puntazo/features/widgets/winner_overlay.dart';
@@ -233,8 +234,31 @@ class _MatchScreenState extends State<MatchScreen> {
     );
     _health = HardwareHealthMonitor(
       onSend: (line) async => _usbListener?.send(line),
-    );
+    )..addListener(_onHealthChanged);
     _startUsbSerial();
+  }
+
+  /// Ya se miró si había que abrir el asistente de cajas en esta sesión.
+  bool _setupChecked = false;
+
+  /// Se llama al menos cada segundo mientras hay USB (watchdog del monitor).
+  void _onHealthChanged() {
+    // Primera vez que el maestro habla: sin cajas emparejadas, abrir el
+    // asistente. Solo una vez por arranque, para no reabrirlo si se cancela.
+    if (!_setupChecked && _health.masterAlive) {
+      _setupChecked = true;
+      final pairing = context.read<BoxPairingService>();
+      if (!pairing.hasPairedBoxes) pairing.startSetup();
+    }
+
+    // Puerto abierto pero el maestro lleva 10 s sin decir nada (normalmente
+    // habla cada 2 s): soltar el puerto y dejar que el reintento lo reabra.
+    // Al desconectar se olvida la última línea, así que no se repite en
+    // bucle si después de reabrir sigue sin llegar nada.
+    final silence = _health.sinceLastLine;
+    if (_health.usbConnected && silence != null && silence.inSeconds >= 10) {
+      _usbListener?.reconnect();
+    }
   }
 
   @override
@@ -457,6 +481,28 @@ class _MatchScreenState extends State<MatchScreen> {
               child: TestingOverlay(commandHandler: _commandHandler),
             ),
 
+          // Sin permiso USB la app no recibe nada de las cajas: aviso grande
+          // y permanente mientras dure. Android vuelve a mostrar su diálogo
+          // en cada reintento (cada 3 s), así que el aviso explica qué
+          // pulsar en él.
+          ListenableBuilder(
+            listenable: _health,
+            builder: (context, _) => _health.usbPermissionMissing
+                ? const _UsbPermissionBanner()
+                : const SizedBox.shrink(),
+          ),
+
+          // Asistente de cajas: por encima del marcador, mientras esté abierto.
+          ValueListenableBuilder(
+            valueListenable: context.read<BoxPairingService>().setup,
+            builder: (context, setup, _) => setup == null
+                ? const SizedBox.shrink()
+                : BoxSetupWizard(
+                    pairing: context.read<BoxPairingService>(),
+                    health: _health,
+                  ),
+          ),
+
           // Overlay de confirmación de reinicio (por encima de todo).
           // Se muestra cuando el hardware envía RESET y espera que el árbitro
           // confirme con un botón/sensor de PUNTO (verde) o cancele con
@@ -514,15 +560,17 @@ class _HealthBadge extends StatelessWidget {
                     BoxPairingService.unassigned)
             .map((b) => b.id.toUpperCase())
             .toList();
-        final String? label = !health.usbConnected
-            ? 'Maestro desconectado'
-            : !health.masterAlive
-                ? 'Maestro sin responder'
-                : down.isEmpty
-                    ? null
-                    : down.length == 1
-                        ? 'Caja ${down.first} desconectada'
-                        : 'Cajas ${down.join(', ')} desconectadas';
+        final String? label = health.usbPermissionMissing
+            ? 'Falta permiso USB'
+            : !health.usbConnected
+                ? 'Maestro desconectado'
+                : !health.masterAlive
+                    ? 'Maestro sin responder'
+                    : down.isEmpty
+                        ? null
+                        : down.length == 1
+                            ? 'Caja ${down.first} desconectada'
+                            : 'Cajas ${down.join(', ')} desconectadas';
 
         return Material(
           color: Colors.transparent,
@@ -563,6 +611,58 @@ class _HealthBadge extends StatelessWidget {
           ),
         );
       },
+    );
+  }
+}
+
+/// Aviso de que Android no ha dado permiso para usar el maestro por USB.
+class _UsbPermissionBanner extends StatelessWidget {
+  const _UsbPermissionBanner();
+
+  @override
+  Widget build(BuildContext context) {
+    return Positioned(
+      top: 24,
+      left: 48,
+      right: 48,
+      child: Material(
+        color: const Color(0xFFC0392B),
+        borderRadius: BorderRadius.circular(16),
+        elevation: 8,
+        child: const Padding(
+          padding: EdgeInsets.symmetric(horizontal: 28, vertical: 20),
+          child: Row(
+            children: [
+              Icon(Icons.usb_off, color: Colors.white, size: 48),
+              SizedBox(width: 20),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      'Las cajas NO funcionan: falta el permiso USB',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 26,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    SizedBox(height: 6),
+                    Text(
+                      'Cuando aparezca el aviso de Android, marca «Usar de '
+                      'forma predeterminada» y pulsa ACEPTAR. Si no aparece, '
+                      'desenchufa el cable USB del maestro y vuelve a '
+                      'enchufarlo.',
+                      style: TextStyle(color: Colors.white, fontSize: 18),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

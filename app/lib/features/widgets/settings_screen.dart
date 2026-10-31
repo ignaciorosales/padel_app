@@ -1232,7 +1232,7 @@ class _FocusableIconButtonState extends State<_FocusableIconButton> {
 }
 
 // ============================================================================
-// TAB: MANDOS (emparejamiento caja → equipo)
+// TAB: MANDOS (emparejamiento caja → lado de la pista)
 // ============================================================================
 
 class _ControllersTab extends StatelessWidget {
@@ -1241,24 +1241,22 @@ class _ControllersTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final pairing = context.read<BoxPairingService>();
-    final teamService = context.read<TeamSelectionService>();
-
     return AnimatedBuilder(
       animation: Listenable.merge([
         pairing.pairings,
         pairing.unpairedBoxes,
-        teamService.team1Selection,
-        teamService.team2Selection,
       ]),
       builder: (context, _) {
         final entries = pairing.pairings.value.entries.toList()
           ..sort((a, b) => a.key.compareTo(b.key));
         final unpairedList = pairing.unpairedBoxes.value;
 
-        final team1Name = teamService.getTeam1()?.displayName ?? 'Equipo 1';
-        final team2Name = teamService.getTeam2()?.displayName ?? 'Equipo 2';
-        final team1Color = teamService.getColor1();
-        final team2Color = teamService.getColor2();
+        // Las cajas están fijas en la pista: se emparejan con un LADO, no con
+        // un equipo (el equipo de cada lado cambia en cada cambio de lado).
+        const team1Name = 'Izquierda';
+        const team2Name = 'Derecha';
+        const team1Color = Color(0xFF42A5F5);
+        const team2Color = Color(0xFFFFA726);
 
         return SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
@@ -1266,15 +1264,14 @@ class _ControllersTab extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const Text(
-                'Emparejar mandos con equipos',
+                'Emparejar cajas con lados de la pista',
                 style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 6),
               Text(
-                'Cada mando tiene un ID fijo. Asigna cada uno al equipo que '
-                'debe puntuar. El emparejamiento se recuerda hasta que lo '
-                'cambies. Si conectas un mando nuevo, pulsa uno de sus botones '
-                'para que aparezca aquí.',
+                'Izquierda y derecha son los lados que la pantalla muestra a '
+                'cada lado. Al cambiar de lado en cada set, el punto de una '
+                'caja va al equipo que esté jugando en su lado.',
                 style: TextStyle(
                   fontSize: 12,
                   color: Theme.of(context)
@@ -1282,6 +1279,17 @@ class _ControllersTab extends StatelessWidget {
                       .onSurface
                       .withValues(alpha: 0.6),
                 ),
+              ),
+              const SizedBox(height: 12),
+              FilledButton.icon(
+                autofocus: true,
+                icon: const Icon(Icons.touch_app),
+                label: const Text('Configurar cajas paso a paso'),
+                onPressed: () {
+                  // El asistente vive en la pantalla del marcador.
+                  pairing.startSetup();
+                  Navigator.of(context).pop();
+                },
               ),
               const SizedBox(height: 16),
 
@@ -1307,7 +1315,7 @@ class _ControllersTab extends StatelessWidget {
 
               if (entries.isEmpty)
                 Text(
-                  'No hay mandos emparejados.',
+                  'No hay cajas emparejadas.',
                   style: TextStyle(
                     color: Theme.of(context)
                         .colorScheme
@@ -1552,7 +1560,7 @@ class _BoxPairingRow extends StatelessWidget {
           if (unassigned) ...[
             const SizedBox(width: 8),
             Text(
-              '(sin equipo)',
+              '(sin lado)',
               style: TextStyle(
                 fontSize: 11,
                 fontStyle: FontStyle.italic,

@@ -21,34 +21,42 @@ void main() {
   group('BoxPairingService', () {
     setUp(() => SharedPreferences.setMockInitialValues({}));
 
-    test('empareja las 4 cajas por defecto', () async {
+    test('sin nada guardado arranca sin cajas (abre el asistente)', () async {
       final pairing = await BoxPairingService.init();
-      expect(pairing.teamForBox('0201'), Team.blue); // Equipo 1
-      expect(pairing.teamForBox('0202'), Team.blue);
-      expect(pairing.teamForBox('0203'), Team.red); // Equipo 2
-      expect(pairing.teamForBox('0204'), Team.red);
+      expect(pairing.pairings.value, isEmpty);
+      expect(pairing.hasPairedBoxes, isFalse);
+    });
+
+    test('un emparejamiento antiguo por equipo se lee como lado', () async {
+      SharedPreferences.setMockInitialValues({
+        'box_team_pairings': '{"0201":1,"0203":2}',
+      });
+      final pairing = await BoxPairingService.init();
+      expect(pairing.sideForBox('0201'), BoxPairingService.left);
+      expect(pairing.sideForBox('0203'), BoxPairingService.right);
     });
 
     test('id no emparejado devuelve null', () async {
       final pairing = await BoxPairingService.init();
-      expect(pairing.teamForBox('0209'), isNull);
+      expect(pairing.sideForBox('0209'), isNull);
     });
 
     test('setPairing/removeBox persisten y actualizan el mapeo', () async {
       final pairing = await BoxPairingService.init();
 
       await pairing.setPairing('0209', 2);
-      expect(pairing.teamForBox('0209'), Team.red);
+      expect(pairing.sideForBox('0209'), 2);
 
       await pairing.removeBox('0209');
-      expect(pairing.teamForBox('0209'), isNull);
+      expect(pairing.sideForBox('0209'), isNull);
     });
 
     test('unassignBox deja la caja SIN EQUIPO en vez de borrarla', () async {
       final pairing = await BoxPairingService.init();
+      await pairing.setPairing('0201', 1);
 
       await pairing.unassignBox('0201');
-      expect(pairing.teamForBox('0201'), isNull);
+      expect(pairing.sideForBox('0201'), isNull);
       // A diferencia de removeBox, la caja sigue en la lista.
       expect(pairing.pairings.value.containsKey('0201'), isTrue);
       expect(pairing.pairings.value['0201'], BoxPairingService.unassigned);
@@ -57,20 +65,21 @@ void main() {
     test('una caja SIN EQUIPO se puede reasignar sin comando en vivo',
         () async {
       final pairing = await BoxPairingService.init();
+      await pairing.setPairing('0202', 1);
 
       await pairing.unassignBox('0202');
-      expect(pairing.teamForBox('0202'), isNull);
+      expect(pairing.sideForBox('0202'), isNull);
 
       await pairing.setPairing('0202', 2);
-      expect(pairing.teamForBox('0202'), Team.red);
+      expect(pairing.sideForBox('0202'), 2);
     });
 
     test('la persistencia sobrevive a un reinicio del servicio', () async {
       final first = await BoxPairingService.init();
-      await first.setPairing('0203', 1); // reasignar a Equipo 1
+      await first.setPairing('0203', 1); // lado izquierdo
 
       final reloaded = await BoxPairingService.init();
-      expect(reloaded.teamForBox('0203'), Team.blue);
+      expect(reloaded.sideForBox('0203'), 1);
     });
 
     test('reportUnpairedBox marca la caja desconocida como pendiente',
@@ -112,6 +121,13 @@ void main() {
       SharedPreferences.setMockInitialValues({});
       bloc = ScoringBloc()..add(const ScoringEvent.newMatch());
       pairing = await BoxPairingService.init();
+      // Montaje habitual: 0201/0202 a la izquierda, 0203/0204 a la derecha.
+      for (final id in ['0201', '0202']) {
+        await pairing.setPairing(id, BoxPairingService.left);
+      }
+      for (final id in ['0203', '0204']) {
+        await pairing.setPairing(id, BoxPairingService.right);
+      }
       handler = HardwareCommandHandler(bloc: bloc, pairing: pairing);
       await pumpEventQueue();
     });
@@ -152,8 +168,64 @@ void main() {
       expect(pairing.unpairedBoxes.value, contains('0209'));
     });
 
+    test('tras el cambio de lado, la caja izquierda puntúa al otro equipo',
+        () async {
+      bloc.add(const ScoringEvent.swapSides());
+      await pumpEventQueue();
+      final before = _points(bloc);
+      handler.handle('BTN:0201:P'); // caja izquierda
+      await pumpEventQueue();
+      final after = _points(bloc);
+
+      expect(after.red, greaterThan(before.red));
+      expect(after.blue, before.blue);
+    });
+
+    test('con el asistente abierto la pulsación registra la caja y no puntúa',
+        () async {
+      pairing.startSetup();
+      final before = _points(bloc);
+      for (final id in ['0204', '0203']) {
+        handler.handle('BTN:$id:P');
+      }
+      handler.handle('BTN:0203:P'); // repetida: avisa y no avanza
+      expect(pairing.setup.value!.repeated, '0203');
+      for (final id in ['0201', '0202']) {
+        handler.handle('BTN:$id:G');
+      }
+      await pumpEventQueue();
+
+      expect(_points(bloc), before);
+      expect(handler.pendingReset.value, isFalse);
+      expect(pairing.setup.value!.done, isTrue);
+      // Primero se configura la izquierda: 0204/0203 quedan a la izquierda.
+      expect(pairing.sideForBox('0204'), BoxPairingService.left);
+      expect(pairing.sideForBox('0201'), BoxPairingService.right);
+    });
+
+    test('el asistente sustituye el emparejamiento anterior', () async {
+      pairing.startSetup();
+      handler.handle('BTN:0201:P');
+      await pairing.nextSetupSide(); // solo una caja a la izquierda
+      handler.handle('BTN:0203:P');
+      await pairing.nextSetupSide(); // y una a la derecha
+      expect(pairing.setup.value!.done, isTrue);
+      expect(pairing.sideForBox('0202'), isNull);
+      expect(pairing.sideForBox('0204'), isNull);
+
+      final reloaded = await BoxPairingService.init();
+      expect(reloaded.pairings.value, {'0201': 1, '0203': 2});
+    });
+
+    test('cerrar el asistente a medias no cambia nada', () async {
+      pairing.startSetup();
+      handler.handle('BTN:0203:P');
+      pairing.closeSetup();
+      expect(pairing.sideForBox('0203'), BoxPairingService.right);
+    });
+
     test('reasignar una caja cambia el equipo al que puntúa', () async {
-      await pairing.setPairing('0201', 2); // 0201 pasa a Equipo 2
+      await pairing.setPairing('0201', 2); // 0201 pasa al lado derecho
       final before = _points(bloc);
       handler.handle('BTN:0201:P');
       await pumpEventQueue();

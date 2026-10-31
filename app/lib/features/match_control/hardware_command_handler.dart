@@ -91,14 +91,21 @@ class HardwareCommandHandler {
 
   /// Procesa un comando basado en el ID de la caja: `BTN:<idHex>:<P|U|G>`.
   ///
-  /// A diferencia del flujo por lados (P_A/P_B), aquí la caja está emparejada
-  /// directamente con un EQUIPO, así que el punto va siempre a ese equipo
-  /// independientemente del swap (el swap solo afecta a la visualización).
+  /// La caja está emparejada con un LADO de la pista, igual que P_A/P_B: las
+  /// cajas están fijas y los jugadores cambian de lado al acabar cada set, así
+  /// que el punto va al equipo que juega en ese lado según el swap actual.
   void _handleBoxCommand(String cmd) {
     final parts = cmd.split(':');
     if (parts.length != 3) return;
     final boxId = parts[1];
     final letter = parts[2];
+
+    // Asistente de configuración abierto: la pulsación identifica la caja,
+    // no puntúa.
+    if (pairing.setup.value != null) {
+      pairing.setupPress(boxId);
+      return;
+    }
 
     // Confirmación de reinicio pendiente: un PUNTO confirma, lo demás cancela.
     if (pendingReset.value) {
@@ -110,12 +117,14 @@ class HardwareCommandHandler {
       return;
     }
 
-    final team = pairing.teamForBox(boxId);
-    if (team == null) {
+    final side = pairing.sideForBox(boxId);
+    if (side == null) {
       // Caja sin emparejar: se registra para poder asignarla en Ajustes.
       pairing.reportUnpairedBox(boxId);
       return;
     }
+    final onLeft = side == BoxPairingService.left;
+    final team = onLeft != bloc.state.isSwapped ? Team.blue : Team.red;
 
     switch (letter) {
       case 'P':

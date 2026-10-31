@@ -103,6 +103,11 @@ class SimpleUsbSerialListener {
         return;
       }
 
+      // El error de permiso manda sobre los demás: si el maestro no tiene
+      // permiso y además hay un USB ajeno, lo que hay que contar es lo
+      // primero (la pantalla avisa en grande cuando es eso).
+      String? permissionError;
+
       // Intentar conectar a cada dispositivo
       for (final device in devices) {
         _sendDebug(
@@ -111,7 +116,22 @@ class SimpleUsbSerialListener {
           '${device.productName ?? ''}',
         );
 
-        final port = await device.create();
+        // create() LANZA (no devuelve null) si se deniega el permiso o el
+        // dispositivo no es serie, p. ej. el receptor de un teclado. Sin
+        // este try, un USB ajeno listado antes que el maestro impedía
+        // probar el maestro.
+        final UsbPort? port;
+        try {
+          port = await device.create();
+        } catch (e) {
+          _lastError = 'No se pudo abrir '
+              '${device.productName ?? 'dispositivo'}: $e';
+          if ('$e'.toLowerCase().contains('permission')) {
+            permissionError = _lastError;
+          }
+          _sendDebug(_lastError!);
+          continue;
+        }
         if (port == null) {
           _lastError = 'No se pudo crear el puerto para '
               '${device.productName ?? 'dispositivo'}';
@@ -123,6 +143,7 @@ class SimpleUsbSerialListener {
           // Causa habitual: el permiso USB de Android no está concedido.
           _lastError = 'Permiso USB denegado o puerto ocupado '
               '(${device.productName ?? 'dispositivo'})';
+          permissionError = _lastError;
           _sendDebug('No se pudo abrir el puerto: $_lastError');
           continue;
         }
@@ -170,6 +191,7 @@ class SimpleUsbSerialListener {
         return;
       }
 
+      _lastError = permissionError ?? _lastError;
       _sendDebug('No se pudo conectar a ningún dispositivo');
       _connectionController.add(false);
     } catch (e) {
@@ -215,6 +237,13 @@ class SimpleUsbSerialListener {
   void _sendDebug(String msg) {
     if (_debugController.isClosed) return;
     _debugController.add(msg);
+  }
+
+  /// Suelta el puerto para que el reintento periódico lo vuelva a abrir.
+  /// Para cuando el puerto sigue "abierto" pero el maestro no dice nada.
+  void reconnect() {
+    _sendDebug('Maestro mudo: reabriendo el puerto USB');
+    _disconnect();
   }
 
   void _disconnect() {

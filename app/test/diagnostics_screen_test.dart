@@ -18,7 +18,10 @@ void main() {
   late BoxPairingService pairing;
 
   setUp(() async {
-    SharedPreferences.setMockInitialValues({});
+    // Las 4 cajas emparejadas, como en una pista ya configurada.
+    SharedPreferences.setMockInitialValues({
+      'box_team_pairings': '{"0201":1,"0202":1,"0203":2,"0204":2}',
+    });
     pairing = await BoxPairingService.init();
   });
 

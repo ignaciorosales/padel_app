@@ -6,6 +6,34 @@
 #include <Wire.h>
 #include <Adafruit_VL6180X.h>
 #include "driver/uart.h"
+#include <esp_task_wdt.h>
+
+// ===== Watchdog =====
+// Si el loop se cuelga (p. ej. el bus I2C del ToF bloqueado, o el UART) la
+// placa se reinicia sola en vez de quedarse muda hasta que alguien la
+// desenchufe. 5 s es mucho mas que una vuelta normal del loop.
+static const uint32_t WDT_TIMEOUT_MS = 5000;
+
+static void startWatchdog() {
+#if ESP_ARDUINO_VERSION_MAJOR >= 3
+  esp_task_wdt_config_t cfg = {
+    .timeout_ms = WDT_TIMEOUT_MS,
+    .idle_core_mask = 0,
+    .trigger_panic = true,
+  };
+  // El core 3.x ya arranca el watchdog: se reconfigura. Si no, se crea.
+  if (esp_task_wdt_reconfigure(&cfg) != ESP_OK) esp_task_wdt_init(&cfg);
+#else
+  esp_task_wdt_init(WDT_TIMEOUT_MS / 1000, true);
+#endif
+  esp_task_wdt_add(NULL);  // vigila la tarea del loop
+}
+
+// Sin preguntas validas del maestro en este tiempo, la caja se reinicia: es
+// lo mismo que haria el cliente desenchufando, pero sin que tenga que
+// hacerlo. Con el maestro apagado se reinicia en bucle, y no pasa nada.
+static const uint32_t NO_POLL_RESTART_MS = 10000;
+static uint32_t lastPollOkMs = 0;
 
 // ===== DEBUG (desactivado) =====
 #define DEBUG_SLAVE 0
@@ -615,6 +643,7 @@ static void handleRs485() {
     }
 
     uint32_t now = millis();
+    lastPollOkMs = now;
     if (now - lastPollLogMs >= 2000) {
       lastPollLogMs = now;
       Serial.printf("[RS485] poll ok DEV_ID=0x%04X t=%lu ms\n",
@@ -684,9 +713,19 @@ void setup() {
 #endif
 
   while (RS485.available()) RS485.read();
+
+  lastPollOkMs = millis();
+  startWatchdog();
 }
 
 void loop() {
+  esp_task_wdt_reset();
+  if (millis() - lastPollOkMs > NO_POLL_RESTART_MS) {
+    Serial.println("Sin polls del maestro: reiniciando.");
+    delay(20);
+    ESP.restart();
+  }
+
   pollButtons();
   pollToFReleaseMode();
   handleRs485();
