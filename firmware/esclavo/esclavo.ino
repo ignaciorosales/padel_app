@@ -32,8 +32,8 @@ static const unsigned long DEBOUNCE_MS = 80;
 static int lastP, lastU, lastG;
 static unsigned long tP = 0, tU = 0, tG = 0;
 
-// === ANTI-DOBLE PUNTO GLOBAL: 4 segundos entre puntos ===
-static const uint32_t POINT_COOLDOWN_MS = 4000;
+// === ANTI-DOBLE PUNTO GLOBAL: 0,5 s entre puntos (el sonido de la app ya confirma el punto) ===
+static const uint32_t POINT_COOLDOWN_MS = 500;
 static uint32_t lastPointMs = 0;
 
 // ===== RS-485 (UART1 ESP32-C3) =====

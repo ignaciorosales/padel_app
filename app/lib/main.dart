@@ -504,6 +504,26 @@ class _HealthBadge extends StatelessWidget {
           color = const Color(0xFF2ECC71);
         }
 
+        // Texto visible desde la pista: qué falta. Solo cuenta las cajas con
+        // equipo asignado; una caja sin emparejar no afecta al partido.
+        final pairings = context.read<BoxPairingService>().pairings.value;
+        final down = health.boxes
+            .where((b) =>
+                !b.online &&
+                (pairings[b.id] ?? BoxPairingService.unassigned) !=
+                    BoxPairingService.unassigned)
+            .map((b) => b.id.toUpperCase())
+            .toList();
+        final String? label = !health.usbConnected
+            ? 'Maestro desconectado'
+            : !health.masterAlive
+                ? 'Maestro sin responder'
+                : down.isEmpty
+                    ? null
+                    : down.length == 1
+                        ? 'Caja ${down.first} desconectada'
+                        : 'Cajas ${down.join(', ')} desconectadas';
+
         return Material(
           color: Colors.transparent,
           child: InkWell(
@@ -522,7 +542,23 @@ class _HealthBadge extends StatelessWidget {
                   ),
                 ],
               ),
-              child: Icon(Icons.settings_input_antenna, color: color, size: 20),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (label != null) ...[
+                    Text(
+                      label,
+                      style: TextStyle(
+                        color: color,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                  ],
+                  Icon(Icons.settings_input_antenna, color: color, size: 20),
+                ],
+              ),
             ),
           ),
         );
