@@ -481,15 +481,48 @@ class _MatchScreenState extends State<MatchScreen> {
               child: TestingOverlay(commandHandler: _commandHandler),
             ),
 
-          // Sin permiso USB la app no recibe nada de las cajas: aviso grande
-          // y permanente mientras dure. Android vuelve a mostrar su diálogo
-          // en cada reintento (cada 3 s), así que el aviso explica qué
-          // pulsar en él.
+          // Avisos que impiden jugar: grandes y permanentes mientras duren.
           ListenableBuilder(
-            listenable: _health,
-            builder: (context, _) => _health.usbPermissionMissing
-                ? const _UsbPermissionBanner()
-                : const SizedBox.shrink(),
+            listenable: Listenable.merge([
+              _health,
+              context.read<BoxPairingService>().pairings,
+              context.read<BoxPairingService>().setup,
+            ]),
+            builder: (context, _) {
+              final pairing = context.read<BoxPairingService>();
+              return Positioned(
+                top: 24,
+                left: 48,
+                right: 48,
+                child: Column(
+                  children: [
+                    // Android vuelve a mostrar su diálogo en cada reintento
+                    // (cada 3 s), así que el aviso explica qué pulsar en él.
+                    if (_health.usbPermissionMissing)
+                      const _BlockingBanner(
+                        icon: Icons.usb_off,
+                        title: 'Las cajas NO funcionan: falta el permiso USB',
+                        body: 'Cuando aparezca el aviso de Android, marca «Usar '
+                            'de forma predeterminada» y pulsa ACEPTAR. Si no '
+                            'aparece, desenchufa el cable USB del maestro y '
+                            'vuelve a enchufarlo.',
+                      ),
+                    // Sin cajas emparejadas ninguna pulsación puntúa.
+                    if (!pairing.hasPairedBoxes && pairing.setup.value == null)
+                      _BlockingBanner(
+                        icon: Icons.sports_esports,
+                        title: 'Las cajas NO puntúan: no están configuradas',
+                        body: 'Hay que decir en qué lado de la pista está cada '
+                            'caja. Se hace una sola vez y lleva un minuto.',
+                        action: FilledButton(
+                          onPressed: pairing.startSetup,
+                          child: const Text('Configurar cajas'),
+                        ),
+                      ),
+                  ],
+                ),
+              );
+            },
           ),
 
           // Asistente de cajas: por encima del marcador, mientras esté abierto.
@@ -615,50 +648,57 @@ class _HealthBadge extends StatelessWidget {
   }
 }
 
-/// Aviso de que Android no ha dado permiso para usar el maestro por USB.
-class _UsbPermissionBanner extends StatelessWidget {
-  const _UsbPermissionBanner();
+/// Aviso rojo de algo que impide jugar (falta el permiso USB, cajas sin
+/// configurar). No se puede cerrar: desaparece solo cuando se arregla.
+class _BlockingBanner extends StatelessWidget {
+  const _BlockingBanner({
+    required this.icon,
+    required this.title,
+    required this.body,
+    this.action,
+  });
+
+  final IconData icon;
+  final String title;
+  final String body;
+  final Widget? action;
 
   @override
   Widget build(BuildContext context) {
-    return Positioned(
-      top: 24,
-      left: 48,
-      right: 48,
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
       child: Material(
         color: const Color(0xFFC0392B),
         borderRadius: BorderRadius.circular(16),
         elevation: 8,
-        child: const Padding(
-          padding: EdgeInsets.symmetric(horizontal: 28, vertical: 20),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 20),
           child: Row(
             children: [
-              Icon(Icons.usb_off, color: Colors.white, size: 48),
-              SizedBox(width: 20),
+              Icon(icon, color: Colors.white, size: 48),
+              const SizedBox(width: 20),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
-                      'Las cajas NO funcionan: falta el permiso USB',
-                      style: TextStyle(
+                      title,
+                      style: const TextStyle(
                         color: Colors.white,
                         fontSize: 26,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-                    SizedBox(height: 6),
+                    const SizedBox(height: 6),
                     Text(
-                      'Cuando aparezca el aviso de Android, marca «Usar de '
-                      'forma predeterminada» y pulsa ACEPTAR. Si no aparece, '
-                      'desenchufa el cable USB del maestro y vuelve a '
-                      'enchufarlo.',
-                      style: TextStyle(color: Colors.white, fontSize: 18),
+                      body,
+                      style: const TextStyle(color: Colors.white, fontSize: 18),
                     ),
                   ],
                 ),
               ),
+              if (action != null) ...[const SizedBox(width: 20), action!],
             ],
           ),
         ),
