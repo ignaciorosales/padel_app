@@ -31,42 +31,25 @@ class _DigitalPoints extends StatelessWidget {
     required this.color,
   });
   
+  // Texto corrido, sin celdas de ancho fijo: Digital7 es proporcional y el
+  // "1" estrecho dejaba hueco en la celda, distinto en cada mitad.
   @override
   Widget build(BuildContext context) {
-    final width = height * 0.6;
-    final children = <Widget>[];
-    final chars = text.split('');
-    
-    for (int i = 0; i < chars.length; i++) {
-      final ch = chars[i];
-      children.add(Container(
-        width: width,
-        // Mismo lado en las dos mitades: el "1" de Digital7 es estrecho y,
-        // pegado a la izquierda, dejaba un hueco antes del "5" solo a un lado.
-        alignment: Alignment.bottomRight,
-        child: Text(
-          ch,
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            color: color,
-            fontSize: height,
-            fontFamily: 'Digital7',
-            height: 1.0,
-            shadows: [
-              Shadow(
-                offset: Offset(3, 3),
-                blurRadius: 6,
-                color: Colors.black.withOpacity(0.6),
-              ),
-            ],
+    return Text(
+      text,
+      style: TextStyle(
+        color: color,
+        fontSize: height,
+        fontFamily: 'Digital7',
+        height: 1.0,
+        shadows: [
+          Shadow(
+            offset: Offset(3, 3),
+            blurRadius: 6,
+            color: Colors.black.withOpacity(0.6),
           ),
-        ),
-      ));
-    }
-    
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: children,
+        ],
+      ),
     );
   }
 }
@@ -633,10 +616,13 @@ class _CurrentGamePointsRow extends StatelessWidget {
             // Lado IZQUIERDO - 38%
             Expanded(
               flex: 38,
-              child: Center(
+              // Pegado al borde exterior, en espejo con el lado derecho.
+              child: Align(
+                alignment: Alignment.centerLeft,
                 child: Padding(
                   // Separa los puntos del bloque central de games.
-                  padding: EdgeInsets.only(right: pointsSize * 0.22),
+                  padding: EdgeInsets.only(
+                      left: pointsSize * 0.15, right: pointsSize * 0.22),
                   child: FittedBox(
                     fit: BoxFit.scaleDown,
                     child: _DigitalPoints(
@@ -737,10 +723,12 @@ class _CurrentGamePointsRow extends StatelessWidget {
             // Lado DERECHO - 38%
             Expanded(
               flex: 38,
-              child: Center(
+              child: Align(
+                alignment: Alignment.centerRight,
                 child: Padding(
                   // Separa los puntos del bloque central de games.
-                  padding: EdgeInsets.only(left: pointsSize * 0.22),
+                  padding: EdgeInsets.only(
+                      left: pointsSize * 0.22, right: pointsSize * 0.15),
                   child: FittedBox(
                     fit: BoxFit.scaleDown,
                     child: _DigitalPoints(
