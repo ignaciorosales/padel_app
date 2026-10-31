@@ -52,6 +52,15 @@ class BoxPairingService {
   /// Asistente de configuración en curso, o `null` si no hay ninguno.
   final ValueNotifier<BoxSetup?> setup = ValueNotifier<BoxSetup?>(null);
 
+  /// Se llama al guardar el asistente con la línea [keepCommand] para el
+  /// maestro, que así olvida las cajas que no se pulsaron. Lo conecta quien
+  /// tiene el USB, para no acoplar esta clase al transporte.
+  void Function(String line)? onSetupSaved;
+
+  /// `KEEP <id> <id>…`: el maestro se queda solo con esas cajas.
+  static String keepCommand(Iterable<String> ids) =>
+      ['KEEP', ...ids.map((id) => id.toUpperCase())].join(' ');
+
   BoxPairingService._(this._prefs, Map<String, int> initial)
       : pairings = ValueNotifier<Map<String, int>>(initial);
 
@@ -189,6 +198,7 @@ class BoxPairingService {
     if (next.done) {
       pairings.value = Map<String, int>.of(next.captured);
       unpairedBoxes.value = const [];
+      onSetupSaved?.call(keepCommand(next.captured.keys));
       await _persist();
     }
   }

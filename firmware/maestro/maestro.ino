@@ -7,7 +7,9 @@
 //   - ESP32-C3 (USB nativo CDC-ACM)
 //   - ESP32-S2/S3 (USB nativo CDC-ACM)
 //
-// - Master RS-485 que polea esclavos 0x0201..0x0204
+// - Master RS-485 que polea las cajas que conoce. No hay lista fija: cada
+//   caja tiene un ID de fabrica (de su MAC) y el maestro la aprende la
+//   primera vez que alguien la pulsa (descubrimiento). Las guarda en flash.
 // - Envía comandos via USB Serial en texto plano
 // - Compatible con la app Puntazo (Android)
 //
@@ -19,7 +21,9 @@
 //   equipo (Ajustes > Mandos) y decide qué hacer.
 //
 // Frame MASTER -> SLAVE:
-//   [0xA0, devLo, devHi, 0x01, crcLo, crcHi, 0x55]
+//   [0xA0, devLo, devHi, 0x01, crcLo, crcHi, 0x55]   pregunta a una caja
+//   [0xA0, 0xFF,  0xFF,  0x02, crcLo, crcHi, 0x55]   pregunta general: solo
+//     contesta una caja que el maestro no conoce y que alguien esta pulsando
 // Frame SLAVE -> MASTER:
 //   [0xAA, devLo, devHi, cmd, crcLo, crcHi, 0x55]
 //
@@ -27,9 +31,16 @@
 //   'p' = Punto
 //   'u' = Undo
 //   'g' = Reset (cambio de lado?)
+//
+// Comandos que acepta del tablet:
+//   STATUS            informe [PS]/[MS] inmediato
+//   PING              -> PONG
+//   KEEP <id> <id>..  quedarse solo con esas cajas (lo envia la app al
+//                     terminar el asistente de configuracion)
 
 #include <Arduino.h>
 #include "driver/uart.h"
+#include <Preferences.h>
 #include <esp_task_wdt.h>
 
 // ===== Watchdog =====
@@ -170,20 +181,30 @@ static TabletLink Tablet;
 #define RS485_RX_INVERT 0
 static const uint32_t RS485_POST_TX_US = 200;
 
-// Esclavos configurados (0x02XX)
-// 0x0201 = Botón A1 (Team A player 1)
-// 0x0202 = Botón A2 (Team A player 2)
-// 0x0203 = Botón B1 (Team B player 1)
-// 0x0204 = Botón B2 (Team B player 2)
-static const uint16_t slaveList[] = { 0x0201, 0x0202, 0x0203, 0x0204 };
-static const size_t   slaveCount  = sizeof(slaveList) / sizeof(slaveList[0]);
+// Cajas conocidas. NO hay lista fija: cada caja tiene un ID de fabrica (los
+// 2 ultimos bytes de su MAC) y el maestro la aprende cuando alguien la pulsa.
+// Se guardan en flash (NVS), asi que un corte de luz no las borra.
+static const size_t MAX_SLAVES = 8;
+static uint16_t slaveList[MAX_SLAVES];
+static size_t   slaveCount = 0;
+
+static const uint16_t BROADCAST_ID = 0xFFFF;
+static const uint8_t  REQ_POLL     = 0x01;
+static const uint8_t  REQ_DISCOVER = 0x02;
+// Cada cuantas vueltas se lanza la pregunta general: una caja nueva se
+// descubre en menos de medio segundo y las conocidas solo pierden ~8 ms por
+// vuelta de media.
+static const uint8_t  DISCOVER_EVERY   = 4;
+// Una respuesta llega a los ~16 ms (ver Temporizacion en el protocolo).
+static const uint32_t DISCOVER_WAIT_MS = 30;
+static const uint32_t POLL_WAIT_MS     = 70;
 
 // ===== USB SERIAL (al tablet Android) =====
 #define USB_BAUD       115200
 
 // ===== TIMING =====
 static const uint32_t COMMAND_DEBOUNCE_MS = 200;  // Evitar comandos duplicados
-static uint32_t lastCommandTimeBySlave[slaveCount] = { 0 };
+static uint32_t lastCommandTimeBySlave[MAX_SLAVES] = { 0 };
 static uint32_t lastRs485DebugLogMs = 0;
 static uint32_t rs485Polls = 0;
 static uint32_t rs485RxBytes = 0;
@@ -198,7 +219,8 @@ static uint8_t lastRs485Byte = 0;
 // El maestro ya sabia que esclavo respondia, pero solo publicaba contadores
 // globales. Sin esto es imposible saber DESDE LA APP cual de las 4 cajas
 // falla, que es justo lo que hace falta al instalar el sistema en pista.
-static const uint8_t FW_VERSION = 2;
+// v3: cajas con ID de fabrica, descubrimiento y KEEP.
+static const uint8_t FW_VERSION = 3;
 
 // Fallos seguidos tras los cuales se considera la caja desconectada.
 static const uint8_t OFFLINE_AFTER_FAILS = 3;
@@ -218,7 +240,54 @@ struct SlaveHealth {
   uint32_t lastReplyMs;     // millis() de la ultima respuesta valida
   uint16_t lastRttMs;       // ida y vuelta de la ultima respuesta
 };
-static SlaveHealth health[slaveCount];
+static SlaveHealth health[MAX_SLAVES];
+
+static Preferences prefs;
+
+static void saveSlaves() {
+  prefs.begin("puntazo", false);
+  prefs.putBytes("boxes", slaveList, slaveCount * sizeof(uint16_t));
+  prefs.end();
+}
+
+static void loadSlaves() {
+  prefs.begin("puntazo", true);
+  size_t bytes = prefs.getBytesLength("boxes");
+  if (bytes > sizeof(slaveList)) bytes = sizeof(slaveList);
+  slaveCount = bytes ? prefs.getBytes("boxes", slaveList, bytes) / sizeof(uint16_t)
+                     : 0;
+  prefs.end();
+}
+
+static int findSlave(uint16_t id) {
+  for (size_t i = 0; i < slaveCount; ++i) {
+    if (slaveList[i] == id) return (int)i;
+  }
+  return -1;
+}
+
+// Apunta una caja nueva y la guarda. -1 si ya no caben mas.
+static int addSlave(uint16_t id) {
+  if (slaveCount >= MAX_SLAVES) return -1;
+  slaveList[slaveCount] = id;
+  health[slaveCount] = SlaveHealth{};
+  lastCommandTimeBySlave[slaveCount] = 0;
+  slaveCount++;
+  saveSlaves();
+  return (int)(slaveCount - 1);
+}
+
+// Respuesta valida de la caja i: actualiza su salud y avisa si vuelve.
+static void markReply(size_t i, uint16_t rttMs) {
+  health[i].replies++;
+  health[i].lastReplyMs = millis();
+  if (rttMs) health[i].lastRttMs = rttMs;
+  health[i].consecutiveFails = 0;
+  if (!health[i].online) {
+    health[i].online = true;
+    USB_SERIAL.printf("[EVT] dev=%04X online\n", slaveList[i]);
+  }
+}
 
 static uint32_t lastStatusEmitMs = 0;
 static const uint32_t STATUS_INTERVAL_MS = 2000;
@@ -351,6 +420,43 @@ static void emitStatus() {
     RS485_BAUD, USB_BAUD);
 }
 
+// "KEEP 1a2b 3c4d": quedarse solo con esas cajas, conservando la salud de
+// las que ya se conocian. Lo envia la app al terminar el asistente, asi que
+// una caja retirada deja de polearse (y de costar timeouts).
+static void keepOnly(const char* p) {
+  uint16_t ids[MAX_SLAVES];
+  SlaveHealth hs[MAX_SLAVES];
+  uint32_t lastCmd[MAX_SLAVES];
+  size_t n = 0;
+  while (*p && n < MAX_SLAVES) {
+    while (*p == ' ') p++;
+    if (!*p) break;
+    char* end;
+    unsigned long v = strtoul(p, &end, 16);
+    if (end == p) break;
+    p = end;
+    uint16_t id = (uint16_t)v;
+    if (id == 0 || id == BROADCAST_ID) continue;
+    bool dup = false;
+    for (size_t k = 0; k < n; ++k) dup |= (ids[k] == id);
+    if (dup) continue;
+    int old = findSlave(id);
+    ids[n] = id;
+    hs[n] = old >= 0 ? health[old] : SlaveHealth{};
+    lastCmd[n] = old >= 0 ? lastCommandTimeBySlave[old] : 0;
+    n++;
+  }
+  for (size_t i = 0; i < n; ++i) {
+    slaveList[i] = ids[i];
+    health[i] = hs[i];
+    lastCommandTimeBySlave[i] = lastCmd[i];
+  }
+  slaveCount = n;
+  saveSlaves();
+  USB_SERIAL.printf("[INFO] KEEP: %u caja(s) guardadas\n", (unsigned)n);
+  emitStatus();
+}
+
 static void handleTabletLine(const char* line) {
   if (line[0] == '\0') return;
   if (strcmp(line, "STATUS") == 0) {
@@ -359,18 +465,27 @@ static void handleTabletLine(const char* line) {
     emitStatus();
   } else if (strcmp(line, "PING") == 0) {
     USB_SERIAL.println("PONG");
+  } else if (strncmp(line, "KEEP", 4) == 0 &&
+             (line[4] == ' ' || line[4] == '\0')) {
+    keepOnly(line + 4);
   } else {
     USB_SERIAL.printf("[RX] Recibido del tablet: %s\n", line);
   }
 }
 
 // ===== pollOneSlave =====
-// Devuelve true si recibió respuesta válida
-static bool pollOneSlave(size_t slaveIndex, uint16_t slaveId, char &outCmd) {
+// Devuelve true si recibió respuesta válida.
+//
+// Con slaveId = BROADCAST_ID es la pregunta general: no hay caja conocida a
+// la que apuntar la salud, se acepta cualquier ID y se devuelve en outId.
+static bool pollOneSlave(size_t slaveIndex, uint16_t slaveId, char &outCmd,
+                         uint8_t req = REQ_POLL,
+                         uint32_t waitMs = POLL_WAIT_MS,
+                         uint16_t* outId = nullptr) {
   rs485Polls++;
+  SlaveHealth* h = (slaveIndex < slaveCount) ? &health[slaveIndex] : nullptr;
   const uint8_t devLo = (uint8_t)(slaveId & 0xFF);
   const uint8_t devHi = (uint8_t)(slaveId >> 8);
-  const uint8_t req   = 0x01;
 
   uint8_t crcData[3] = { devLo, devHi, req };
   uint16_t crc       = crc16_ccitt(crcData, 3);
@@ -388,13 +503,12 @@ static bool pollOneSlave(size_t slaveIndex, uint16_t slaveId, char &outCmd) {
   uint32_t t_tx = millis();
   rs485WriteFrame(tx, 7);
 
-  const uint32_t WAIT_MS = 70;
   uint32_t t0 = millis();
 
   uint8_t buf[7];
   uint8_t idx = 0;
 
-  while (millis() - t0 < WAIT_MS) {
+  while (millis() - t0 < waitMs) {
     if (!RS485.available()) {
       delay(1);
       continue;
@@ -442,11 +556,11 @@ static bool pollOneSlave(size_t slaveIndex, uint16_t slaveId, char &outCmd) {
 
     if (crcCalc != crcRx) {
       rs485CrcErrors++;
-      health[slaveIndex].crcErrors++;
+      if (h) h->crcErrors++;
       idx = resyncFrame(buf, 7);
       continue;
     }
-    if (rDevId != slaveId) {
+    if (slaveId != BROADCAST_ID && rDevId != slaveId) {
       rs485WrongId++;
       idx = resyncFrame(buf, 7);
       continue;
@@ -456,28 +570,23 @@ static bool pollOneSlave(size_t slaveIndex, uint16_t slaveId, char &outCmd) {
     outCmd = cmd;
     rs485Valid++;
 
+    if (outId) *outId = rDevId;
+
     // Salud de esta caja: respondio, con su tiempo de ida y vuelta.
-    uint32_t nowMs = millis();
-    health[slaveIndex].replies++;
-    health[slaveIndex].lastReplyMs = nowMs;
-    health[slaveIndex].lastRttMs = (uint16_t)(nowMs - t_tx);
-    health[slaveIndex].consecutiveFails = 0;
-    if (!health[slaveIndex].online) {
-      health[slaveIndex].online = true;
-      USB_SERIAL.printf("[EVT] dev=%04X online\n", slaveId);
-    }
+    if (h) markReply(slaveIndex, (uint16_t)(millis() - t_tx));
     
     // Log si es comando real (con prefijo [xxx] para que app lo filtre)
     if (cmd == 'p' || cmd == 'u' || cmd == 'g') {
       uint32_t t_rx = millis();
       USB_SERIAL.printf("[RS485] dev=0x%04X cmd='%c' rtt=%lu ms\n", 
-                    slaveId, cmd, (unsigned long)(t_rx - t_tx));
+                    rDevId, cmd, (unsigned long)(t_rx - t_tx));
     }
 
     return true;
   }
 
-  // Sin respuesta dentro del timeout
+  // Sin respuesta dentro del timeout. En la pregunta general es lo normal.
+  if (!h) return false;
   health[slaveIndex].timeouts++;
   if (health[slaveIndex].consecutiveFails < 255) {
     health[slaveIndex].consecutiveFails++;
@@ -547,7 +656,12 @@ void setup() {
   while (RS485.available()) RS485.read();
   
   USB_SERIAL.println("[READY] Esperando comandos...");
-  USB_SERIAL.printf("[INFO] Esclavos: 0x0201-0x0202 (Team A), 0x0203-0x0204 (Team B)\n");
+  loadSlaves();
+  USB_SERIAL.printf("[INFO] Cajas conocidas: %u", (unsigned)slaveCount);
+  for (size_t i = 0; i < slaveCount; ++i) {
+    USB_SERIAL.printf(" %04X", slaveList[i]);
+  }
+  USB_SERIAL.println(slaveCount ? "" : " (se aprenden al pulsarlas)");
   
   // Que caminos de salida estan activos. Si la app recibe esta linea, es
   // que al menos uno de ellos llega al box.
@@ -591,6 +705,32 @@ void loop() {
       health[i].retrySkips = OFFLINE_RETRY_EVERY;
     }
     delay(2);  // Pausa entre esclavos (igual que versión BLE)
+  }
+
+  // === Pregunta general: aprender cajas nuevas al pulsarlas ===
+  static uint8_t discoverCycle = 0;
+  if (++discoverCycle >= DISCOVER_EVERY) {
+    discoverCycle = 0;
+    uint16_t id = 0;
+    char cmd = 'n';
+    if (pollOneSlave(SIZE_MAX, BROADCAST_ID, cmd, REQ_DISCOVER,
+                     DISCOVER_WAIT_MS, &id)) {
+      int i = findSlave(id);
+      if (i < 0) {
+        i = addSlave(id);
+        if (i >= 0) {
+          USB_SERIAL.printf("[EVT] dev=%04X new\n", id);
+        } else {
+          USB_SERIAL.printf("[EVT] dev=%04X ignorada: ya hay %u cajas\n",
+                            id, (unsigned)MAX_SLAVES);
+        }
+      }
+      if (i >= 0) {
+        markReply((size_t)i, 0);
+        // La pulsacion que la hizo contestar no se pierde.
+        processSlaveCommand((size_t)i, id, cmd);
+      }
+    }
   }
   
   // === Procesar comandos desde el tablet (opcional) ===

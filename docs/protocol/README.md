@@ -7,12 +7,12 @@ aquí, tienes que tocar las tres capas a la vez (ver [Checklist](#checklist-para
 
 ```
 ┌─────────────┐   RS-485      ┌─────────────┐   USB serial   ┌──────────────┐
-│  4 esclavos │  9600 8N1     │   maestro   │  115200 8N1    │  app Flutter │
+│  ≤8 cajas   │  9600 8N1     │   maestro   │  115200 8N1    │  app Flutter │
 │  ESP32-C3   │ ────────────► │  ESP32-C3   │ ─────────────► │  Android TV  │
-│ 0x0201..04  │   (polling)   │             │  texto plano   │              │
+│ ID = su MAC │   (polling)   │ las aprende │  texto plano   │              │
 └─────────────┘               └─────────────┘                └──────────────┘
   botones P/U/G                 poll round-robin               BoxPairingService
-  + ToF VL6180X                 CRC16-CCITT                    decide el equipo
+  + ToF VL6180X                 + descubrimiento               decide el lado
 ```
 
 Código de cada capa:
@@ -38,10 +38,21 @@ responden cuando se les pregunta por su ID.
 [0xA0, devLo, devHi, 0x01, crcLo, crcHi, 0x55]
   │      │      │      │       │           └─ fin de trama
   │      │      │      │       └───────────── CRC16-CCITT de los 4 primeros bytes
-  │      │      │      └───────────────────── 0x01 = poll
+  │      │      │      └───────────────────── 0x01 = poll, 0x02 = descubrimiento
   │      └──────┴──────────────────────────── ID del esclavo, little-endian
   └─────────────────────────────────────────── inicio de trama
 ```
+
+| `req` | ID | Quién contesta |
+|---|---|---|
+| `0x01` poll | el de una caja | esa caja, siempre |
+| `0x02` descubrimiento | `0xFFFF` | solo una caja que el maestro **no conoce** y que **alguien está pulsando** |
+
+El ID, el `req` y el CRC pueden contener `0xA0` o `0xAA`. Ninguno de los dos
+lectores puede reiniciar la trama al ver la cabecera en medio: acumulan 7
+bytes y, si no validan, descartan solo el primero y buscan cabecera en lo ya
+leído. Con el lector antiguo del esclavo, el 1,5 % de los IDs posibles no
+contestaba nunca.
 
 ### Trama esclavo → maestro (respuesta, 7 bytes)
 
@@ -58,18 +69,33 @@ responden cuando se les pregunta por su ID.
 | `'g'` | Reiniciar / start |
 | `'n'` | Nada que reportar |
 
-### IDs de los esclavos
+### IDs de las cajas
 
-| ID | Caja | Posición física |
-|---|---|---|
-| `0x0201` | A1 | Equipo A, jugador 1 |
-| `0x0202` | A2 | Equipo A, jugador 2 |
-| `0x0203` | B1 | Equipo B, jugador 1 |
-| `0x0204` | B2 | Equipo B, jugador 2 |
+**No hay IDs fijos.** El ID de cada caja son los 2 últimos bytes de su MAC de
+fábrica (`ESP.getEfuseMac()`), que es única por chip: todas las cajas llevan
+el mismo firmware, sin editar nada. `0x0000` y `0xFFFF` (el ID de
+descubrimiento) se evitan con `id ^= 0x5A5A`. Las placas de un lote tienen MAC
+consecutivas, así que en la práctica no se repiten; si dos coincidieran, el
+asistente de la app solo vería una.
 
-> El maestro **no** interpreta estos IDs como equipos: solo los reenvía.
-> El reparto A/B lo decide la app (Ajustes ▸ Mandos). Los nombres de la tabla
-> son la convención de montaje, no una regla del firmware.
+### Descubrimiento
+
+El maestro no tiene lista fija: **aprende las cajas cuando alguien las pulsa**
+y las guarda en flash (NVS, `puntazo/boxes`), así que un corte de luz no las
+borra.
+
+1. Cada `DISCOVER_EVERY` vueltas manda la pregunta general (`0xFFFF`, `0x02`).
+2. Una caja contesta solo si el maestro no le ha preguntado por su ID en
+   `UNKNOWN_AFTER_MS` (no la conoce) **y** tiene una pulsación pendiente. Como
+   solo se pulsa una caja cada vez, no hablan dos a la vez.
+3. La respuesta es la normal, con el ID propio y la pulsación. El maestro la
+   apunta, emite `[EVT] dev=XXXX new` y reenvía el `BTN:` como siempre: la
+   pulsación no se pierde.
+4. La app, al **terminar** su asistente, envía `KEEP <id>…` y el maestro olvida
+   las cajas que no se pulsaron. Cancelar el asistente no envía nada.
+
+> El maestro **no** decide equipo ni lado: solo reenvía el ID. El lado de
+> cada caja lo decide la app (Capa 3).
 
 ### Temporización
 
@@ -79,6 +105,13 @@ responden cuando se les pregunta por su ID.
 | `RS485_SLAVE_REPLY_DELAY_US` | 1500 µs | esclavo |
 | `COMMAND_DEBOUNCE_MS` | 200 ms | maestro (anti-duplicado por esclavo) |
 | `DEBOUNCE_MS` | 80 ms | esclavo (rebote de botón) |
+| `POINT_COOLDOWN_MS` | 500 ms | esclavo (entre dos puntos de la misma caja) |
+| `POLL_WAIT_MS` | 70 ms | maestro (espera de respuesta a un poll) |
+| `DISCOVER_EVERY` | 4 vueltas | maestro (frecuencia del descubrimiento) |
+| `DISCOVER_WAIT_MS` | 30 ms | maestro (la respuesta llega a los ~16 ms) |
+| `UNKNOWN_AFTER_MS` | 1500 ms | esclavo (sin poll propio = el maestro no la conoce) |
+| `NO_POLL_RESTART_MS` | 10 s | esclavo (sin oír al maestro, se reinicia) |
+| `WDT_TIMEOUT_MS` | 5 s | ambos (watchdog: si el loop se cuelga, reinicio) |
 
 ---
 
@@ -146,21 +179,16 @@ que llevan a revisar cosas distintas.
 ### `[MS]` — una línea del maestro
 
 ```
-[MS] fw=2 up=125340 cyc=34 on=4/4 polls=2010 rxb=9001 frm=1200 crc=0 wid=0 rs485=9600 usb=115200
+[MS] fw=3 up=125340 cyc=34 on=4/4 polls=2010 rxb=9001 frm=1200 crc=0 wid=0 rs485=9600 usb=115200
 ```
 
 | Campo | Significado |
 |---|---|
-| `fw` | Versión del firmware. La app exige ≥ 2 para el diagnóstico por caja |
+| `fw` | Versión del firmware. La app exige ≥ 2 para el diagnóstico por caja; la 3 trae IDs de fábrica, descubrimiento y `KEEP` |
 | `up` | ms desde que arrancó el maestro (si se resetea solo, aquí se ve) |
-| `cyc` | Vuelta de poleo más lenta desde el informe anterior. **~80 ms con las 4 cajas vivas** (4 × 16 ms + pausas). Una caja ausente cuesta su timeout de 70 ms y lo sube a ~140 ms |
-| `on` | Cajas conectadas / configuradas |
-| `wid` | Tramas con ID inesperado. En la práctica **siempre 0**: el esclavo solo contesta si el ID coincide y devuelve el mismo que se le pidió, así que un valor distinto de 0 indica corrupción seria del bus, no un `DEV_ID` duplicado |
-
-> **Cómo se detecta un `DEV_ID` duplicado.** No por `wid`. Dos cajas con el
-> mismo ID contestan *a la vez*, sus tramas se pisan eléctricamente y el
-> síntoma es **`crc` subiendo en ese ID** mientras el ID que nadie tiene
-> **nunca responde** (`age=-1`). La app busca esa combinación.
+| `cyc` | Vuelta de poleo más lenta desde el informe anterior. **~80 ms con las 4 cajas vivas** (4 × 16 ms + pausas), más el descubrimiento de 30 ms una de cada 4 vueltas. Una caja ausente cuesta su timeout de 70 ms y lo sube a ~140 ms |
+| `on` | Cajas conectadas / cajas que conoce el maestro. `0/0` = todavía no ha aprendido ninguna |
+| `wid` | Tramas con ID inesperado. En la práctica **siempre 0**: un valor distinto indica corrupción seria del bus |
 
 Como `[MS]` llega cada 2 s, sirve además de latido: si la app deja de recibirlo
 durante más de 6 s, da el maestro por colgado.
@@ -170,9 +198,11 @@ durante más de 6 s, da el maestro por colgado.
 ```
 [EVT] dev=0203 offline
 [EVT] dev=0203 online
+[EVT] dev=1A2B new
 ```
 
-Se emiten en el instante del cambio, sin esperar al envío periódico.
+Se emiten en el instante del cambio, sin esperar al envío periódico. `new` es
+una caja recién aprendida por descubrimiento.
 
 ### Comandos que acepta el maestro
 
@@ -180,6 +210,7 @@ Se emiten en el instante del cambio, sin esperar al envío periódico.
 |---|---|
 | `STATUS` | Un bloque `[PS]`×N + `[MS]` inmediato |
 | `PING` | `PONG` |
+| `KEEP <id> <id>…` | Se queda solo con esas cajas (IDs en hex, separados por espacio; `KEEP` solo las olvida todas), lo guarda en flash y responde `[INFO] KEEP: …` y un informe `STATUS`. Un maestro con firmware anterior lo ignora |
 
 ---
 
@@ -187,9 +218,14 @@ Se emiten en el instante del cambio, sin esperar al envío periódico.
 
 1. `SimpleUsbSerialListener` lee líneas del USB y valida el formato.
 2. `HardwareCommandHandler` recibe el comando.
-3. Para `BTN:`, `BoxPairingService` traduce el ID de caja a equipo.
-   Por defecto: `0201`/`0202` → Equipo 1 (azul), `0203`/`0204` → Equipo 2 (rojo).
-   El emparejado se guarda en `SharedPreferences` y se edita en **Ajustes ▸ Mandos**.
+3. Para `BTN:`, `BoxPairingService` traduce el ID de caja a un **lado** de la
+   pista (1 = izquierda de la pantalla, 2 = derecha). Las cajas están fijas y
+   los jugadores cambian de lado al cerrar cada set, así que el equipo sale del
+   lado y de `isSwapped`. **No hay emparejamiento por defecto**: sin cajas
+   emparejadas la app abre el asistente ("pulsa una caja del lado izquierdo…")
+   y, al terminarlo, envía `KEEP` al maestro. Se guarda en `SharedPreferences`
+   (clave `box_team_pairings`, valores 1/2 heredados del emparejado por equipo)
+   y se edita en **Ajustes ▸ Mandos**.
 4. Se emite el `ScoringEvent` correspondiente.
 
 `G` (reiniciar) no reinicia directamente: abre un overlay de confirmación a
@@ -208,8 +244,9 @@ un cambio, recorre las tres:
 - [ ] `app/lib/features/usb_serial/hardware_health.dart` — parser de `[PS]`/`[MS]`
 - [ ] `app/lib/features/usb_serial/simple_usb_serial_listener.dart` — regex de validación
 - [ ] `app/lib/features/match_control/hardware_command_handler.dart` — mapeo a eventos
-- [ ] `app/lib/config/box_pairing_service.dart` — si cambian los IDs de caja
-- [ ] `app/test/hardware_pairing_test.dart` — tests
+- [ ] `app/lib/config/box_pairing_service.dart` — emparejado por lado y `KEEP`
+- [ ] `app/test/hardware_pairing_test.dart` y `app/test/firmware_contract_test.dart`
+      (este lee el `.ino` del maestro: si cambia un `printf`, se rompe aquí)
 - [ ] **Este documento**
 - [ ] Reflashear **las 4 cajas** y el maestro (ver [firmware/esclavo/README.md](../../firmware/esclavo/README.md))
 

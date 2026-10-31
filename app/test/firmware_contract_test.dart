@@ -200,22 +200,14 @@ void main() {
     );
   });
 
-  test('las cajas por defecto de la app son las que polea el maestro', () {
+  test('el maestro aprende cajas y acepta KEEP, como espera la app', () {
     final src = ino.readAsStringSync();
-    final match =
-        RegExp(r'slaveList\[\]\s*=\s*\{([^}]*)\}').firstMatch(src);
-    expect(match, isNotNull, reason: 'No se encontró slaveList en el firmware');
-
-    final idsFirmware = RegExp(r'0x([0-9A-Fa-f]+)')
-        .allMatches(match!.group(1)!)
-        .map((m) => m.group(1)!.toLowerCase().padLeft(4, '0'))
-        .toList();
-
-    expect(
-      idsFirmware,
-      kDefaultBoxIds,
-      reason: 'El maestro polea $idsFirmware pero la app muestra por defecto '
-          '$kDefaultBoxIds. Una caja quedaría fuera del diagnóstico.',
-    );
+    expect(src, isNot(contains('slaveList[] =')),
+        reason: 'Ya no hay lista fija de cajas: las aprende al pulsarlas');
+    expect(src, contains('[EVT] dev=%04X new'));
+    // La app envía `KEEP <id> <id>…` (ver BoxPairingService.keepCommand) y
+    // el maestro lo reconoce por el prefijo y lee los IDs en hex.
+    expect(src, contains('strncmp(line, "KEEP", 4)'));
+    expect(src, contains('strtoul(p, &end, 16)'));
   });
 }

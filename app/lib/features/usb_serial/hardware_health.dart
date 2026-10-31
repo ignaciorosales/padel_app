@@ -138,8 +138,8 @@ class MasterHealth {
   /// Tramas descartadas por CRC (agregado de todas las cajas).
   final int crcErrors;
 
-  /// Tramas cuyo ID no era el esperado. Si esto sube, hay dos cajas con el
-  /// mismo `DEV_ID` o una caja con un ID que el maestro no polea.
+  /// Tramas cuyo ID no era el esperado. En la práctica siempre 0; si sube,
+  /// hay corrupción seria del bus.
   final int wrongId;
 
   final int rs485Baud;
@@ -148,10 +148,6 @@ class MasterHealth {
 
 /// Versión mínima del firmware del maestro que emite telemetría `[PS]`/`[MS]`.
 const int kMinTelemetryFirmware = 2;
-
-/// IDs por defecto de las 4 cajas, usados solo hasta que el maestro reporta
-/// los suyos.
-const List<String> kDefaultBoxIds = ['0201', '0202', '0203', '0204'];
 
 /// Recoge la telemetría del maestro y la convierte en un diagnóstico
 /// accionable.
@@ -498,12 +494,21 @@ class HardwareHealthMonitor extends ChangeNotifier {
     }
 
     // --- Estado del bus RS-485 ---
-    final known = _boxes.isEmpty
-        ? kDefaultBoxIds.map((id) => BoxHealth(id: id)).toList()
-        : boxes;
+    // Las cajas que conoce el maestro. No hay lista fija: el maestro las
+    // aprende al pulsarlas, así que puede no conocer ninguna todavía.
+    final known = boxes;
     final offline = known.where((b) => !b.online).toList();
 
-    if (hasTelemetry && offline.length == known.length && known.isNotEmpty) {
+    if (hasTelemetry && _master != null && known.isEmpty) {
+      out.add(const HealthIssue(
+        level: IssueLevel.warning,
+        title: 'El maestro no conoce ninguna caja',
+        detail: 'Las cajas se dan a conocer la primera vez que se pulsa uno '
+            'de sus botones.',
+        action: 'Abre el asistente (Ajustes ▸ Mandos ▸ Configurar cajas paso '
+            'a paso) y pulsa un botón de cada caja.',
+      ));
+    } else if (hasTelemetry && offline.length == known.length) {
       // Ninguna responde: es el bus, no las cajas.
       out.add(HealthIssue(
         level: IssueLevel.critical,
@@ -523,38 +528,16 @@ class HardwareHealthMonitor extends ChangeNotifier {
               ? 'No ha contestado ni una vez desde que arrancó el maestro.'
               : 'Dejó de contestar. Timeouts: ${box.timeouts}.',
           action: box.neverSeen
-              ? 'Comprueba que esa caja tiene corriente, que su DEV_ID es '
-                  '0x${box.id.toUpperCase()} y que sus cables A/B llegan al bus.'
+              ? 'Comprueba que esa caja tiene corriente y que sus cables A/B '
+                  'llegan al bus. Si se retiró, vuelve a pasar el asistente de '
+                  'cajas para que el maestro la olvide.'
               : 'Revisa su conexión al bus y su alimentación.',
         ));
       }
     }
 
-    // DEV_ID duplicado. No se detecta por "ID inesperado": el esclavo solo
-    // contesta si el ID coincide y además devuelve el que le llegó, así que
-    // la trama nunca trae un ID raro. Lo que pasa de verdad es que las dos
-    // cajas con el mismo ID contestan A LA VEZ, se pisan en el bus (CRC malo)
-    // y el ID que quedó sin asignar no contesta nunca. Ese par de síntomas
-    // juntos es la firma del problema.
-    final noisy = known.where((b) => b.crcErrors > 0).toList();
-    final never = known.where((b) => b.neverSeen).toList();
-    if (hasTelemetry &&
-        noisy.isNotEmpty &&
-        never.isNotEmpty &&
-        never.length < known.length) {
-      final dup = noisy.first.id.toUpperCase();
-      final missing = never.first.id.toUpperCase();
-      out.add(HealthIssue(
-        level: IssueLevel.warning,
-        title: 'Posible DEV_ID duplicado',
-        detail: 'La caja $dup acumula errores de CRC y $missing no ha '
-            'respondido nunca. Dos cajas flasheadas con el mismo DEV_ID '
-            'contestan a la vez y se pisan en el bus, dejando mudo el ID que '
-            'nadie tiene.',
-        action: 'Revisa el #define DEV_ID de las 4 cajas: probablemente una '
-            'lleva $dup cuando debería llevar $missing.',
-      ));
-    }
+    // Ya no hay detección de "DEV_ID duplicado": el ID de cada caja sale de
+    // su MAC de fábrica, que es única.
 
     // Cajas con ruido en el bus.
     for (final box in known) {
@@ -564,9 +547,7 @@ class HardwareHealthMonitor extends ChangeNotifier {
           title: 'Ruido en el bus con la caja ${box.id.toUpperCase()}',
           detail: '${box.crcErrors} trama(s) descartadas por CRC incorrecto.',
           action: 'Cable demasiado largo, sin par trenzado o sin terminación: '
-              'añade 120Ω en los extremos y aléjalo de la corriente de 220V. '
-              'Si además hay una caja que no responde nunca, sospecha de dos '
-              'cajas con el mismo DEV_ID contestando a la vez.',
+              'añade 120Ω en los extremos y aléjalo de la corriente de 220V.',
         ));
       }
       if (box.online && box.lossRatio > 0.1) {

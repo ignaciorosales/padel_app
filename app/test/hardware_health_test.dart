@@ -2,6 +2,9 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:Puntazo/features/usb_serial/hardware_health.dart';
 
+/// IDs de prueba: cualquier valor sirve, el maestro aprende los reales.
+const _ids = ['0201', '0202', '0203', '0204'];
+
 /// Crea un monitor ya "conectado" y lo destruye al acabar el test (si no, el
 /// Timer periódico del watchdog deja el test colgado).
 HardwareHealthMonitor _monitor({bool connected = true}) {
@@ -139,7 +142,7 @@ void main() {
       final m = _monitor();
       m.ingestLine('[MS] fw=2 up=1 cyc=300 on=0/4 polls=1 rxb=1 frm=0 crc=0 '
           'wid=0 rs485=9600 usb=115200');
-      for (final id in kDefaultBoxIds) {
+      for (final id in _ids) {
         m.ingestLine('[PS] dev=$id on=0 rep=0 to=40 crc=0 cmd=0 rtt=0 age=-1');
       }
 
@@ -164,7 +167,7 @@ void main() {
 
       final issue = m.issues().firstWhere((i) => i.title.contains('0204'));
       expect(issue.level, IssueLevel.critical);
-      expect(issue.action, contains('DEV_ID'));
+      expect(issue.action, contains('A/B'));
     });
 
     test('ID inesperado se reporta como corrupcion del bus, no DEV_ID', () {
@@ -179,35 +182,27 @@ void main() {
       expect(issue.action, isNot(contains('DEV_ID')));
     });
 
-    test('DEV_ID duplicado se deduce de CRC + una caja que nunca responde', () {
+    test('un maestro que no conoce ninguna caja manda al asistente', () {
       final m = _monitor();
-      m.ingestLine('[MS] fw=2 up=1 cyc=90 on=3/4 polls=1 rxb=1 frm=1 crc=7 '
+      m.ingestLine('[MS] fw=3 up=1 cyc=30 on=0/0 polls=1 rxb=0 frm=0 crc=0 '
           'wid=0 rs485=9600 usb=115200');
-      // 0203 recibe golpes de dos cajas a la vez -> CRC malo.
-      m.ingestLine('[PS] dev=0201 on=1 rep=50 to=0 crc=0 cmd=0 rtt=18 age=5');
-      m.ingestLine('[PS] dev=0202 on=1 rep=50 to=0 crc=0 cmd=0 rtt=18 age=5');
-      m.ingestLine('[PS] dev=0203 on=1 rep=30 to=5 crc=7 cmd=0 rtt=19 age=6');
-      // ...y 0204, el ID que ya no tiene nadie, jamas contesta.
-      m.ingestLine('[PS] dev=0204 on=0 rep=0 to=40 crc=0 cmd=0 rtt=0 age=-1');
 
-      final issue =
-          m.issues().firstWhere((i) => i.title.contains('DEV_ID duplicado'));
-      expect(issue.detail, contains('0203'));
-      expect(issue.detail, contains('0204'));
-      expect(issue.action, contains('DEV_ID'));
+      final titles = m.issues().map((i) => i.title).toList();
+      expect(titles, contains('El maestro no conoce ninguna caja'));
+      expect(titles, isNot(contains('Ninguna caja responde')),
+          reason: 'sin cajas conocidas no es un fallo del bus');
     });
 
-    test('CRC sin ninguna caja muda NO sugiere DEV_ID duplicado', () {
+    test('ya no se sugiere DEV_ID duplicado (los IDs son de fábrica)', () {
       final m = _monitor();
-      m.ingestLine('[MS] fw=2 up=1 cyc=30 on=2/2 polls=1 rxb=1 frm=1 crc=3 '
+      m.ingestLine('[MS] fw=3 up=1 cyc=90 on=1/2 polls=1 rxb=1 frm=1 crc=7 '
           'wid=0 rs485=9600 usb=115200');
-      m.ingestLine('[PS] dev=0201 on=1 rep=50 to=0 crc=3 cmd=0 rtt=18 age=5');
-      m.ingestLine('[PS] dev=0202 on=1 rep=50 to=0 crc=0 cmd=0 rtt=18 age=5');
+      m.ingestLine('[PS] dev=1a2b on=1 rep=30 to=5 crc=7 cmd=0 rtt=19 age=6');
+      m.ingestLine('[PS] dev=3c4d on=0 rep=0 to=40 crc=0 cmd=0 rtt=0 age=-1');
 
-      expect(
-        m.issues().map((i) => i.title),
-        isNot(contains('Posible DEV_ID duplicado')),
-      );
+      for (final i in m.issues()) {
+        expect('${i.title} ${i.action}', isNot(contains('DEV_ID')));
+      }
     });
 
     test('caja viva pero sin emparejar se avisa como info', () {

@@ -1,11 +1,18 @@
 # Maestro — RS-485 ▸ USB
 
-Una sola unidad, junto al Android TV. Polea las 4 cajas por RS-485 en
+Una sola unidad, junto al Android TV. Polea las cajas por RS-485 en
 round-robin y reenvía cada pulsación al tablet por USB serial en texto plano.
 
-**El maestro no decide el equipo.** Solo reenvía el ID de la caja y la letra del
-comando; el reparto A/B lo hace la app en Ajustes ▸ Mandos. Fue un cambio
-deliberado de protocolo — antes sí lo decidía el firmware.
+**No tiene lista fija de cajas.** Cada caja tiene un ID de fábrica (de su MAC)
+y el maestro la aprende la primera vez que alguien la pulsa: una pregunta
+general, una de cada 4 vueltas, a la que solo contesta una caja desconocida que
+se está pulsando. Las guarda en flash (hasta 8), así que apagar y encender no
+cambia nada. La app, al terminar su asistente, le manda `KEEP <id>…` y el
+maestro olvida las que no se pulsaron. Detalle en
+[docs/protocol/README.md](../../docs/protocol/README.md#descubrimiento).
+
+**El maestro no decide el equipo ni el lado.** Solo reenvía el ID de la caja y
+la letra del comando; el lado de cada caja lo decide la app.
 
 ## Pines
 
@@ -31,8 +38,8 @@ El sketch detecta el tipo de ESP32 en tiempo de compilación:
 ```
 BTN:0201:P      comando (P=punto, U=deshacer, G=reiniciar)
 [PS] dev=...    estado de UNA caja, cada 2 s
-[MS] fw=2 ...   estado del maestro, cada 2 s (sirve de latido)
-[EVT] dev=...   una caja acaba de conectarse o caerse
+[MS] fw=3 ...   estado del maestro, cada 2 s (sirve de latido)
+[EVT] dev=...   una caja acaba de conectarse, caerse o aprenderse (new)
 [INFO] ...      arranque, configuración de pines
 [RS485 DBG] ... contadores globales de trama
 ```
@@ -43,12 +50,17 @@ formato exacto de cada campo está en
 [docs/protocol/README.md](../../docs/protocol/README.md#telemetría-del-maestro-firmware-v2).
 
 Si la app envía `STATUS` por el puerto, el maestro contesta con un informe
-completo al momento en vez de esperar al envío periódico.
+completo al momento en vez de esperar al envío periódico. `KEEP <id>…` deja
+solo esas cajas.
+
+Un **watchdog** de 5 s reinicia el maestro si el loop se cuelga. Al reiniciarse,
+el USB se desconecta y reconecta y la app lo recupera sola.
 
 ## Compilar
 
 Abre `maestro.ino` con Arduino IDE, placa **ESP32C3 Dev Module**, y sube. No
-necesita librerías externas ni ningún ajuste especial del menú Herramientas.
+necesita librerías externas (`Preferences` viene con el core) ni ningún ajuste
+especial del menú Herramientas.
 Compila también para ESP32-WROOM (`esp32:esp32:esp32`), que usa la otra rama
 de pines.
 

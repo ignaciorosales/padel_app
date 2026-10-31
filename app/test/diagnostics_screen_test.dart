@@ -7,6 +7,9 @@ import 'package:Puntazo/config/box_pairing_service.dart';
 import 'package:Puntazo/features/usb_serial/diagnostics_screen.dart';
 import 'package:Puntazo/features/usb_serial/hardware_health.dart';
 
+/// IDs de prueba: cualquier valor sirve, el maestro aprende los reales.
+const _ids = ['0201', '0202', '0203', '0204'];
+
 /// La pantalla de diagnóstico es la herramienta sobre la que se apoya la
 /// instalación en pista. Que compile no basta: si revienta al dibujarse (un
 /// overflow, un provider que falta, un null) el fallo aparece justo cuando
@@ -74,7 +77,7 @@ void main() {
     m.setUsbConnected(true, deviceName: 'ESP32-C3');
     m.ingestLine('[MS] fw=2 up=125340 cyc=82 on=4/4 polls=2010 rxb=9001 '
         'frm=1200 crc=0 wid=0 rs485=9600 usb=115200');
-    for (final id in kDefaultBoxIds) {
+    for (final id in _ids) {
       m.ingestLine('[PS] dev=$id on=1 rep=412 to=0 crc=0 cmd=3 rtt=18 age=31');
     }
   }
@@ -111,7 +114,7 @@ void main() {
       await render(tester, m, size: tv);
       expect(find.text('4 de 4 cajas conectadas'), findsOneWidget);
       expect(find.textContaining('Todo correcto'), findsOneWidget);
-      for (final id in kDefaultBoxIds) {
+      for (final id in _ids) {
         expect(find.text(id.toUpperCase()), findsOneWidget);
       }
     });
@@ -136,7 +139,7 @@ void main() {
       m.setUsbConnected(true);
       m.ingestLine('[MS] fw=2 up=1 cyc=300 on=0/4 polls=1 rxb=0 frm=0 crc=0 '
           'wid=0 rs485=9600 usb=115200');
-      for (final id in kDefaultBoxIds) {
+      for (final id in _ids) {
         m.ingestLine('[PS] dev=$id on=0 rep=0 to=40 crc=0 cmd=0 rtt=0 age=-1');
       }
       await render(tester, m, size: tv);
@@ -192,7 +195,7 @@ void main() {
       m.setUsbConnected(true);
       m.ingestLine('[MS] fw=2 up=1 cyc=400 on=0/4 polls=1 rxb=1 frm=1 crc=9 '
           'wid=4 rs485=9600 usb=115200');
-      for (final id in kDefaultBoxIds) {
+      for (final id in _ids) {
         m.ingestLine('[PS] dev=$id on=0 rep=0 to=40 crc=2 cmd=0 rtt=0 age=-1');
       }
       await render(tester, m, size: pequeno);

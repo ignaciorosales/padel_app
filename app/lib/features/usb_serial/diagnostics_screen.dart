@@ -496,9 +496,7 @@ class _BoxesCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final boxes = monitor.boxes.isEmpty
-        ? kDefaultBoxIds.map((id) => BoxHealth(id: id)).toList()
-        : monitor.boxes;
+    final boxes = monitor.boxes;
 
     return _Card(
       title: 'Cajas de botones',
@@ -528,6 +526,12 @@ class _BoxesCard extends StatelessWidget {
                 'Pulsa los 3 botones de cada caja para verificarlos.',
                 style: TextStyle(color: Color(0xFFF39C12), fontSize: 13),
               ),
+            ),
+          if (boxes.isEmpty)
+            const Text(
+              'El maestro aún no conoce ninguna caja. Se dan a conocer la '
+              'primera vez que se pulsa uno de sus botones.',
+              style: TextStyle(color: Colors.white54, fontSize: 13),
             ),
           ...boxes.map(
             (b) => _BoxRow(

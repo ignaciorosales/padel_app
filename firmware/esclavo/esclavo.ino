@@ -1,6 +1,10 @@
 // ==============================
-// PadelSlave_RS485_9600_min_debug - SLAVE 0x0201
+// PadelSlave_RS485_9600_min_debug
 // ==============================
+//
+// El MISMO fichero sirve para todas las cajas, sin editar nada: el ID de cada
+// caja sale de su MAC de fabrica (ver DEV_ID). El maestro aprende las cajas
+// cuando alguien las pulsa (ver "Descubrimiento" en docs/protocol/README.md).
 
 #include <Arduino.h>
 #include <Wire.h>
@@ -29,11 +33,18 @@ static void startWatchdog() {
   esp_task_wdt_add(NULL);  // vigila la tarea del loop
 }
 
-// Sin preguntas validas del maestro en este tiempo, la caja se reinicia: es
-// lo mismo que haria el cliente desenchufando, pero sin que tenga que
-// hacerlo. Con el maestro apagado se reinicia en bucle, y no pasa nada.
+// Sin oir al maestro en este tiempo (ni preguntas a esta caja ni la pregunta
+// general), la caja se reinicia: es lo mismo que haria el cliente
+// desenchufando. Mientras el maestro funciona no pasa nunca: pregunta varias
+// veces por segundo. Con el maestro apagado se reinicia en bucle, sin dano.
 static const uint32_t NO_POLL_RESTART_MS = 10000;
-static uint32_t lastPollOkMs = 0;
+static uint32_t lastHeardMs = 0;
+
+// Si el maestro no pregunta por esta caja en este tiempo, es que no la
+// conoce: entonces, y solo si se ha pulsado un boton, contesta a la pregunta
+// general. Una caja conocida y conectada recibe preguntas cada ~80 ms.
+static const uint32_t UNKNOWN_AFTER_MS = 1500;
+static uint32_t lastOwnPollMs = 0;
 
 // ===== DEBUG (desactivado) =====
 #define DEBUG_SLAVE 0
@@ -45,7 +56,23 @@ static uint32_t lastPollOkMs = 0;
 #endif
 
 // ===== Identidad =====
-#define DEV_ID  0x0204
+// Los 2 ultimos bytes de la MAC de fabrica, que es unica por chip. Las placas
+// de un mismo lote tienen MAC consecutivas, asi que no se repiten en la
+// practica. Se calcula en setup().
+static uint16_t DEV_ID = 0;
+
+// ID reservado para la pregunta general del maestro (descubrimiento).
+static const uint16_t BROADCAST_ID = 0xFFFF;
+static const uint8_t  REQ_POLL     = 0x01;
+static const uint8_t  REQ_DISCOVER = 0x02;
+
+static uint16_t deviceIdFromMac() {
+  uint64_t mac = ESP.getEfuseMac();  // byte 0 de la MAC en los bits bajos
+  uint16_t id = (uint16_t)((((mac >> 32) & 0xFF) << 8) | ((mac >> 40) & 0xFF));
+  // 0x0000 no es un ID util y 0xFFFF es la pregunta general.
+  if (id == 0x0000 || id == BROADCAST_ID) id ^= 0x5A5A;
+  return id;
+}
 
 // ===== Botones =====
 #define BTN_P 5
@@ -588,6 +615,19 @@ static void pollToFReleaseMode() {
 }
 
 // ===== RS-485 parser =====
+// Descarta el primer byte del buffer y busca la siguiente cabecera 0xA0
+// dentro de lo ya leido. Igual que en el maestro: el ID y el CRC pueden
+// contener 0xA0, asi que NO se puede reiniciar la trama al ver ese byte (una
+// caja cuya pregunta lleve 0xA0 dentro no contestaria nunca).
+static uint8_t resyncFrame(uint8_t* buf, uint8_t len) {
+  uint8_t n = len;
+  do {
+    for (uint8_t i = 1; i < n; ++i) buf[i - 1] = buf[i];
+    n--;
+  } while (n > 0 && buf[0] != 0xA0);
+  return n;
+}
+
 static void handleRs485() {
   static uint8_t buf[7];
   static uint8_t idx = 0;
@@ -602,48 +642,48 @@ static void handleRs485() {
         continue;
       }
       rs485StartBytes++;
-      buf[0] = b;
-      idx = 1;
-      continue;
-    }
-
-    if (b == 0xA0) {
-      rs485StartBytes++;
-      buf[0] = 0xA0;
-      idx = 1;
-      continue;
     }
 
     buf[idx++] = b;
     if (idx < 7) continue;
 
     // Frame completo
-    idx = 0;
     rs485Frames++;
-
-    if (buf[0] != 0xA0 || buf[6] != 0x55) {
-      continue;
-    }
 
     uint8_t  devLo    = buf[1];
     uint8_t  devHi    = buf[2];
-    uint16_t targetId = (uint16_t)((devHi << 8) | devLo);
-    if (targetId != DEV_ID) {
-      rs485WrongId++;
-      continue;
-    }
-
     uint8_t  req      = buf[3];
+    uint16_t targetId = (uint16_t)((devHi << 8) | devLo);
     uint16_t crcRx    = (uint16_t)buf[4] | ((uint16_t)buf[5] << 8);
     uint8_t  cdat[3]  = { devLo, devHi, req };
-    uint16_t crcCalc  = crc16_ccitt(cdat, 3);
-    if (crcCalc != crcRx) {
+
+    if (buf[0] != 0xA0 || buf[6] != 0x55 ||
+        crc16_ccitt(cdat, 3) != crcRx) {
       rs485CrcErrors++;
+      idx = resyncFrame(buf, 7);
+      continue;
+    }
+    idx = 0;
+
+    uint32_t now = millis();
+    lastHeardMs = now;  // el maestro sigue vivo, pregunte a quien pregunte
+    const bool own = (targetId == DEV_ID && req == REQ_POLL);
+    const bool discover = (targetId == BROADCAST_ID && req == REQ_DISCOVER);
+    if (!own && !discover) {
+      rs485WrongId++;  // pregunta para otra caja
       continue;
     }
 
-    uint32_t now = millis();
-    lastPollOkMs = now;
+    if (discover) {
+      // Solo contesta una caja que el maestro no conoce Y que alguien esta
+      // pulsando: asi en la pregunta general no hablan dos cajas a la vez.
+      if (now - lastOwnPollMs < UNKNOWN_AFTER_MS || pendingCmd == 'n') {
+        continue;
+      }
+    } else {
+      lastOwnPollMs = now;
+    }
+
     if (now - lastPollLogMs >= 2000) {
       lastPollLogMs = now;
       Serial.printf("[RS485] poll ok DEV_ID=0x%04X t=%lu ms\n",
@@ -656,14 +696,17 @@ static void handleRs485() {
 
     // Solo logueamos si realmente hay comando ('p','u','g')
     if (cmd == 'p' || cmd == 'u' || cmd == 'g') {
-      Serial.printf("[RS485] reply cmd='%c' t=%lu ms\n",
-                    cmd, (unsigned long)millis());
+      Serial.printf("[RS485] reply cmd='%c'%s t=%lu ms\n",
+                    cmd, discover ? " (descubrimiento)" : "",
+                    (unsigned long)millis());
     }
 
+    // La respuesta lleva SIEMPRE el ID propio: en el descubrimiento es como
+    // el maestro se entera de quien es.
     uint8_t r[7];
     r[0] = 0xAA;
-    r[1] = devLo;
-    r[2] = devHi;
+    r[1] = (uint8_t)(DEV_ID & 0xFF);
+    r[2] = (uint8_t)(DEV_ID >> 8);
     r[3] = (uint8_t)cmd;
 
     uint8_t cdat2[3] = { r[1], r[2], r[3] };
@@ -686,7 +729,8 @@ void setup() {
   }
 
   delay(200);
-  Serial.printf("SLAVE RS-485 start, DEV_ID=0x%04X\n", DEV_ID);
+  DEV_ID = deviceIdFromMac();
+  Serial.printf("SLAVE RS-485 start, DEV_ID=0x%04X (de la MAC)\n", DEV_ID);
 
   pinMode(BTN_P, INPUT_PULLUP);
   pinMode(BTN_U, INPUT_PULLUP);
@@ -714,14 +758,14 @@ void setup() {
 
   while (RS485.available()) RS485.read();
 
-  lastPollOkMs = millis();
+  lastHeardMs = millis();
   startWatchdog();
 }
 
 void loop() {
   esp_task_wdt_reset();
-  if (millis() - lastPollOkMs > NO_POLL_RESTART_MS) {
-    Serial.println("Sin polls del maestro: reiniciando.");
+  if (millis() - lastHeardMs > NO_POLL_RESTART_MS) {
+    Serial.println("Sin noticias del maestro: reiniciando.");
     delay(20);
     ESP.restart();
   }

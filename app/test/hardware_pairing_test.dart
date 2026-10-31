@@ -3,7 +3,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:Puntazo/config/box_pairing_service.dart';
 import 'package:Puntazo/features/match_control/hardware_command_handler.dart';
-import 'package:Puntazo/features/models/scoring_models.dart';
 import 'package:Puntazo/features/scoring/bloc/scoring_bloc.dart';
 import 'package:Puntazo/features/scoring/bloc/scoring_event.dart';
 import 'audio_stub.dart';
@@ -283,6 +282,28 @@ void main() {
 
       final reloaded = await BoxPairingService.init();
       expect(reloaded.pairings.value, {'0201': 1, '0203': 2});
+    });
+
+    test('al terminar el asistente se envía KEEP al maestro, y no al cancelar',
+        () async {
+      final sent = <String>[];
+      pairing.onSetupSaved = sent.add;
+
+      pairing
+        ..startSetup()
+        ..confirmSetup();
+      handler.handle('BTN:1A2B:P');
+      pairing.closeSetup(); // cancelado a medias
+      expect(sent, isEmpty);
+
+      pairing
+        ..startSetup()
+        ..confirmSetup();
+      handler.handle('BTN:1A2B:P');
+      await pairing.nextSetupSide();
+      handler.handle('BTN:3C4D:P');
+      await pairing.nextSetupSide();
+      expect(sent, ['KEEP 1A2B 3C4D']);
     });
 
     test('cerrar el asistente a medias no cambia nada', () async {

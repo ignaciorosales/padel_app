@@ -235,6 +235,9 @@ class _MatchScreenState extends State<MatchScreen> {
     _health = HardwareHealthMonitor(
       onSend: (line) async => _usbListener?.send(line),
     )..addListener(_onHealthChanged);
+    // Al terminar el asistente, el maestro olvida las cajas no pulsadas.
+    context.read<BoxPairingService>().onSetupSaved =
+        (line) => _usbListener?.send(line);
     _startUsbSerial();
   }
 
@@ -484,6 +487,7 @@ class _MatchScreenState extends State<MatchScreen> {
             listenable: Listenable.merge([
               _health,
               context.read<BoxPairingService>().pairings,
+              context.read<BoxPairingService>().unpairedBoxes,
               context.read<BoxPairingService>().setup,
             ]),
             builder: (context, _) {
@@ -512,6 +516,22 @@ class _MatchScreenState extends State<MatchScreen> {
                         title: 'Las cajas NO puntúan: no están configuradas',
                         body: 'Hay que decir en qué lado de la pista está cada '
                             'caja. Se hace una sola vez y lleva un minuto.',
+                        action: FilledButton(
+                          onPressed: pairing.startSetup,
+                          child: const Text('Configurar cajas'),
+                        ),
+                      ),
+                    // Se ha pulsado una caja que no está emparejada: una
+                    // caja nueva, una cambiada, o todas tras reflashear (el
+                    // ID de fábrica no es el que se emparejó).
+                    if (pairing.hasPairedBoxes &&
+                        pairing.unpairedBoxes.value.isNotEmpty &&
+                        pairing.setup.value == null)
+                      _BlockingBanner(
+                        icon: Icons.add_circle_outline,
+                        title: 'Hay cajas sin configurar',
+                        body: 'Sus puntos no cuentan hasta configurarlas: '
+                            '${pairing.unpairedBoxes.value.map((id) => id.toUpperCase()).join(', ')}.',
                         action: FilledButton(
                           onPressed: pairing.startSetup,
                           child: const Text('Configurar cajas'),
