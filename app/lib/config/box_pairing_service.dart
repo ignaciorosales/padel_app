@@ -143,13 +143,28 @@ class BoxPairingService {
 
   /// Empieza el asistente "pulsa un botón de cada caja". Mientras está
   /// abierto, las pulsaciones de las cajas NO puntúan: van a [setupPress].
-  void startSetup() => setup.value = const BoxSetup(side: left, captured: {});
+  ///
+  /// Si ya hay cajas configuradas, empieza pidiendo confirmación
+  /// ([BoxSetup.confirming]): terminar el asistente sustituye esa
+  /// configuración. Sin cajas no hay nada que perder y empieza directamente.
+  void startSetup() => setup.value = BoxSetup(
+        side: hasPairedBoxes ? BoxSetup.confirmStep : left,
+        captured: const {},
+      );
+
+  /// Confirma que se quiere rehacer la configuración y empieza por la
+  /// izquierda.
+  void confirmSetup() {
+    if (setup.value?.confirming != true) return;
+    setup.value = const BoxSetup(side: left, captured: {});
+  }
 
   /// Registra la caja pulsada en el lado que se está configurando. Al
   /// completar [boxesPerSide] cajas pasa solo al lado siguiente.
   void setupPress(String boxId) {
     final s = setup.value;
-    if (s == null || s.done) return;
+    // Durante la confirmación una pulsación no cuenta: aún no se ha aceptado.
+    if (s == null || s.done || s.confirming) return;
     final id = _norm(boxId);
     if (s.captured.containsKey(id)) {
       // Misma caja pulsada otra vez: no avanza, solo avisa.
@@ -168,7 +183,7 @@ class BoxPairingService {
   /// anterior: una caja retirada no se queda puntuando por error.
   Future<void> nextSetupSide() async {
     final s = setup.value;
-    if (s == null || s.done) return;
+    if (s == null || s.done || s.confirming) return;
     final next = BoxSetup(side: s.side + 1, captured: s.captured);
     setup.value = next;
     if (next.done) {
@@ -203,8 +218,12 @@ class BoxPairingService {
 class BoxSetup {
   const BoxSetup({required this.side, required this.captured, this.repeated});
 
-  /// Lado que se está configurando; pasado [BoxPairingService.right] es que
-  /// ya terminó.
+  /// Valor de [side] mientras se pide confirmación para rehacer la
+  /// configuración.
+  static const int confirmStep = 0;
+
+  /// Lado que se está configurando; [confirmStep] antes de empezar, y pasado
+  /// [BoxPairingService.right] es que ya terminó.
   final int side;
 
   /// Cajas registradas en este asistente: `id -> lado`.
@@ -212,6 +231,8 @@ class BoxSetup {
 
   /// Caja que se acaba de pulsar por segunda vez, para avisar.
   final String? repeated;
+
+  bool get confirming => side == confirmStep;
 
   bool get done => side > BoxPairingService.right;
 

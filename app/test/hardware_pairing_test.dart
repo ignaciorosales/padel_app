@@ -181,9 +181,37 @@ void main() {
       expect(after.blue, before.blue);
     });
 
-    test('con el asistente abierto la pulsación registra la caja y no puntúa',
+    test('con cajas configuradas, el asistente pide confirmación primero',
         () async {
       pairing.startSetup();
+      expect(pairing.setup.value!.confirming, isTrue);
+
+      // Mientras no se confirma, una pulsación ni puntúa ni se registra.
+      final before = _points(bloc);
+      handler.handle('BTN:0201:P');
+      await pumpEventQueue();
+      expect(_points(bloc), before);
+      expect(pairing.setup.value!.captured, isEmpty);
+
+      pairing.confirmSetup();
+      expect(pairing.setup.value!.side, BoxPairingService.left);
+    });
+
+    test('sin cajas configuradas, el asistente empieza directamente',
+        () async {
+      for (final id in ['0201', '0202', '0203', '0204']) {
+        await pairing.removeBox(id);
+      }
+      pairing.startSetup();
+      expect(pairing.setup.value!.confirming, isFalse);
+      expect(pairing.setup.value!.side, BoxPairingService.left);
+    });
+
+    test('con el asistente abierto la pulsación registra la caja y no puntúa',
+        () async {
+      pairing
+        ..startSetup()
+        ..confirmSetup();
       final before = _points(bloc);
       for (final id in ['0204', '0203']) {
         handler.handle('BTN:$id:P');
@@ -204,7 +232,9 @@ void main() {
     });
 
     test('el asistente sustituye el emparejamiento anterior', () async {
-      pairing.startSetup();
+      pairing
+        ..startSetup()
+        ..confirmSetup();
       handler.handle('BTN:0201:P');
       await pairing.nextSetupSide(); // solo una caja a la izquierda
       handler.handle('BTN:0203:P');
@@ -218,7 +248,9 @@ void main() {
     });
 
     test('cerrar el asistente a medias no cambia nada', () async {
-      pairing.startSetup();
+      pairing
+        ..startSetup()
+        ..confirmSetup();
       handler.handle('BTN:0203:P');
       pairing.closeSetup();
       expect(pairing.sideForBox('0203'), BoxPairingService.right);

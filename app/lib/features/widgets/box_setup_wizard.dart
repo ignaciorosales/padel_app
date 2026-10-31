@@ -42,11 +42,59 @@ class _BoxSetupWizardState extends State<BoxSetupWizard> {
             if (s == null) return const SizedBox.shrink();
             return Padding(
               padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 32),
-              child: s.done ? _done(s) : _step(s),
+              child: s.confirming
+                  ? _confirm()
+                  : s.done
+                      ? _done(s)
+                      : _step(s),
             );
           },
         ),
       ),
+    );
+  }
+
+  /// Antes de empezar, si ya había cajas: qué se va a perder y que cancelar
+  /// no cambia nada.
+  Widget _confirm() {
+    final n = widget.pairing.pairings.value.values
+        .where((v) => v != BoxPairingService.unassigned)
+        .length;
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        const Icon(Icons.restart_alt, color: Colors.amber, size: 72),
+        const SizedBox(height: 16),
+        const Text(
+          '¿Volver a configurar las cajas?',
+          style: TextStyle(color: Colors.white, fontSize: 36),
+        ),
+        const SizedBox(height: 16),
+        Text(
+          'Ahora hay $n ${n == 1 ? 'caja configurada' : 'cajas configuradas'}. '
+          'Al terminar, esa configuración se sustituye por la nueva: una caja '
+          'que no pulses dejará de puntuar. '
+          'Si cancelas antes de terminar, no cambia nada.',
+          style: const TextStyle(color: Colors.white70, fontSize: 22),
+          textAlign: TextAlign.center,
+        ),
+        const SizedBox(height: 32),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            FilledButton(
+              autofocus: true,
+              onPressed: widget.pairing.confirmSetup,
+              child: const Text('Sí, configurar de nuevo'),
+            ),
+            const SizedBox(width: 16),
+            TextButton(
+              onPressed: widget.pairing.closeSetup,
+              child: const Text('Cancelar'),
+            ),
+          ],
+        ),
+      ],
     );
   }
 
