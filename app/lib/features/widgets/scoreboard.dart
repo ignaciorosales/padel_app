@@ -24,13 +24,11 @@ class _DigitalPoints extends StatelessWidget {
   final String text;
   final double height;
   final Color color;
-  final bool alignRight;
-  
+
   const _DigitalPoints({
     required this.text,
     required this.height,
     required this.color,
-    this.alignRight = false,
   });
   
   @override
@@ -43,7 +41,9 @@ class _DigitalPoints extends StatelessWidget {
       final ch = chars[i];
       children.add(Container(
         width: width,
-        alignment: alignRight ? Alignment.bottomRight : Alignment.bottomLeft,
+        // Mismo lado en las dos mitades: el "1" de Digital7 es estrecho y,
+        // pegado a la izquierda, dejaba un hueco antes del "5" solo a un lado.
+        alignment: Alignment.bottomRight,
         child: Text(
           ch,
           textAlign: TextAlign.center,
@@ -65,7 +65,6 @@ class _DigitalPoints extends StatelessWidget {
     }
     
     return Row(
-      mainAxisAlignment: alignRight ? MainAxisAlignment.end : MainAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: children,
     );
@@ -748,7 +747,6 @@ class _CurrentGamePointsRow extends StatelessWidget {
                       text: data.rightPoints,
                       height: pointsSize,
                       color: textColor,
-                      alignRight: true,
                     ),
                   ),
                 ),
