@@ -181,6 +181,44 @@ void main() {
       expect(after.blue, before.blue);
     });
 
+    test('deshacer el punto que cerró un set reabre el set y devuelve los lados',
+        () async {
+      // Lo mismo que hace el BlocListener de main.dart.
+      var prev = bloc.state;
+      final sub = bloc.stream.listen((s) {
+        if (ScoringBloc.needsSideSwap(prev, s)) {
+          bloc.add(const ScoringEvent.swapSides());
+        }
+        prev = s;
+      });
+
+      // La caja izquierda (Equipo 1 al empezar) gana el primer set.
+      for (var i = 0; i < 100 && bloc.state.match.currentSetIndex == 0; i++) {
+        handler.handle('BTN:0201:P');
+        await pumpEventQueue();
+      }
+      final firstSet = bloc.state.match.sets[0];
+      expect(bloc.state.match.currentSetIndex, 1);
+      expect(bloc.state.isSwapped, isTrue);
+
+      // El Equipo 1 ya juega a la derecha: deshace desde la caja derecha.
+      handler.handle('BTN:0203:U');
+      await pumpEventQueue();
+      final m = bloc.state.match;
+      expect(m.currentSetIndex, 0, reason: 'el set vuelve a abrirse');
+      expect(m.currentSet.blueGames, firstSet.blueGames - 1);
+      expect(m.currentSet.currentGame.blue, greaterThan(0));
+      expect(bloc.state.isSwapped, isFalse, reason: 'vuelven a su lado');
+
+      // Y la caja izquierda vuelve a puntuar al Equipo 1.
+      handler.handle('BTN:0201:P');
+      await pumpEventQueue();
+      expect(bloc.state.match.currentSetIndex, 1);
+      expect(bloc.state.isSwapped, isTrue);
+
+      await sub.cancel();
+    });
+
     test('con cajas configuradas, el asistente pide confirmación primero',
         () async {
       pairing.startSetup();

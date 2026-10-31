@@ -363,12 +363,10 @@ class _MatchScreenState extends State<MatchScreen> {
     final showDebugButton = context.watch<DebugSettingsCubit>().state;
 
     return BlocListener<ScoringBloc, ScoringState>(
-      listenWhen: (previous, current) {
-        // Detectar cambio de set (avance, no retroceso por undo)
-        return current.match.currentSetIndex > previous.match.currentSetIndex;
-      },
+      // Al cerrar un set los jugadores cambian de lado; al deshacer el punto
+      // que lo cerró, vuelven al suyo.
+      listenWhen: ScoringBloc.needsSideSwap,
       listener: (context, state) {
-        // Cuando avanza el set, intercambiar equipos de lado
         context.read<ScoringBloc>().add(const ScoringEvent.swapSides());
       },
       child: Scaffold(

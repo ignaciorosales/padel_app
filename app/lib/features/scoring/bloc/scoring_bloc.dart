@@ -976,6 +976,25 @@ class ScoringBloc extends Bloc<ScoringEvent, ScoringState> {
   }
   
   // ============ SWAP SIDES ============
+
+  /// Si al pasar de [prev] a [cur] hay que dar la vuelta a los lados.
+  ///
+  /// Los jugadores cambian de lado al terminar cada set, así que el lado
+  /// depende de cuántos sets se han cerrado. Si ese número cambia en una
+  /// cantidad impar, toca cambiar: un set ganado, o deshecho el punto que lo
+  /// cerró (el set vuelve a abrirse y los jugadores, a su lado anterior). Un
+  /// partido nuevo deja los lados como al principio por su cuenta.
+  static bool needsSideSwap(ScoringState prev, ScoringState cur) {
+    final delta = cur.match.currentSetIndex - prev.match.currentSetIndex;
+    if (delta.isEven) return false;
+    final m = cur.match;
+    final fresh = m.currentSetIndex == 0 &&
+        m.currentSet.blueGames == 0 &&
+        m.currentSet.redGames == 0 &&
+        m.currentSet.currentGame.blue == 0 &&
+        m.currentSet.currentGame.red == 0;
+    return !fresh;
+  }
   
   void _onSwapSides(SwapSidesEvent event, Emitter<ScoringState> emit) {
     emit(state.copyWith(isSwapped: !state.isSwapped));
