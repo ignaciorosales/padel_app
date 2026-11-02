@@ -14,6 +14,7 @@ import 'package:Puntazo/config/team_selection_service.dart';
 import 'package:Puntazo/config/theme_cubit.dart';
 import 'package:Puntazo/features/match_control/hardware_command_handler.dart';
 import 'package:Puntazo/features/models/scoring_models.dart';
+import 'package:Puntazo/features/remote/remote_control_service.dart';
 import 'package:Puntazo/features/scoring/bloc/scoring_bloc.dart';
 import 'package:Puntazo/features/scoring/bloc/scoring_event.dart';
 import 'package:Puntazo/features/scoring/bloc/scoring_state.dart';
@@ -47,6 +48,7 @@ Future<void> main() async {
   final debugSettingsCubit = await DebugSettingsCubit.init();
   final scoreboardFontCubit = await ScoreboardFontCubit.init();
   final boxPairingService = await BoxPairingService.init();
+  final remoteControl = await RemoteControlService.init();
 
   runApp(
     PuntazoApp(
@@ -56,6 +58,7 @@ Future<void> main() async {
       debugSettingsCubit: debugSettingsCubit,
       scoreboardFontCubit: scoreboardFontCubit,
       boxPairingService: boxPairingService,
+      remoteControl: remoteControl,
     ),
   );
 }
@@ -67,6 +70,7 @@ class PuntazoApp extends StatefulWidget {
   final DebugSettingsCubit debugSettingsCubit;
   final ScoreboardFontCubit scoreboardFontCubit;
   final BoxPairingService boxPairingService;
+  final RemoteControlService remoteControl;
 
   const PuntazoApp({
     super.key,
@@ -76,6 +80,7 @@ class PuntazoApp extends StatefulWidget {
     required this.debugSettingsCubit,
     required this.scoreboardFontCubit,
     required this.boxPairingService,
+    required this.remoteControl,
   });
 
   @override
@@ -106,6 +111,7 @@ class _PuntazoAppState extends State<PuntazoApp> {
         RepositoryProvider.value(value: widget.config),
         RepositoryProvider.value(value: widget.teamService),
         RepositoryProvider.value(value: widget.boxPairingService),
+        RepositoryProvider.value(value: widget.remoteControl),
       ],
       child: MultiBlocProvider(
         providers: [
@@ -238,6 +244,11 @@ class _MatchScreenState extends State<MatchScreen> {
     // Al terminar el asistente, el maestro olvida las cajas no pulsadas.
     context.read<BoxPairingService>().onSetupSaved =
         (line) => _usbListener?.send(line);
+    // Celular del árbitro: entra por la misma capa de lógica que las cajas.
+    context.read<RemoteControlService>().attach(
+          handler: _commandHandler,
+          teams: context.read<TeamSelectionService>(),
+        );
     _startUsbSerial();
   }
 
@@ -489,6 +500,7 @@ class _MatchScreenState extends State<MatchScreen> {
               context.read<BoxPairingService>().pairings,
               context.read<BoxPairingService>().unpairedBoxes,
               context.read<BoxPairingService>().setup,
+              context.read<RemoteControlService>().enabled,
             ]),
             builder: (context, _) {
               final pairing = context.read<BoxPairingService>();
@@ -509,8 +521,11 @@ class _MatchScreenState extends State<MatchScreen> {
                             'aparece, desenchufa el cable USB del maestro y '
                             'vuelve a enchufarlo.',
                       ),
-                    // Sin cajas emparejadas ninguna pulsación puntúa.
-                    if (!pairing.hasPairedBoxes && pairing.setup.value == null)
+                    // Sin cajas emparejadas ninguna pulsación puntúa. Con el
+                    // celular activado se puede jugar sin cajas: no se avisa.
+                    if (!pairing.hasPairedBoxes &&
+                        pairing.setup.value == null &&
+                        !context.read<RemoteControlService>().enabled.value)
                       _BlockingBanner(
                         icon: Icons.sports_esports,
                         title: 'Las cajas NO puntúan: no están configuradas',

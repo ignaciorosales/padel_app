@@ -381,30 +381,13 @@ class _TeamHeaderRow extends StatelessWidget {
                           )
                         : null,
                   ),
-                  Builder(
-                    builder: (ctx) {
-                      final teamService = RepositoryProvider.of<TeamSelectionService>(ctx);
-                      // Si isSwapped, el equipo de la izquierda es getTeam2() (original derecha)
-                      final team = isSwapped ? teamService.getTeam2() : teamService.getTeam1();
-                      final teamName = team?.displayName.toUpperCase() ?? 'EQUIPO 1';
-                      return Text(
-                        teamName,
-                        style: TextStyle(
-                          color: textColor.withOpacity(0.9),
-                          fontSize: labelSize * 1.1,
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: 1.5,
-                          fontFamily: 'Digital7',
-                          shadows: [
-                            Shadow(
-                              offset: Offset(1, 1),
-                              blurRadius: 4,
-                              color: Colors.black.withOpacity(0.5),
-                            ),
-                          ],
-                        ),
-                      );
-                    },
+                  Flexible(
+                    child: _TeamName(
+                      teamIndex: isSwapped ? 2 : 1,
+                      fontSize: labelSize * 1.1,
+                      textColor: textColor,
+                      alignRight: false,
+                    ),
                   ),
                 ],
               ),
@@ -500,30 +483,13 @@ class _TeamHeaderRow extends StatelessWidget {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
-                  Builder(
-                    builder: (ctx) {
-                      final teamService = RepositoryProvider.of<TeamSelectionService>(ctx);
-                      // Si isSwapped, el equipo de la derecha es getTeam1() (original izquierda)
-                      final team = isSwapped ? teamService.getTeam1() : teamService.getTeam2();
-                      final teamName = team?.displayName.toUpperCase() ?? 'EQUIPO 2';
-                      return Text(
-                        teamName,
-                        style: TextStyle(
-                          color: textColor.withOpacity(0.9),
-                          fontSize: labelSize * 1.1,
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: 1.5,
-                          fontFamily: 'Digital7',
-                          shadows: [
-                            Shadow(
-                              offset: Offset(1, 1),
-                              blurRadius: 4,
-                              color: Colors.black.withOpacity(0.5),
-                            ),
-                          ],
-                        ),
-                      );
-                    },
+                  Flexible(
+                    child: _TeamName(
+                      teamIndex: isSwapped ? 1 : 2,
+                      fontSize: labelSize * 1.1,
+                      textColor: textColor,
+                      alignRight: true,
+                    ),
                   ),
                   // Indicador de saque con posición del jugador (DRY/REV)
                   // Si isSwapped: derecha = Team.blue, izquierda = Team.red
@@ -566,6 +532,52 @@ class _TeamHeaderRow extends StatelessWidget {
 
 /// ▲ OPTIMIZACIÓN: Row de puntos actuales con BlocSelector único
 ///   USA isSwapped del estado del bloc para invertir la visualización
+/// Nombre de la pareja (jugadores o color). Escucha los nombres porque
+/// llegan desde el celular en mitad del partido; si no caben, encogen.
+class _TeamName extends StatelessWidget {
+  final int teamIndex;
+  final double fontSize;
+  final Color textColor;
+  final bool alignRight;
+
+  const _TeamName({
+    required this.teamIndex,
+    required this.fontSize,
+    required this.textColor,
+    required this.alignRight,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final teamService = RepositoryProvider.of<TeamSelectionService>(context);
+    return ListenableBuilder(
+      listenable: teamService.playersOf(teamIndex),
+      builder: (context, _) => FittedBox(
+        fit: BoxFit.scaleDown,
+        alignment: alignRight ? Alignment.centerRight : Alignment.centerLeft,
+        child: Text(
+          teamService.nameFor(teamIndex).toUpperCase(),
+          maxLines: 1,
+          style: TextStyle(
+            color: textColor.withOpacity(0.9),
+            fontSize: fontSize,
+            fontWeight: FontWeight.bold,
+            letterSpacing: 1.5,
+            // Sin Digital7: no tiene tildes ni ñ, y los nombres las llevan.
+            shadows: [
+              Shadow(
+                offset: const Offset(1, 1),
+                blurRadius: 4,
+                color: Colors.black.withOpacity(0.5),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _CurrentGamePointsRow extends StatelessWidget {
   final double pointsSize;
   final Color textColor;
@@ -574,16 +586,6 @@ class _CurrentGamePointsRow extends StatelessWidget {
     required this.pointsSize,
     required this.textColor,
   });
-
-  static String _mapPoints(int us, int them, bool isTieBreak) {
-    if (isTieBreak) return '$us';
-    if (us >= 3 && them >= 3) {
-      if (us == them) return '40';
-      if (us == them + 1) return 'AD';
-    }
-    const labels = ['0', '15', '30', '40'];
-    return labels[min(us, 3)];
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -602,8 +604,8 @@ class _CurrentGamePointsRow extends StatelessWidget {
         final isSuperTB = m.currentSetIndex == 2 && m.settings.tbGames == 1 && gp.isTieBreak;
         
         return _GamePointsData(
-          leftPoints: _mapPoints(leftPts, rightPts, gp.isTieBreak),
-          rightPoints: _mapPoints(rightPts, leftPts, gp.isTieBreak),
+          leftPoints: pointLabel(leftPts, rightPts, gp.isTieBreak),
+          rightPoints: pointLabel(rightPts, leftPts, gp.isTieBreak),
           leftGames: leftGames,
           rightGames: rightGames,
           isSuperTB: isSuperTB,

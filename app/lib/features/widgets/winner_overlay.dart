@@ -71,9 +71,7 @@ class _WinnerOverlayState extends State<WinnerOverlay>
         final winnerColor = isBlueWinner 
             ? teamService.getColor1()
             : teamService.getColor2();
-        final winnerName = isBlueWinner
-            ? (teamService.getTeam1()?.displayName ?? 'Equipo 1')
-            : (teamService.getTeam2()?.displayName ?? 'Equipo 2');
+        final winnerName = teamService.nameFor(isBlueWinner ? 1 : 2);
         
         return AnimatedBuilder(
           animation: _controller,
@@ -136,7 +134,7 @@ class _WinnerOverlayState extends State<WinnerOverlay>
                                     fontWeight: FontWeight.w900,
                                     color: Colors.white,
                                     letterSpacing: 4,
-                                    fontFamily: 'Digital7',
+                                    // Sin Digital7: no tiene tildes ni ñ.
                                     shadows: [
                                       Shadow(
                                         color: Colors.black.withOpacity(0.7),

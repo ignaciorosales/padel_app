@@ -1,0 +1,260 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0b0d10">
+<title>Puntazo · Árbitro</title>
+<!-- La sirve la tele por la red local: nada de recursos externos, tiene que
+     funcionar sin internet. La API está documentada en
+     app/lib/features/remote/remote_control_service.dart. -->
+<style>
+  :root { --bg:#0b0d10; --card:#161a20; --line:#262c35; --text:#f2f4f7; --dim:#8a93a0; --bad:#e5484d; }
+  * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html, body { margin:0; height:100%; background:var(--bg); color:var(--text);
+    font-family:system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  body { display:flex; flex-direction:column; padding:12px 12px max(12px, env(safe-area-inset-bottom)); gap:12px;
+    user-select:none; }
+  /* El user-select:none del body se hereda, y en Safari deja los campos sin
+     poder escribir. */
+  input { -webkit-user-select:text; user-select:text; }
+  body { -webkit-user-select:none; }
+  button { font:inherit; color:inherit; border:0; border-radius:14px; background:var(--card); cursor:pointer; }
+  button:active { transform:scale(.97); }
+  button:disabled { opacity:.45; }
+  .hidden { display:none !important; }
+
+  #offline { background:var(--bad); color:#fff; padding:10px 12px; border-radius:10px; font-weight:700; text-align:center; }
+
+  /* PIN */
+  #login { margin:auto; width:100%; max-width:320px; display:flex; flex-direction:column; gap:12px; text-align:center; }
+  #login h1 { margin:0 0 4px; font-size:22px; }
+  #login p { margin:0; color:var(--dim); }
+  #pin { font-size:32px; text-align:center; letter-spacing:10px; padding:14px; border-radius:14px;
+    border:2px solid var(--line); background:var(--card); color:var(--text); width:100%; }
+  #login button { padding:16px; font-size:18px; font-weight:700; background:#2b6cff; }
+  #loginError { color:var(--bad); min-height:1.2em; }
+
+  /* Marcador */
+  #board { flex:1; display:flex; flex-direction:column; gap:12px; min-height:0; }
+  .sides { flex:1; display:grid; grid-template-columns:1fr 1fr; gap:10px; min-height:0; }
+  .team { display:flex; flex-direction:column; gap:8px; min-width:0; }
+  .head { background:var(--card); border-radius:14px; padding:10px; border-top:6px solid var(--c); text-align:center; }
+  .name { font-weight:800; font-size:15px; line-height:1.2; min-height:2.4em; display:flex; align-items:center;
+    justify-content:center; overflow-wrap:anywhere; }
+  .score { display:flex; justify-content:center; align-items:baseline; gap:10px; margin-top:4px; }
+  .pts { font-size:44px; font-weight:800; font-variant-numeric:tabular-nums; }
+  .games { font-size:18px; color:var(--dim); font-variant-numeric:tabular-nums; }
+  .serve { height:18px; font-size:13px; color:#d8f34a; font-weight:700; }
+  .plus { flex:1; min-height:110px; font-size:22px; font-weight:800; background:var(--c); color:var(--on);
+    border:2px solid rgba(255,255,255,.18); }
+  .minus { padding:14px; font-size:16px; font-weight:700; }
+  #sets { text-align:center; color:var(--dim); font-size:14px; min-height:1.2em; }
+  #winner { text-align:center; font-weight:800; font-size:18px; color:#d8f34a; }
+  .tools { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .tools button { padding:16px 8px; font-weight:700; font-size:15px; }
+  #reset { grid-column:1 / -1; background:transparent; border:1px solid var(--line); color:var(--dim); padding:12px; }
+
+  /* Nombres */
+  dialog { border:0; border-radius:18px; background:var(--card); color:var(--text); width:min(92vw, 420px); padding:18px; }
+  dialog::backdrop { background:rgba(0,0,0,.6); }
+  dialog h2 { margin:0 0 12px; font-size:18px; }
+  fieldset { border:0; border-left:6px solid var(--c); margin:0 0 14px; padding:0 0 0 10px; display:flex; flex-direction:column; gap:8px; }
+  legend { color:var(--dim); font-size:13px; padding:0 0 4px; }
+  dialog input { font-size:17px; padding:12px; border-radius:10px; border:1px solid var(--line); background:var(--bg); color:var(--text); width:100%; }
+  .row { display:flex; gap:10px; }
+  .row button { flex:1; padding:14px; font-weight:700; }
+  .primary { background:#2b6cff; }
+</style>
+</head>
+<body>
+  <div id="offline" class="hidden">Sin conexión con la tele: los puntos no están llegando</div>
+
+  <form id="login" class="hidden">
+    <h1>Puntazo · Árbitro</h1>
+    <p>Escribe el PIN del club</p>
+    <input id="pin" type="password" inputmode="numeric" pattern="[0-9]*" autocomplete="off" maxlength="8" required>
+    <div id="loginError"></div>
+    <button type="submit">Entrar</button>
+  </form>
+
+  <main id="board" class="hidden">
+    <div class="sides">
+      <section class="team" data-slot="0">
+        <div class="head"><div class="name"></div><div class="score"><span class="pts"></span><span class="games"></span></div><div class="serve"></div></div>
+        <button class="plus">+ Punto</button>
+        <button class="minus">− Quitar punto</button>
+      </section>
+      <section class="team" data-slot="1">
+        <div class="head"><div class="name"></div><div class="score"><span class="pts"></span><span class="games"></span></div><div class="serve"></div></div>
+        <button class="plus">+ Punto</button>
+        <button class="minus">− Quitar punto</button>
+      </section>
+    </div>
+    <div id="winner" class="hidden"></div>
+    <div id="sets"></div>
+    <div class="tools">
+      <button id="swap">⇄ Cambiar de lado</button>
+      <button id="names">✎ Nombres</button>
+      <button id="reset">Nuevo partido</button>
+    </div>
+  </main>
+
+  <dialog id="namesDialog">
+    <form method="dialog" id="namesForm">
+      <h2>Jugadores</h2>
+      <fieldset data-team="1"><legend></legend><input maxlength="24" placeholder="Jugador 1"><input maxlength="24" placeholder="Jugador 2"></fieldset>
+      <fieldset data-team="2"><legend></legend><input maxlength="24" placeholder="Jugador 1"><input maxlength="24" placeholder="Jugador 2"></fieldset>
+      <div class="row">
+        <button value="cancel" formnovalidate>Cancelar</button>
+        <button value="ok" class="primary">Guardar</button>
+      </div>
+    </form>
+  </dialog>
+
+<script>
+const $ = (s, el = document) => el.querySelector(s);
+const API = '/api/v1';
+let token = load('token');
+let state = null;
+let busy = false;
+
+function load(k) { try { return localStorage.getItem(k); } catch { return null; } }
+function save(k, v) { try { v == null ? localStorage.removeItem(k) : localStorage.setItem(k, v); } catch {} }
+
+function show(view) {
+  $('#login').classList.toggle('hidden', view !== 'login');
+  $('#board').classList.toggle('hidden', view !== 'board');
+}
+
+async function call(method, path, body) {
+  const res = await fetch(API + path, {
+    method,
+    headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: 'Bearer ' + token } : {}) },
+    body: body ? JSON.stringify(body) : undefined,
+    cache: 'no-store',
+  });
+  const data = await res.json().catch(() => ({}));
+  if (res.status === 401 && path !== '/login') { token = null; save('token', null); show('login'); }
+  return { ok: res.ok, status: res.status, data };
+}
+
+function offline(on) { $('#offline').classList.toggle('hidden', !on); }
+
+// Texto legible sobre el color de la pareja (verde, negro, amarillo...).
+function onColor(hex) {
+  const n = parseInt(hex.replace('#', ''), 16);
+  const l = (0.299 * (n >> 16 & 255) + 0.587 * (n >> 8 & 255) + 0.114 * (n & 255)) / 255;
+  return l > 0.6 ? '#111' : '#fff';
+}
+
+function render(s) {
+  state = s;
+  // Mismo orden que en la tele: lo que se ve a la izquierda, a la izquierda.
+  const order = s.izquierda === 1 ? [0, 1] : [1, 0];
+  document.querySelectorAll('.team').forEach((el, slot) => {
+    const t = s.equipos[order[slot]];
+    el.dataset.team = t.equipo;
+    el.style.setProperty('--c', t.color);
+    el.style.setProperty('--on', onColor(t.color));
+    $('.name', el).textContent = t.nombre;
+    $('.pts', el).textContent = t.puntos;
+    $('.games', el).textContent = t.juegos + (s.tieBreak ? ' · TB' : '');
+    $('.serve', el).textContent = t.saca ? '● saca' : '';
+  });
+  $('#sets').textContent = s.setsAnteriores.length
+    ? 'Sets: ' + s.setsAnteriores.map(([a, b]) => a + '-' + b).join('  ·  ')
+    : '';
+  const w = s.ganador && s.equipos[s.ganador - 1];
+  $('#winner').classList.toggle('hidden', !w);
+  $('#winner').textContent = w ? 'Ganan ' + w.nombre : '';
+}
+
+async function refresh() {
+  if (!token || busy) return;
+  try {
+    const r = await call('GET', '/estado');
+    offline(false);
+    if (r.ok) render(r.data);
+  } catch { offline(true); }
+}
+
+// Cada pulsación lleva un id: si la red falla y se reintenta, la tele no la
+// aplica dos veces. crypto.randomUUID no existe en http, de ahí el apaño.
+function newId() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 10); }
+
+async function send(cmd) {
+  if (busy) return;
+  busy = true;
+  document.querySelectorAll('main button').forEach(b => b.disabled = true);
+  const body = { id: newId(), ...cmd };
+  try {
+    for (let attempt = 0; attempt < 4; attempt++) {
+      try {
+        const r = await call('POST', '/comando', body);
+        offline(false);
+        if (r.ok) { render(r.data); navigator.vibrate?.(30); }
+        return;
+      } catch {
+        offline(true);
+        await new Promise(ok => setTimeout(ok, 700));
+      }
+    }
+  } finally {
+    busy = false;
+    document.querySelectorAll('main button').forEach(b => b.disabled = false);
+  }
+}
+
+document.querySelectorAll('.team').forEach(el => {
+  $('.plus', el).onclick = () => send({ accion: 'punto', equipo: +el.dataset.team });
+  $('.minus', el).onclick = () => send({ accion: 'quitar', equipo: +el.dataset.team });
+});
+$('#swap').onclick = () => send({ accion: 'lado' });
+$('#reset').onclick = () => {
+  if (confirm('¿Empezar un partido nuevo? El marcador vuelve a 0.')) send({ accion: 'nuevo_partido' });
+};
+
+$('#names').onclick = () => {
+  if (!state) return;
+  document.querySelectorAll('#namesForm fieldset').forEach(fs => {
+    const t = state.equipos[+fs.dataset.team - 1];
+    fs.style.setProperty('--c', t.color);
+    $('legend', fs).textContent = 'Pareja ' + t.colorNombre;
+    fs.querySelectorAll('input').forEach((inp, i) => inp.value = t.jugadores[i] || '');
+  });
+  $('#namesDialog').showModal();
+};
+$('#namesDialog').addEventListener('close', () => {
+  if ($('#namesDialog').returnValue !== 'ok') return;
+  const jugadores = [...document.querySelectorAll('#namesForm fieldset')]
+    .map(fs => [...fs.querySelectorAll('input')].map(i => i.value.trim()));
+  send({ accion: 'nombres', jugadores });
+});
+
+$('#login').onsubmit = async e => {
+  e.preventDefault();
+  $('#loginError').textContent = '';
+  try {
+    const r = await call('POST', '/login', { pin: $('#pin').value });
+    offline(false);
+    if (r.ok) {
+      token = r.data.token;
+      save('token', token);
+      $('#pin').value = '';
+      show('board');
+      refresh();
+    } else if (r.status === 429) {
+      $('#loginError').textContent = 'Demasiados intentos. Espera ' + r.data.segundos + ' s.';
+    } else {
+      $('#loginError').textContent = 'PIN incorrecto';
+    }
+  } catch { offline(true); }
+};
+
+show(token ? 'board' : 'login');
+refresh();
+setInterval(refresh, 1000);
+</script>
+</body>
+</html>

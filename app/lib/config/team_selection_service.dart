@@ -13,7 +13,18 @@ class TeamSelectionService {
   // Notificadores para cambios en tiempo real
   final ValueNotifier<String> team1Selection;
   final ValueNotifier<String> team2Selection;
-  
+
+  static const String _keyPlayers1 = 'team1_players';
+  static const String _keyPlayers2 = 'team2_players';
+
+  /// Nombres de los dos jugadores de cada pareja. Vacíos = se muestra el
+  /// color. Se guardan sueltos (no "García / López") porque cada uno es una
+  /// persona distinta para quien lea el partido después.
+  late final ValueNotifier<List<String>> players1 =
+      ValueNotifier(_prefs.getStringList(_keyPlayers1) ?? const ['', '']);
+  late final ValueNotifier<List<String>> players2 =
+      ValueNotifier(_prefs.getStringList(_keyPlayers2) ?? const ['', '']);
+
   TeamSelectionService._(this._config, this._prefs, this.team1Selection, this.team2Selection);
   
   /// Inicializar servicio (debe llamarse al inicio de la app)
@@ -116,6 +127,35 @@ class TeamSelectionService {
     }
   }
   
+  /// Jugadores de la pareja 1 o 2.
+  ValueNotifier<List<String>> playersOf(int teamIndex) =>
+      teamIndex == 1 ? players1 : players2;
+
+  /// Lo que se pinta como nombre de la pareja: "GARCÍA / LÓPEZ" si hay
+  /// jugadores, el color ("VERDE") si no.
+  String nameFor(int teamIndex) {
+    final players = playersOf(teamIndex).value.where((p) => p.isNotEmpty);
+    if (players.isNotEmpty) return players.join(' / ');
+    final team = teamIndex == 1 ? getTeam1() : getTeam2();
+    return team?.displayName ?? 'Equipo $teamIndex';
+  }
+
+  /// Cambia los dos jugadores de una pareja. Se recortan a 24 caracteres:
+  /// llegan desde el celular y en la tele no cabe más.
+  Future<void> setPlayers(int teamIndex, List<String> names) async {
+    final clean = [
+      for (var i = 0; i < 2; i++)
+        (i < names.length ? names[i] : '').trim().characters.take(24).toString(),
+    ];
+    playersOf(teamIndex).value = clean;
+    try {
+      await _prefs.setStringList(
+          teamIndex == 1 ? _keyPlayers1 : _keyPlayers2, clean);
+    } catch (_) {
+      // CRASH SAFETY: el nombre ya está en memoria aunque no se guarde.
+    }
+  }
+
   /// Helper para convertir hex a Color
   Color _hex(String hex) {
     var h = hex.replaceAll('#', '').trim();
@@ -127,5 +167,7 @@ class TeamSelectionService {
   void dispose() {
     team1Selection.dispose();
     team2Selection.dispose();
+    players1.dispose();
+    players2.dispose();
   }
 }

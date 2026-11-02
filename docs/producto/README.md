@@ -115,8 +115,10 @@ red**. El diseño elegido evita conectarla:
   verificado» sea producto y no marketing. Sin ella cualquiera se fabrica
   partidos ganados.
 - **Entrada de datos** (nombres en el marcador, qué partido toca): requiere un
-  canal local del móvil a la tele (BLE, Wi-Fi Direct o punto de acceso). Es caro
-  y va en la fase 3+, nunca como requisito.
+  canal local del móvil a la tele. **Construido** (2026-11): la tele sirve una
+  página y una API en la WiFi local, con PIN del club; nunca como requisito.
+  Ver [control-remoto.md](control-remoto.md), que también deja planeado el
+  acta firmada para llevarse el partido al perfil.
 - Si la tele llegase a ver internet alguna vez, que vacíe su cola sola. Como
   extra silencioso, nunca como requisito.
 

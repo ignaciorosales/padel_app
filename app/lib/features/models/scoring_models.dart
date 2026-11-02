@@ -5,6 +5,18 @@ part 'scoring_models.g.dart';
 /// Representa los dos equipos: verde y negro
 enum Team { blue, red }
 
+/// Lo que se ve en el marcador para un equipo: 0/15/30/40/AD, o el número
+/// tal cual en un tie-break.
+String pointLabel(int us, int them, bool isTieBreak) {
+  if (isTieBreak) return '$us';
+  if (us >= 3 && them >= 3) {
+    if (us == them) return '40';
+    if (us == them + 1) return 'AD';
+  }
+  const labels = ['0', '15', '30', '40'];
+  return labels[us > 3 ? 3 : us];
+}
+
 /// Modo de partido: Amateur (reglas flexibles) o Campeonato (reglas oficiales)
 enum MatchMode { 
   /// Modo Amateur: Sets 5-5 se deciden con diferencia de 2, máximo 9-8

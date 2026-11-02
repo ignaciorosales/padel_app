@@ -8,6 +8,7 @@ import 'package:Puntazo/config/scoreboard_font_cubit.dart';
 import 'package:Puntazo/config/team_selection_service.dart';
 import 'package:Puntazo/config/theme_cubit.dart';
 import 'package:Puntazo/features/models/scoring_models.dart' show MatchMode, Team;
+import 'package:Puntazo/features/remote/remote_settings_tab.dart';
 import 'package:Puntazo/features/scoring/bloc/scoring_bloc.dart';
 import 'package:Puntazo/features/scoring/bloc/scoring_event.dart';
 import 'package:Puntazo/features/scoring/bloc/scoring_state.dart';
@@ -61,7 +62,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   int _currentTabIndex = 0;
 
   void _changeTab(int index) {
-    if (index >= 0 && index < 4) {
+    if (index >= 0 && index < 5) {
       setState(() => _currentTabIndex = index);
     }
   }
@@ -121,6 +122,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             _TabInfo(Icons.rule, l10n.tabRules),
                             _TabInfo(Icons.palette, l10n.tabDisplay),
                             _TabInfo(Icons.sports_esports, 'Mandos'),
+                            _TabInfo(Icons.phone_android, 'Celular'),
                           ],
                         ),
                       ),
@@ -155,6 +157,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
         return const _DisplayTab(key: ValueKey('display'));
       case 3:
         return const _ControllersTab(key: ValueKey('controllers'));
+      case 4:
+        return const RemoteSettingsTab(key: ValueKey('remote'));
       default:
         return const _TeamsTab(key: ValueKey('teams'));
     }
