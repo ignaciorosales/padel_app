@@ -282,7 +282,7 @@ class _ScoreboardContent extends StatelessWidget {
                     // Puntos grandes (juego actual) - centrado verticalmente
                     Expanded(
                       child: Center(
-                        child: _CurrentGamePointsRow(
+                        child: CurrentGamePointsRow(
                           pointsSize: pointsSize,
                           textColor: textColor,
                         ),
@@ -578,11 +578,33 @@ class _TeamName extends StatelessWidget {
   }
 }
 
-class _CurrentGamePointsRow extends StatelessWidget {
+/// Tamaño de los puntos: el mismo para todos, calculado con el puntaje más ancho
+/// que puede salir. Si cada uno se achicara por su cuenta para caber, con la
+/// letra grande "0" y "15" se verían mucho más grandes que "30".
+double commonPointsSize(BuildContext context, double maxSize, double maxWidth) {
+  final textScaler = MediaQuery.textScalerOf(context);
+  var widest = 0.0;
+  for (final label in const ['0', '15', '30', '40', 'AD', '88']) {
+    final painter = TextPainter(
+      text: TextSpan(
+        text: label,
+        style: TextStyle(fontFamily: 'Digital7', fontSize: maxSize, height: 1.0),
+      ),
+      textDirection: TextDirection.ltr,
+      textScaler: textScaler,
+    )..layout();
+    widest = max(widest, painter.width);
+    painter.dispose();
+  }
+  // Un píxel de margen: Text redondea su ancho hacia arriba al maquetar.
+  return widest + 1 <= maxWidth ? maxSize : maxSize * (maxWidth - 1) / widest;
+}
+
+class CurrentGamePointsRow extends StatelessWidget {
   final double pointsSize;
   final Color textColor;
 
-  const _CurrentGamePointsRow({
+  const CurrentGamePointsRow({
     required this.pointsSize,
     required this.textColor,
   });
@@ -611,7 +633,13 @@ class _CurrentGamePointsRow extends StatelessWidget {
           isSuperTB: isSuperTB,
         );
       },
-      builder: (context, data) {
+      builder: (context, data) => LayoutBuilder(builder: (context, constraints) {
+        // Cada lado ocupa el 38 % del ancho, menos su padding.
+        final digitsSize = commonPointsSize(
+          context,
+          pointsSize,
+          max(2, constraints.maxWidth * 0.38 - pointsSize * 0.37),
+        );
         return Row(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
@@ -629,7 +657,7 @@ class _CurrentGamePointsRow extends StatelessWidget {
                     fit: BoxFit.scaleDown,
                     child: _DigitalPoints(
                       text: data.leftPoints,
-                      height: pointsSize,
+                      height: digitsSize,
                       color: textColor,
                     ),
                   ),
@@ -735,7 +763,7 @@ class _CurrentGamePointsRow extends StatelessWidget {
                     fit: BoxFit.scaleDown,
                     child: _DigitalPoints(
                       text: data.rightPoints,
-                      height: pointsSize,
+                      height: digitsSize,
                       color: textColor,
                     ),
                   ),
@@ -744,7 +772,7 @@ class _CurrentGamePointsRow extends StatelessWidget {
             ),
           ],
         );
-      },
+      }),
     );
   }
 }
